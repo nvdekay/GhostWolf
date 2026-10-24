@@ -1,17 +1,88 @@
+/* Design tokens — hệ "Classical" của prototype Trăng Sói: giấy da, mực nâu, viền vàng đồng. */
 :root {
-  --color-bg: #0f1115;
-  --color-text: #e8e6e3;
-  --color-muted: #9a9ca3;
-  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --space-2: 0.5rem;
-  --space-4: 1rem;
+  --font-heading: 'Xanh Mono', 'Courier New', monospace;
+  --font-body: 'Noticia Text', Georgia, serif;
 
-  color-scheme: dark;
-  font-family: var(--font-sans);
-  line-height: 1.5;
-  color: var(--color-text);
-  background-color: var(--color-bg);
+  /* Nền & giấy */
+  --ground: #17110c;
+  --ground-night: #0e0b09;
+  --paper: #e8dabb;
+  --paper-night: #d6c7a6;
+  --surface: #efe3c8;
+  --surface-sunk: #e0cfac;
+  --bar: #e3d4b4;
+  --frame: #9c7f52;
+
+  /* Mực */
+  --color-text: #2a2118;
+  --muted: #5e4c36;
+  --subtle: #6f5d45;
+  --placeholder: #8c7a5e;
+  --gold: #8a6228;
+  --gold-ink: #7d5411;
+  --gold-deep: #5a3b0a;
+  --danger: #8e3229;
+  --danger-line: #a4423a;
+  --success: #3f6b3a;
+
+  /* Nút mực đậm */
+  --ink: #2b231b;
+  --ink-hover: #45372a;
+  --ink-text: #f1e6cc;
+
+  /* Đường kẻ */
+  --color-divider: rgba(58, 40, 22, 0.26);
+  --line-faint: rgba(58, 40, 22, 0.08);
+  --line-soft: rgba(58, 40, 22, 0.14);
+  --line: rgba(58, 40, 22, 0.18);
+  --line-dashed: rgba(58, 40, 22, 0.22);
+  --gold-line: rgba(138, 98, 40, 0.55);
+  --gold-line-soft: rgba(138, 98, 40, 0.4);
+  --gold-tint: rgba(138, 98, 40, 0.1);
+  --scrim: rgba(12, 8, 5, 0.7);
+
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 7px;
+  --radius-xl: 10px;
+
+  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.5);
+  --shadow-paper:
+    0 24px 70px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 246, 222, 0.45),
+    inset 0 0 110px rgba(122, 80, 28, 0.3), inset 0 0 18px rgba(96, 60, 22, 0.35);
+  --shadow-bar: 0 -8px 30px rgba(0, 0, 0, 0.35);
+
+  --safe-bottom: env(safe-area-inset-bottom);
+
+  color-scheme: light;
   -webkit-text-size-adjust: 100%;
+}
+
+/* Màu theo phe — đặt bằng data-team trên phần tử cha. */
+[data-team='village'] {
+  --team-color: #5e4c36;
+  --team-ink: #2a2118;
+  --team-line: rgba(58, 40, 22, 0.3);
+}
+[data-team='wolf'] {
+  --team-color: #a4423a;
+  --team-ink: #8e3229;
+  --team-line: rgba(164, 66, 58, 0.45);
+}
+[data-team='solo'] {
+  --team-color: #a06f24;
+  --team-ink: #7d5411;
+  --team-line: rgba(138, 98, 40, 0.4);
+}
+[data-team='status'] {
+  --team-color: #6f5d45;
+  --team-ink: #2a2118;
+  --team-line: rgba(58, 40, 22, 0.25);
+}
+[data-team='hidden'] {
+  --team-color: #6f5d45;
+  --team-ink: #6f5d45;
+  --team-line: rgba(58, 40, 22, 0.25);
 }
 
 *,
@@ -20,26 +91,337 @@
   box-sizing: border-box;
 }
 
+html,
 body {
   margin: 0;
-  min-height: 100dvh;
+  background: var(--ground);
+  -webkit-tap-highlight-color: transparent;
 }
 
+body {
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--color-text);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-heading);
+  font-weight: 400;
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: var(--gold-ink);
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--placeholder);
+}
+
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: rgba(138, 98, 40, 0.3);
+}
+
+@keyframes curtain {
+  0% {
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  78% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* — App ground — */
 .app {
-  display: grid;
-  place-content: center;
-  gap: var(--space-2);
+  min-height: 100vh;
   min-height: 100dvh;
-  padding: var(--space-4);
-  text-align: center;
+  color: var(--color-text);
+  background:
+    radial-gradient(1200px 720px at 86% 4%, rgba(255, 170, 80, 0.17), transparent 62%),
+    var(--ground);
+  transition: background-color 0.9s ease;
 }
 
-.app__title {
-  margin: 0;
-  font-size: clamp(2rem, 8vw, 3.5rem);
+.app[data-night='true'] {
+  background:
+    radial-gradient(1100px 620px at 82% 0%, rgba(255, 160, 70, 0.08), transparent 62%),
+    var(--ground-night);
 }
 
-.app__status {
-  margin: 0;
-  color: var(--color-muted);
+/* — Tiện ích chữ — */
+.muted {
+  color: var(--muted);
+}
+
+.eyebrow {
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold-ink);
+}
+
+.eyebrow--muted {
+  color: var(--muted);
+}
+
+.label-caps {
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold-ink);
+  margin-bottom: 4px;
+}
+
+.heading-font {
+  font-family: var(--font-heading);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.pretty {
+  text-wrap: pretty;
+}
+
+.danger-text {
+  color: var(--danger);
+}
+
+.success-text {
+  color: var(--success);
+}
+
+.gold-text {
+  color: var(--gold-ink);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* — Nút — */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 9px 16px;
+  font-family: var(--font-heading);
+  font-size: 16px;
+  line-height: 1.2;
+  text-decoration: none;
+  color: var(--color-text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-ink {
+  background: var(--ink);
+  color: var(--ink-text);
+  border-color: var(--ink);
+}
+
+.btn-ink:not(:disabled):hover {
+  background: var(--ink-hover);
+}
+
+.btn-secondary {
+  border-color: var(--color-divider);
+}
+
+.btn-secondary:not(:disabled):hover {
+  background: rgba(42, 33, 24, 0.07);
+}
+
+.btn-secondary:not(:disabled):active {
+  background: rgba(42, 33, 24, 0.14);
+}
+
+.btn-ghost {
+  color: var(--gold);
+  padding-inline: 6px;
+}
+
+.btn-ghost:not(:disabled):hover {
+  background: rgba(138, 98, 40, 0.1);
+}
+
+.btn-ghost--muted {
+  color: var(--muted);
+}
+
+.btn-danger {
+  color: var(--danger);
+  border-color: var(--danger-line);
+}
+
+.btn-danger:not(:disabled):hover {
+  background: rgba(164, 66, 58, 0.08);
+}
+
+.btn-icon {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  flex: none;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.btn-lg {
+  min-height: 54px;
+  font-size: 18px;
+}
+
+.btn-xl {
+  min-height: 58px;
+  font-size: 20px;
+}
+
+.link-btn {
+  min-height: 44px;
+  padding: 0 4px;
+  background: none;
+  border: 0;
+  color: var(--color-text);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+/* — Form — */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.field > label {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.input {
+  width: 100%;
+  min-height: 48px;
+  padding: 6px 12px;
+  font-size: 17px;
+  color: var(--color-text);
+  caret-color: var(--gold);
+  background: transparent;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+}
+
+.input:hover {
+  border-color: rgba(42, 33, 24, 0.45);
+}
+
+.input:focus-visible {
+  border-color: var(--gold);
+  outline-offset: 0;
+}
+
+textarea.input {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.search {
+  position: relative;
+}
+
+.search > svg {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+}
+
+.search > .input {
+  min-height: 50px;
+  padding-left: 44px;
 }

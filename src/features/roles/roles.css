@@ -1,0 +1,582 @@
+.team-ink {
+  color: var(--team-ink);
+}
+
+.empty__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* — Bố cục màn chọn bộ vai — */
+.roles {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 24px clamp(16px, 4vw, 40px) 140px;
+  display: grid;
+  gap: 32px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 1024px) {
+  .roles {
+    grid-template-columns: minmax(0, 1fr) 380px;
+  }
+}
+
+.roles__main {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+.roles__filters {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.suggest {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  padding: 16px 18px;
+  border: 1px solid rgba(138, 98, 40, 0.45);
+  border-radius: var(--radius-lg);
+}
+
+.suggest--auto {
+  flex-wrap: nowrap;
+  gap: 12px;
+  padding: 12px 14px;
+}
+
+.suggest__text {
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 15px;
+}
+
+.suggest__title {
+  font-family: var(--font-heading);
+  font-size: 21px;
+  color: var(--gold-ink);
+}
+
+.suggest__auto-text {
+  flex: 1;
+  font-size: 15px;
+}
+
+/* — Thẻ vai — */
+.tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 270px), 1fr));
+  gap: 12px;
+}
+
+.tile-grid--lib {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-lg);
+}
+
+.tile--on {
+  border-color: var(--gold-line);
+}
+
+.tile__body {
+  flex: 1;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 16px 16px 12px;
+  text-align: left;
+  background: none;
+  border: 0;
+}
+
+.tile__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tile__name {
+  font-family: var(--font-heading);
+  font-size: 23px;
+  line-height: 1.1;
+}
+
+.tile__short {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--muted);
+  text-wrap: pretty;
+}
+
+.tile__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px 8px 16px;
+  border-top: 1px solid var(--line-faint);
+}
+
+.tile__count {
+  font-size: 14px;
+  color: var(--subtle);
+}
+
+.tile-add {
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--gold-ink);
+  background: none;
+  border: 1px dashed rgba(138, 98, 40, 0.45);
+  border-radius: var(--radius-lg);
+}
+
+.tile-add__title {
+  font-family: var(--font-heading);
+  font-size: 21px;
+}
+
+/* — Trạng thái — */
+.statuses {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.statuses--lib {
+  margin-top: 16px;
+}
+
+.statuses__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: 12px;
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 64px;
+  padding: 14px 16px;
+  text-align: left;
+  background: none;
+  border: 1px dashed var(--line-dashed);
+  border-radius: var(--radius-lg);
+}
+
+.status-row__text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+}
+
+.status-row__name {
+  font-family: var(--font-heading);
+  font-size: 20px;
+}
+
+.status-row--button .status-row__name {
+  font-size: 21px;
+}
+
+/* — Bảng bộ vai — */
+.deck {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  background: var(--surface);
+}
+
+.deck--side {
+  position: sticky;
+  top: 84px;
+  align-self: start;
+  max-height: calc(100vh - 108px);
+  overflow-y: auto;
+  padding: 22px;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg);
+}
+
+.deck--sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 70;
+  max-width: 640px;
+  max-height: 86vh;
+  margin: 0 auto;
+  overflow-y: auto;
+  padding: 8px 16px calc(20px + var(--safe-bottom));
+  border-top: 1px solid var(--color-divider);
+  border-radius: 14px 14px 0 0;
+  box-shadow: var(--shadow-lg);
+  animation: rise 0.25s ease;
+}
+
+.deck-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 65;
+  background: var(--scrim);
+}
+
+.deck__grip {
+  display: flex;
+  justify-content: center;
+  padding-top: 4px;
+}
+
+.deck__grip > span {
+  width: 40px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(58, 40, 22, 0.25);
+}
+
+.deck__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.deck__total {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.deck__count {
+  font-family: var(--font-heading);
+  font-size: 46px;
+  line-height: 1;
+}
+
+.deck__count > span {
+  font-size: 20px;
+}
+
+.deck__status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+}
+
+[data-tone='muted'] {
+  color: var(--muted);
+}
+
+[data-tone='warn'] {
+  color: var(--gold-ink);
+}
+
+[data-tone='bad'] {
+  color: var(--danger);
+}
+
+[data-tone='good'] {
+  color: var(--success);
+}
+
+.deck__teams {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+}
+
+.deck__teams > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px;
+  font-size: 13px;
+}
+
+.deck__teams > div + div {
+  border-left: 1px solid var(--color-divider);
+}
+
+.deck__teams strong {
+  font-family: var(--font-heading);
+  font-size: 24px;
+  font-weight: 400;
+}
+
+.deck__empty {
+  font-size: 15px;
+}
+
+.deck__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--color-divider);
+}
+
+.deck__list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.deck__name {
+  flex: 1;
+  min-width: 0;
+  font-size: 17px;
+}
+
+.deck__num {
+  min-width: 22px;
+  text-align: center;
+  font-family: var(--font-heading);
+  font-size: 21px;
+}
+
+.deck__tools {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.deck__tools > .btn {
+  flex: 1;
+  min-height: 48px;
+}
+
+.deck__go {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-divider);
+}
+
+.deck__reason {
+  font-size: 14px;
+  text-align: center;
+}
+
+/* — Thanh đáy (điện thoại) — */
+.roles__bar {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+  padding: 10px 16px calc(10px + var(--safe-bottom));
+}
+
+.roles__bar-summary {
+  flex: 1;
+  min-width: 0;
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+}
+
+.roles__bar-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.roles__bar-total {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.roles__bar-status {
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* — Thư viện — */
+.library {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px clamp(16px, 4vw, 40px) 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.lib-tile {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 18px;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-lg);
+}
+
+.lib-tile__name {
+  font-family: var(--font-heading);
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.lib-tile__more {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  font-size: 14px;
+  color: var(--gold-ink);
+}
+
+/* — Sheet chi tiết vai — */
+.role-sheet__head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+}
+
+.role-sheet__name {
+  font-size: 40px;
+}
+
+.role-sheet__badges {
+  justify-content: center;
+}
+
+.role-sheet__facts {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.role-sheet__facts > div + div {
+  padding-top: 12px;
+  border-top: 1px solid var(--color-divider);
+}
+
+.role-sheet__facts dd {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+.role-sheet__facts .role-sheet__note {
+  font-size: 16px;
+}
+
+.role-sheet__count {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 12px;
+  background: var(--surface);
+  border-top: 1px solid var(--color-divider);
+}
+
+.role-sheet__count > .muted {
+  flex: 1;
+  font-size: 15px;
+}
+
+.role-sheet__step {
+  width: 48px;
+  height: 48px;
+}
+
+.role-sheet__num {
+  min-width: 36px;
+  font-size: 30px;
+}
+
+/* — Vai tùy chỉnh — */
+.custom__lead {
+  font-size: 15px;
+}
+
+.custom__teams {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.custom__team {
+  min-height: 48px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  background: none;
+  border: 1px solid rgba(58, 40, 22, 0.16);
+  border-radius: var(--radius-md);
+}
+
+.custom__team[aria-pressed='true'] {
+  color: var(--gold-ink);
+  border-color: var(--gold);
+}
+
+.custom__wake {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.custom__wake-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+}
+
+.custom__wake-text > span:first-child {
+  font-size: 16px;
+}

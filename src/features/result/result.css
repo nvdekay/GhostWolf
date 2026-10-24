@@ -1,0 +1,130 @@
+.result {
+  padding: clamp(28px, 6vw, 64px) clamp(16px, 4vw, 40px) calc(40px + var(--safe-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+}
+
+.result__hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  animation: rise 0.4s ease;
+}
+
+.result__medal {
+  width: 112px;
+  height: 112px;
+  display: grid;
+  place-items: center;
+  color: var(--gold-ink);
+  border: 1px solid var(--gold);
+  border-radius: 50%;
+  box-shadow:
+    inset 0 0 0 6px var(--paper),
+    inset 0 0 0 7px rgba(138, 98, 40, 0.35);
+}
+
+.result__title {
+  font-size: clamp(40px, 8vw, 72px);
+  line-height: 1.02;
+}
+
+.result__reason {
+  max-width: 560px;
+  font-size: 18px;
+}
+
+.result__section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.result__h2 {
+  font-size: 30px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.result__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr));
+  gap: 10px;
+}
+
+.result-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  font-size: 15px;
+  background: var(--surface);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-lg);
+}
+
+.result-card[data-win='true'] {
+  border-color: rgba(138, 98, 40, 0.6);
+}
+
+.result-card[data-dead='true'] {
+  opacity: 0.62;
+}
+
+.result-card__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.result-card__name {
+  font-family: var(--font-heading);
+  font-size: 21px;
+  line-height: 1.1;
+}
+
+.result-card__status {
+  font-size: 13px;
+}
+
+.result__events {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.result__events li {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 12px;
+  padding: 10px 0;
+  font-size: 16px;
+  border-bottom: 1px solid var(--line-faint);
+}
+
+.result__events li > span:first-child {
+  font-size: 14px;
+}
+
+.result__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.result__actions > .btn {
+  flex: 1;
+  min-width: 160px;
+  min-height: 56px;
+  font-size: 17px;
+}
+
+.result__actions > .result__replay {
+  flex: 2;
+  min-width: 240px;
+  font-size: 18px;
+}

@@ -1,0 +1,272 @@
+.join {
+  flex: 1;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 20px 16px calc(24px + var(--safe-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.join__bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.join__bar--split {
+  justify-content: space-between;
+}
+
+.join__meta {
+  font-size: 14px;
+}
+
+.join__found {
+  font-size: 15px;
+  gap: 6px;
+}
+
+.join__hero {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 17px;
+}
+
+.join__hero > h1 {
+  font-size: clamp(40px, 10vw, 56px);
+  line-height: 1.02;
+}
+
+.code-entry {
+  position: relative;
+}
+
+.code-entry__cells {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+}
+
+.code-entry__cells > span {
+  aspect-ratio: 3 / 4;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-heading);
+  font-size: clamp(30px, 9vw, 44px);
+  background: var(--surface-sunk);
+  border: 1px solid var(--line-dashed);
+  border-radius: var(--radius-md);
+}
+
+.code-entry__cells > span[data-active='true'] {
+  border-color: var(--gold);
+}
+
+.code-entry__cells[data-error='true'] > span {
+  border-color: var(--danger-line);
+}
+
+/* Ô nhập thật phủ lên các ô hiển thị, gần như trong suốt. */
+.code-entry__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.01;
+  font-size: 16px;
+  color: transparent;
+  caret-color: transparent;
+  background: transparent;
+  border: 0;
+  cursor: text;
+}
+
+.code-entry:focus-within .code-entry__cells {
+  outline: 2px solid var(--gold);
+  outline-offset: 4px;
+  border-radius: var(--radius-md);
+}
+
+.join__err {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 15px;
+  color: var(--danger);
+}
+
+.join__demo {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0 14px;
+  font-size: 15px;
+  color: var(--gold-ink);
+  background: none;
+  border: 1px dashed rgba(138, 98, 40, 0.5);
+  border-radius: 22px;
+}
+
+.join__bottom {
+  margin-top: auto;
+}
+
+.join__name {
+  min-height: 56px;
+  font-size: 20px;
+}
+
+.join__waiting {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  padding: 28px 0 8px;
+  font-size: 17px;
+}
+
+.join__waiting > h1 {
+  font-size: clamp(36px, 9vw, 48px);
+  line-height: 1.05;
+}
+
+.join__waiting > p {
+  max-width: 340px;
+}
+
+.join__room {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.join__room > h2 {
+  font-size: 22px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.pills {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: 16px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+}
+
+.pill--me {
+  color: var(--gold-ink);
+  border-color: var(--gold);
+}
+
+.pill__host {
+  font-size: 13px;
+}
+
+.join__role-head {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.join__role-head + .flip .flip__back,
+.join__role-head + .flip .flip__front {
+  min-height: 440px;
+}
+
+.join__flip {
+  margin-top: 8px;
+  min-height: 52px;
+  font-size: 18px;
+}
+
+.join__phase {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  padding: 32px 16px;
+  font-size: 17px;
+  background: var(--surface-sunk);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-xl);
+}
+
+.join__phase > h1 {
+  font-size: 56px;
+  line-height: 1;
+}
+
+.join__alive {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.join__alive > .dot {
+  width: 10px;
+  height: 10px;
+}
+
+.hold {
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px dashed rgba(138, 98, 40, 0.5);
+  border-radius: var(--radius-xl);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.hold__content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.hold__text {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  font-size: 15px;
+}
+
+.hold__title {
+  font-family: var(--font-heading);
+  font-size: 22px;
+}
+
+.hold__sub {
+  font-size: 14px;
+}
+
+.hold__role {
+  font-family: var(--font-heading);
+  font-size: 30px;
+}
+
+.join__rules {
+  font-size: 15px;
+}
