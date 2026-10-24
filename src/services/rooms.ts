@@ -14,14 +14,14 @@ export const createRoom = (name: string, options: Partial<RuleOptions>) =>
   call<RoomRow>('create_room', { p_name: name, p_options: options })
 
 export async function findRoom(code: string) {
-  const rows = await call<{ id: string; name: string; status: RoomStatus; is_host: boolean; member_id: string | null }[]>(
-    'find_room',
-    { p_code: code },
-  )
+  const rows = await call<
+    { id: string; name: string; status: RoomStatus; is_host: boolean; member_id: string | null }[]
+  >('find_room', { p_code: code })
   return rows[0] ?? null
 }
 
-export const joinRoom = (code: string, name: string) => call<MemberRow>('join_room', { p_code: code, p_name: name })
+export const joinRoom = (code: string, name: string) =>
+  call<MemberRow>('join_room', { p_code: code, p_name: name })
 export const leaveRoom = (roomId: string) => call<void>('leave_room', { p_room: roomId })
 export const addMember = (roomId: string, name: string) =>
   call<MemberRow>('host_add_member', { p_room: roomId, p_name: name })
@@ -61,7 +61,10 @@ export async function mySessions(userId: string): Promise<SessionSummary[]> {
   ])
   return list.map((room) => {
     const g = (games ?? []).find((x) => x.id === room.current_game_id) as
-      | { status: string; public_state: { phase: string; day: number; players: { alive: boolean }[] } }
+      | {
+          status: string
+          public_state: { phase: string; day: number; players: { alive: boolean }[] }
+        }
       | undefined
     const ps = g?.public_state
     const phase =

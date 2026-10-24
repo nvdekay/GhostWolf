@@ -1,14 +1,50 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode, type RefObject } from 'react'
 import { cx } from '@/lib/css'
 import { Icon, type IconName } from './Icon'
 
-function useEscape(onClose?: () => void) {
+const FOCUSABLE =
+  'button:not([disabled]), [href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
+/** Giữ focus trong hộp thoại, Esc để đóng, trả focus về phần tử cũ khi đóng. */
+function useFocusTrap(ref: RefObject<HTMLElement | null>, onClose?: () => void) {
+  const close = useRef(onClose)
   useEffect(() => {
-    if (!onClose) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+    close.current = onClose
+  })
+  useEffect(() => {
+    const prev = document.activeElement as HTMLElement | null
+    const root = ref.current
+    const first =
+      root?.querySelector<HTMLElement>('[data-autofocus]') ??
+      root?.querySelector<HTMLElement>(FOCUSABLE)
+    first?.focus()
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && close.current) {
+        e.stopPropagation()
+        close.current()
+        return
+      }
+      if (e.key !== 'Tab' || !root) return
+      const items = [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(
+        (el) => el.offsetParent !== null,
+      )
+      if (!items.length) return
+      const a = items[0]!
+      const z = items[items.length - 1]!
+      if (e.shiftKey && document.activeElement === a) {
+        e.preventDefault()
+        z.focus()
+      } else if (!e.shiftKey && document.activeElement === z) {
+        e.preventDefault()
+        a.focus()
+      }
+    }
+    document.addEventListener('keydown', onKey, true)
+    return () => {
+      document.removeEventListener('keydown', onKey, true)
+      if (prev && document.contains(prev)) prev.focus()
+    }
+  }, [ref])
 }
 
 /** Hộp thoại xác nhận ở giữa màn hình. */
@@ -27,11 +63,20 @@ export function Dialog({
   className?: string
   layer?: 'top' | 'winner' | 'hunter'
 }) {
-  useEscape(onClose)
+  const ref = useRef<HTMLDivElement>(null)
+  useFocusTrap(ref, onClose)
   return (
     <div className="dialog-backdrop" data-layer={layer}>
-      <div className={cx('dialog', className)} role="alertdialog" aria-modal="true">
-        <div className="dialog__title">{title}</div>
+      <div
+        ref={ref}
+        className={cx('dialog', className)}
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="dlg-title"
+      >
+        <div className="dialog__title" id="dlg-title">
+          {title}
+        </div>
         {children}
         <div className="dialog__actions">{actions}</div>
       </div>
@@ -40,12 +85,21 @@ export function Dialog({
 }
 
 /** Bảng trượt từ đáy (điện thoại) hoặc hộp nổi giữa màn hình (máy tính). */
-export function Sheet({ onClose, children }: { onClose: () => void; children: ReactNode }) {
-  useEscape(onClose)
+export function Sheet({
+  onClose,
+  children,
+  label,
+}: {
+  onClose: () => void
+  children: ReactNode
+  label: string
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  useFocusTrap(ref, onClose)
   return (
     <div className="sheet-layer">
       <div className="sheet-layer__scrim" onClick={onClose} />
-      <div className="sheet" role="dialog" aria-modal="true">
+      <div ref={ref} className="sheet" role="dialog" aria-modal="true" aria-label={label}>
         <div className="sheet__close">
           <button className="btn btn-secondary btn-icon" onClick={onClose} aria-label="Đóng">
             <Icon name="x" />
@@ -57,10 +111,22 @@ export function Sheet({ onClose, children }: { onClose: () => void; children: Re
   )
 }
 
-export function Toast({ text }: { text: string }) {
+export function Toast({
+  text,
+  tone,
+  onClose,
+}: {
+  text: string
+  tone: 'info' | 'error'
+  onClose: () => void
+}) {
   return (
-    <div className="toast" role="status">
-      {text}
+    <div className="toast" data-tone={tone} role={tone === 'error' ? 'alert' : 'status'}>
+      {tone === 'error' && <Icon name="alert" size={18} />}
+      <span>{text}</span>
+      <button className="toast__close" onClick={onClose} aria-label="Đóng thông báo">
+        <Icon name="x" size={16} />
+      </button>
     </div>
   )
 }

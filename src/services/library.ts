@@ -24,15 +24,35 @@ export function customRoleDef(r: CustomRoleRow): RoleDef {
 }
 
 export async function listCustomRoles(): Promise<CustomRoleRow[]> {
-  const { data, error } = await supabase.from('custom_roles').select('id,name,team,short,wakes').order('created_at')
+  const { data, error } = await supabase
+    .from('custom_roles')
+    .select('id,name,team,short,wakes')
+    .order('created_at')
   if (error) throw fromPostgrest(error)
   return data as CustomRoleRow[]
 }
 
-export async function saveCustomRole(input: { id?: string; name: string; team: Team; short: string; wakes: boolean }) {
-  const row = { name: input.name.trim(), team: input.team, short: input.short.trim(), wakes: input.wakes, updated_at: new Date().toISOString() }
+export async function saveCustomRole(input: {
+  id?: string
+  name: string
+  team: Team
+  short: string
+  wakes: boolean
+}) {
+  const row = {
+    name: input.name.trim(),
+    team: input.team,
+    short: input.short.trim(),
+    wakes: input.wakes,
+    updated_at: new Date().toISOString(),
+  }
   const q = input.id
-    ? supabase.from('custom_roles').update(row).eq('id', input.id).select('id,name,team,short,wakes').single()
+    ? supabase
+        .from('custom_roles')
+        .update(row)
+        .eq('id', input.id)
+        .select('id,name,team,short,wakes')
+        .single()
     : supabase.from('custom_roles').insert(row).select('id,name,team,short,wakes').single()
   const { data, error } = await q
   if (error) throw fromPostgrest(error)
@@ -45,7 +65,10 @@ export async function deleteCustomRole(id: string) {
 }
 
 export async function listPresets(): Promise<PresetRow[]> {
-  const { data, error } = await supabase.from('role_presets').select('id,name,counts,updated_at').order('updated_at', { ascending: false })
+  const { data, error } = await supabase
+    .from('role_presets')
+    .select('id,name,counts,updated_at')
+    .order('updated_at', { ascending: false })
   if (error) throw fromPostgrest(error)
   return data as PresetRow[]
 }

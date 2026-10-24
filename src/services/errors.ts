@@ -14,14 +14,20 @@ export class AppError extends Error {
 const NETWORK = 'Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.'
 
 /** PostgrestError: mã nghiệp vụ nằm ở `details` (gw_error trong migration). */
-export function fromPostgrest(e: { message: string; details?: string | null; code?: string }): AppError {
-  if (/Failed to fetch|NetworkError|fetch failed/i.test(e.message)) return new AppError('NETWORK', NETWORK)
+export function fromPostgrest(e: {
+  message: string
+  details?: string | null
+  code?: string
+}): AppError {
+  if (/Failed to fetch|NetworkError|fetch failed/i.test(e.message))
+    return new AppError('NETWORK', NETWORK)
   return new AppError(e.details || e.code || 'DB_ERROR', e.message)
 }
 
 export function toAppError(e: unknown): AppError {
   if (e instanceof AppError) return e
-  if (e && typeof e === 'object' && 'message' in e) return fromPostgrest(e as { message: string; details?: string })
+  if (e && typeof e === 'object' && 'message' in e)
+    return fromPostgrest(e as { message: string; details?: string })
   return new AppError('UNKNOWN', 'Đã có lỗi. Thử lại.')
 }
 

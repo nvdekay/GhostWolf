@@ -74,14 +74,14 @@ class RoomStore {
 
   retain() {
     this.refs++
-    if (this.refs === 1) this.start()
+    if (!this.db) this.start()
   }
 
   release() {
     this.refs--
     // Trì hoãn để StrictMode/remount nhanh không đóng rồi mở lại kênh.
     setTimeout(() => {
-      if (this.refs <= 0) this.stop()
+      if (this.refs <= 0 && this.db) this.stop()
     }, 1500)
   }
 
@@ -90,16 +90,28 @@ class RoomStore {
     const filterRoom = `room_id=eq.${this.roomId}`
     this.db = supabase
       .channel(`room-db:${this.roomId}:${crypto.randomUUID()}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms', filter: `id=eq.${this.roomId}` }, () =>
-        this.later('room'),
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'rooms', filter: `id=eq.${this.roomId}` },
+        () => this.later('room'),
       )
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'room_members', filter: filterRoom }, () =>
-        this.later('members'),
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'room_members', filter: filterRoom },
+        () => this.later('members'),
       )
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'games', filter: filterRoom }, () => this.later('game'))
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'games', filter: filterRoom },
+        () => this.later('game'),
+      )
       // Không lọc theo ván (ván có thể đổi khi chơi lại); RLS đã giới hạn dòng được nhận.
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'game_secrets' }, () => this.later('game'))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'assignments' }, () => this.later('assignments'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'game_secrets' }, () =>
+        this.later('game'),
+      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'assignments' }, () =>
+        this.later('assignments'),
+      )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           this.set({ live: true })
@@ -144,7 +156,11 @@ class RoomStore {
   }
 
   private async loadRoom(): Promise<boolean> {
-    const { data, error } = await supabase.from('rooms').select('*').eq('id', this.roomId).maybeSingle()
+    const { data, error } = await supabase
+      .from('rooms')
+      .select('*')
+      .eq('id', this.roomId)
+      .maybeSingle()
     if (error) {
       this.set({ error: error.message, loading: false })
       return false
@@ -163,7 +179,11 @@ class RoomStore {
   }
 
   private async loadMembers() {
-    const { data } = await supabase.from('room_members').select('*').eq('room_id', this.roomId).order('seat')
+    const { data } = await supabase
+      .from('room_members')
+      .select('*')
+      .eq('room_id', this.roomId)
+      .order('seat')
     const members = (data ?? []) as MemberRow[]
     const mine = members.filter((m) => m.user_id === this.userId)
     const me = mine.find((m) => m.status === 'active') ?? mine.at(-1) ?? null
@@ -184,7 +204,9 @@ class RoomStore {
     const isHost = this.snap.room?.host_id === this.userId
     const [{ data: game }, secrets] = await Promise.all([
       supabase.from('games').select('*').eq('id', gid).maybeSingle(),
-      isHost ? supabase.from('game_secrets').select('state').eq('game_id', gid).maybeSingle() : Promise.resolve({ data: null }),
+      isHost
+        ? supabase.from('game_secrets').select('state').eq('game_id', gid).maybeSingle()
+        : Promise.resolve({ data: null }),
     ])
     const g = game as GameRow | null
     // Bỏ bản cũ hơn nếu sự kiện về không theo thứ tự.
@@ -205,7 +227,9 @@ class RoomStore {
     const isHost = this.snap.room.host_id === this.userId
     const key = isHost ? 'host' : this.snap.me?.id
     if (!key) return
-    const ch = supabase.channel(`room:${this.roomId}`, { config: { private: true, presence: { key } } })
+    const ch = supabase.channel(`room:${this.roomId}`, {
+      config: { private: true, presence: { key } },
+    })
     ch.on('presence', { event: 'sync' }, () => {
       this.set({ online: new Set(Object.keys(ch.presenceState())) })
     }).subscribe((status) => {
@@ -227,7 +251,10 @@ function storeFor(roomId: string, userId: string): RoomStore {
 }
 
 /** Dữ liệu phòng đồng bộ realtime. */
-export function useRoom(roomId: string, userId: string): RoomSnapshot & { refresh: () => Promise<void> } {
+export function useRoom(
+  roomId: string,
+  userId: string,
+): RoomSnapshot & { refresh: () => Promise<void> } {
   const store = storeFor(roomId, userId)
   useEffect(() => {
     store.retain()

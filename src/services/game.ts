@@ -19,7 +19,8 @@ async function post(body: CommandRequest): Promise<CommandResponse> {
   const { data: s } = await supabase.auth.getSession()
   const token = s.session?.access_token
   if (!token) throw new AppError('AUTH_REQUIRED', 'Phiên đăng nhập đã hết. Tải lại trang.')
-  const base = import.meta.env.VITE_FUNCTIONS_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`
+  const base =
+    import.meta.env.VITE_FUNCTIONS_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`
   const url = `${base}/game-command`
   for (let attempt = 0; ; attempt++) {
     let res: Response
@@ -40,8 +41,15 @@ async function post(body: CommandRequest): Promise<CommandResponse> {
       }
       throw networkError()
     }
-    const json = (await res.json().catch(() => ({}))) as CommandResponse & { error?: { code: string; message: string } }
-    if (!res.ok) throw new AppError(json.error?.code ?? 'HTTP_' + res.status, json.error?.message ?? 'Lệnh không thành công.', res.status)
+    const json = (await res.json().catch(() => ({}))) as CommandResponse & {
+      error?: { code: string; message: string }
+    }
+    if (!res.ok)
+      throw new AppError(
+        json.error?.code ?? 'HTTP_' + res.status,
+        json.error?.message ?? 'Lệnh không thành công.',
+        res.status,
+      )
     return json
   }
 }
@@ -49,7 +57,13 @@ async function post(body: CommandRequest): Promise<CommandResponse> {
 export function sendGameCommand(gameId: string, command: GameCommand): Promise<CommandResponse> {
   const commandId = crypto.randomUUID()
   const run = async () => {
-    const res = await post({ scope: 'game', gameId, commandId, expectedRevision: known.get(gameId) ?? 0, command })
+    const res = await post({
+      scope: 'game',
+      gameId,
+      commandId,
+      expectedRevision: known.get(gameId) ?? 0,
+      command,
+    })
     noteRevision(gameId, res.revision)
     return res
   }
@@ -62,7 +76,10 @@ export function sendGameCommand(gameId: string, command: GameCommand): Promise<C
   return next
 }
 
-export async function sendRoomCommand(roomId: string, command: RoomCommand): Promise<CommandResponse> {
+export async function sendRoomCommand(
+  roomId: string,
+  command: RoomCommand,
+): Promise<CommandResponse> {
   const res = await post({ scope: 'room', roomId, commandId: crypto.randomUUID(), command })
   noteRevision(res.gameId, res.revision)
   return res
