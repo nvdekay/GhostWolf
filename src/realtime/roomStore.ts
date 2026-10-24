@@ -9,6 +9,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js'
 import { useEffect, useSyncExternalStore } from 'react'
 import type { GameState } from '@engine'
 import { supabase } from '@/lib/supabase'
+import { uuid } from '@/lib/uuid'
 import { noteRevision } from '@/services/game'
 import type { AssignmentRow, GameRow, MemberRow, RoomRow } from '@/services/types'
 
@@ -89,7 +90,7 @@ class RoomStore {
     this.stopped = false
     const filterRoom = `room_id=eq.${this.roomId}`
     this.db = supabase
-      .channel(`room-db:${this.roomId}:${crypto.randomUUID()}`)
+      .channel(`room-db:${this.roomId}:${uuid()}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'rooms', filter: `id=eq.${this.roomId}` },

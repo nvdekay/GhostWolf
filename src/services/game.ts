@@ -5,6 +5,7 @@
  */
 import type { CommandRequest, CommandResponse, GameCommand, RoomCommand } from '@shared/commands.ts'
 import { supabase } from '@/lib/supabase'
+import { uuid } from '@/lib/uuid'
 import { AppError, networkError } from './errors'
 
 const known = new Map<string, number>()
@@ -55,7 +56,7 @@ async function post(body: CommandRequest): Promise<CommandResponse> {
 }
 
 export function sendGameCommand(gameId: string, command: GameCommand): Promise<CommandResponse> {
-  const commandId = crypto.randomUUID()
+  const commandId = uuid()
   const run = async () => {
     const res = await post({
       scope: 'game',
@@ -80,7 +81,7 @@ export async function sendRoomCommand(
   roomId: string,
   command: RoomCommand,
 ): Promise<CommandResponse> {
-  const res = await post({ scope: 'room', roomId, commandId: crypto.randomUUID(), command })
+  const res = await post({ scope: 'room', roomId, commandId: uuid(), command })
   noteRevision(res.gameId, res.revision)
   return res
 }
