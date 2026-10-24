@@ -17,7 +17,9 @@
 
     /* Alias */
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@engine": ["./supabase/functions/_shared/engine/index.ts"],
+      "@shared/*": ["./supabase/functions/_shared/*"]
     },
 
     /* Linting */
@@ -28,5 +30,5 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true
   },
-  "include": ["src"]
+  "include": ["src", "supabase/functions/_shared"]
 }

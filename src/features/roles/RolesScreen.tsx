@@ -1,5 +1,8 @@
-import { setState, toast, useAppState } from '@/app/store'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { findRoleDef, PRESETS, suggestCounts, type Counts } from '@engine'
+import { useFeedback } from '@/app/feedback'
 import { Icon } from '@/components/Icon'
+import { Sheet } from '@/components/overlay'
 import {
   EmptyState,
   FilterChips,
@@ -13,62 +16,123 @@ import {
 } from '@/components/ui'
 import { cx } from '@/lib/css'
 import { useIsDesktop } from '@/lib/media'
-import { useSetupStepper } from '@/features/setup/useSetupStepper'
-import { PRESETS, presetSizeFor } from './catalog'
-import {
-  allRoles,
-  decCount,
-  findRole,
-  incCount,
-  isWolfTeam,
-  roleTeam,
-  roleView,
-  totalCards,
-} from './roles'
+import { deletePreset, listPresets, savePreset } from '@/services/library'
+import type { CustomRoleRow, PresetRow } from '@/services/types'
+import { useHost, useStepper } from '@/features/host/context'
+import { CustomRoleSheet, RoleDetailSheet } from './RoleSheets'
+import { allRoles, deckSummary, decCount, incCount, roleView, viewOf } from './roles'
+import { useCustomRoles } from './useCustomRoles'
 import { useRoleBrowser } from './useRoleBrowser'
 import './roles.css'
 
-function useDeckSummary() {
-  const { players, counts } = useAppState()
-  const n = players.length
-  const total = totalCards(counts)
-  const sum = (pred: (id: string) => boolean) =>
-    Object.entries(counts).reduce((a, [id, c]) => a + (pred(id) ? c : 0), 0)
-  const wolfN = sum(isWolfTeam)
-  const village = sum((id) => roleTeam(id) === 'village')
-  const solo = total - village - sum((id) => roleTeam(id) === 'wolf')
-  const diff = total - n
-  const ok = n > 0 && diff === 0 && wolfN > 0
+type SheetState =
+  | { type: 'role'; id: string }
+  | { type: 'custom'; row?: CustomRoleRow }
+  | { type: 'savePreset' }
+  | { type: 'presets' }
+  | null
 
-  let status: {
-    text: string
-    tone: 'muted' | 'warn' | 'bad' | 'good'
-    icon: 'info' | 'alert' | 'check'
-  }
-  if (total === 0) status = { text: `Chưa chọn vai · cần ${n} thẻ`, tone: 'muted', icon: 'info' }
-  else if (diff < 0) status = { text: `Thiếu ${-diff} thẻ`, tone: 'warn', icon: 'alert' }
-  else if (diff > 0) status = { text: `Thừa ${diff} thẻ`, tone: 'bad', icon: 'alert' }
-  else if (wolfN === 0) status = { text: 'Chưa có Ma sói', tone: 'bad', icon: 'alert' }
-  else status = { text: `Khớp ${n}/${n} người`, tone: 'good', icon: 'check' }
-
-  const reason = ok
-    ? 'Sẵn sàng chia vai.'
-    : diff < 0
-      ? `Thêm ${-diff} thẻ hoặc bấm “Điền Dân làng”.`
-      : diff > 0
-        ? `Bớt ${diff} thẻ để khớp ${n} người chơi.`
-        : 'Bộ vai cần ít nhất một Ma sói.'
-
-  return { n, total, diff, wolfN, village, solo, ok, status, reason }
+const same = (a: Counts, b: Counts) => {
+  const ka = Object.keys(a).filter((k) => a[k])
+  const kb = Object.keys(b).filter((k) => b[k])
+  return ka.length === kb.length && ka.every((k) => a[k] === b[k])
 }
 
-function DeckPanel({ mobile }: { mobile: boolean }) {
-  const { counts, gameName } = useAppState()
-  const d = useDeckSummary()
-  const selected = allRoles().filter((r) => counts[r.id])
-  const close = () => setState({ rolesSheet: false })
+export function RolesScreen() {
+  const fb = useFeedback()
+  const desk = useIsDesktop()
+  const { snap, run, setView, room } = useHost()
+  const stepper = useStepper()
+  const custom = useCustomRoles()
+  const browser = useRoleBrowser(custom.defs)
+  const [sheet, setSheet] = useState<SheetState>(null)
+  const [deckOpen, setDeckOpen] = useState(false)
+  const [presets, setPresets] = useState<PresetRow[]>([])
+  const [presetName, setPresetName] = useState('')
+  const [autoNote, setAutoNote] = useState(true)
+  const [saving, setSaving] = useState(false)
 
-  return (
+  const state = snap.secrets
+  const n = snap.members.filter((m) => m.status === 'active').length
+  const [draft, setDraft] = useState<Counts | null>(null)
+  const counts = draft ?? state?.counts ?? {}
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const pending = useRef<Counts | null>(null)
+
+  const flush = useCallback(async () => {
+    clearTimeout(timer.current)
+    const next = pending.current
+    if (!next) return true
+    pending.current = null
+    setSaving(true)
+    const ok = await run({ type: 'deck.set', counts: next }, { silent: true })
+    setSaving(false)
+    setDraft((d) => (d === next ? null : d))
+    return ok
+  }, [run])
+
+  useEffect(() => () => void flush(), [flush])
+
+  const update = (fn: (c: Counts) => Counts) => {
+    const next = fn(counts)
+    setDraft(next)
+    setAutoNote(false)
+    pending.current = next
+    clearTimeout(timer.current)
+    timer.current = setTimeout(() => void flush(), 500)
+  }
+
+  useEffect(() => {
+    listPresets()
+      .then(setPresets)
+      .catch(() => {})
+  }, [])
+
+  const defs = custom.defs
+  const d = deckSummary(counts, n, defs)
+  const suggestion = suggestCounts(n)
+  const isSuggestion = d.total > 0 && same(counts, suggestion.counts)
+  const sugDesc =
+    Object.entries(suggestion.counts)
+      .map(([id, c]) => `${c} ${findRoleDef(id, defs)?.name ?? id}`)
+      .join(' · ') +
+    (suggestion.base && suggestion.base !== n ? ` (gợi ý ${suggestion.base} người + Dân làng)` : '')
+  const selected = allRoles(defs).filter((r) => counts[r.id])
+  const missing = Object.keys(counts).filter((id) => !findRoleDef(id, defs))
+  const rowOf = (id: string) => custom.rows.find((r) => 'custom:' + r.id === id)
+
+  const cont = async () => {
+    if (await flush()) {
+      setDeckOpen(false)
+      setView('assign')
+    }
+  }
+
+  const applyPreset = (p: PresetRow) => {
+    const valid = Object.fromEntries(
+      Object.entries(p.counts).filter(([id]) => findRoleDef(id, defs)),
+    )
+    update(() => valid)
+    setSheet(null)
+    fb.toast(
+      Object.keys(valid).length < Object.keys(p.counts).length
+        ? `Đã áp dụng “${p.name}” (bỏ qua vai tùy chỉnh đã xóa)`
+        : `Đã áp dụng bộ vai “${p.name}”`,
+    )
+  }
+
+  const save = async () => {
+    try {
+      await savePreset(presetName || room.name, counts)
+      setPresets(await listPresets())
+      fb.toast(`Đã lưu bộ vai “${presetName || room.name}” · ${d.total} thẻ`)
+      setSheet(null)
+    } catch (e) {
+      fb.error(e)
+    }
+  }
+
+  const deckPanel = (mobile: boolean) => (
     <>
       {mobile && (
         <div className="deck__grip">
@@ -79,12 +143,16 @@ function DeckPanel({ mobile }: { mobile: boolean }) {
         <div className="deck__total">
           <span className="eyebrow">Bộ vai</span>
           <span className="deck__count tabular">
-            {d.total}/{d.n}
+            {d.total}/{n}
             <span className="muted"> thẻ</span>
           </span>
         </div>
         {mobile && (
-          <button className="btn btn-secondary btn-icon" onClick={close} aria-label="Đóng">
+          <button
+            className="btn btn-secondary btn-icon"
+            onClick={() => setDeckOpen(false)}
+            aria-label="Đóng bộ vai"
+          >
             <Icon name="x" />
           </button>
         )}
@@ -92,6 +160,7 @@ function DeckPanel({ mobile }: { mobile: boolean }) {
       <div role="status" className="deck__status" data-tone={d.status.tone}>
         <Icon name={d.status.icon} />
         <span>{d.status.text}</span>
+        {saving && <span className="muted deck__saving">· đang lưu</span>}
       </div>
       <div className="deck__teams">
         <div>
@@ -100,13 +169,18 @@ function DeckPanel({ mobile }: { mobile: boolean }) {
         </div>
         <div>
           <span className="danger-text">Phe Sói</span>
-          <strong className="tabular">{d.wolfN}</strong>
+          <strong className="tabular">{d.wolf}</strong>
         </div>
         <div>
           <span className="gold-text">Phe riêng</span>
           <strong className="tabular">{d.solo}</strong>
         </div>
       </div>
+      {missing.length > 0 && (
+        <p className="danger-text deck__empty">
+          Bộ vai có vai tùy chỉnh đã bị xóa. Bấm “Xóa hết” hoặc chỉnh lại.
+        </p>
+      )}
       {selected.length === 0 ? (
         <p className="muted deck__empty">
           Chưa có vai nào. Bấm + trên thẻ vai hoặc áp dụng bộ gợi ý.
@@ -121,7 +195,7 @@ function DeckPanel({ mobile }: { mobile: boolean }) {
               <span className="deck__name">{r.name}</span>
               <button
                 className="btn btn-ghost btn-ghost--muted btn-icon"
-                onClick={() => setState((s) => ({ counts: decCount(s.counts, r.id) }))}
+                onClick={() => update((c) => decCount(c, r.id))}
                 aria-label={`Bớt ${r.name}`}
               >
                 <Icon name="minus" />
@@ -129,7 +203,7 @@ function DeckPanel({ mobile }: { mobile: boolean }) {
               <span className="deck__num tabular">{counts[r.id]}</span>
               <button
                 className="btn btn-ghost btn-icon"
-                onClick={() => setState((s) => ({ counts: incCount(s.counts, r.id) }))}
+                onClick={() => update((c) => incCount(c, r.id))}
                 aria-label={`Thêm ${r.name}`}
               >
                 <Icon name="plus" />
@@ -143,10 +217,9 @@ function DeckPanel({ mobile }: { mobile: boolean }) {
           className="btn btn-secondary"
           disabled={d.diff >= 0}
           onClick={() => {
-            setState((s) => ({
-              counts: { ...s.counts, villager: (s.counts.villager ?? 0) - d.diff },
-            }))
-            toast(`Đã thêm ${-d.diff} Dân làng`)
+            const add = -d.diff
+            update((c) => ({ ...c, villager: (c.villager ?? 0) + add }))
+            fb.toast(`Đã thêm ${add} Dân làng`)
           }}
         >
           <Icon name="home" />
@@ -154,17 +227,33 @@ function DeckPanel({ mobile }: { mobile: boolean }) {
         </button>
         <button
           className="btn btn-secondary"
-          onClick={() => toast(`Đã lưu bộ vai “${gameName || 'Ván mới'}” · ${d.total} thẻ`)}
+          disabled={d.total === 0}
+          onClick={() => update(() => ({}))}
+        >
+          <Icon name="x" />
+          Xóa hết
+        </button>
+        <button
+          className="btn btn-secondary"
+          disabled={d.total === 0}
+          onClick={() => {
+            setPresetName(room.name)
+            setSheet({ type: 'savePreset' })
+          }}
         >
           <Icon name="check" />
           Lưu bộ vai
+        </button>
+        <button className="btn btn-secondary" onClick={() => setSheet({ type: 'presets' })}>
+          <Icon name="list" />
+          Bộ vai đã lưu
         </button>
       </div>
       <div className="deck__go">
         <button
           className="btn btn-ink btn-lg btn-block"
-          disabled={!d.ok}
-          onClick={() => setState({ screen: 'assign', assign: null, rolesSheet: false })}
+          disabled={!d.ok || missing.length > 0}
+          onClick={cont}
         >
           Tiếp tục: chia vai
           <Icon name="right" />
@@ -173,28 +262,14 @@ function DeckPanel({ mobile }: { mobile: boolean }) {
       </div>
     </>
   )
-}
 
-export function RolesScreen() {
-  const { counts, chief, autoSug, rolesSheet } = useAppState()
-  const desk = useIsDesktop()
-  const stepper = useSetupStepper()
-  const browser = useRoleBrowser()
-  const d = useDeckSummary()
-
-  const sugN = presetSizeFor(d.n)
-  const exact = !!PRESETS[d.n]
-  const sugDesc = sugN
-    ? Object.entries(PRESETS[sugN]!)
-        .map(([id, c]) => `${c} ${findRole(id).name}`)
-        .join(' · ') + (exact ? '' : ` · bấm Điền Dân làng cho ${d.n - sugN} chỗ còn lại`)
-    : ''
+  if (!state) return null
 
   return (
     <Paper label="Chọn bộ vai">
       <TopBar
-        onBack={() => setState({ screen: 'lobby' })}
-        backLabel="Quay lại người chơi"
+        onBack={() => setView('lobby')}
+        backLabel="Quay lại phòng chờ"
         title="Chọn bộ vai"
         wide
       >
@@ -202,36 +277,33 @@ export function RolesScreen() {
       </TopBar>
       <div className="roles">
         <main className="roles__main">
-          {sugN && d.total === 0 && (
+          {d.total === 0 && (
             <div className="suggest">
               <div className="suggest__text">
                 <span className="suggest__title">
-                  {exact ? `Gợi ý cho ${d.n} người` : `Gợi ý gần nhất: ${sugN} người`}
+                  {PRESETS[n] ? `Gợi ý cho ${n} người` : `Gợi ý cho ${n} người`}
                 </span>
                 <span className="muted">{sugDesc}</span>
               </div>
               <button
                 className="btn btn-ink"
-                onClick={() => setState({ counts: { ...PRESETS[sugN] } })}
+                onClick={() => update(() => ({ ...suggestion.counts }))}
               >
                 Áp dụng
               </button>
             </div>
           )}
-          {autoSug && d.total > 0 && (
+          {isSuggestion && autoNote && (
             <div role="status" className="suggest suggest--auto">
               <span className="gold-text">
                 <Icon name="sparkles" />
               </span>
               <span className="suggest__auto-text">
-                Đã điền sẵn bộ vai gợi ý cho {d.n} người. Chỉnh tùy ý trước khi chia.
+                Đã điền sẵn bộ vai gợi ý cho {n} người. Chỉnh tùy ý trước khi chia.
               </span>
-              <button className="btn btn-ghost" onClick={() => setState({ counts: {} })}>
-                Xóa hết
-              </button>
               <button
                 className="btn btn-ghost btn-ghost--muted btn-icon"
-                onClick={() => setState({ autoSug: false })}
+                onClick={() => setAutoNote(false)}
                 aria-label="Đóng thông báo"
               >
                 <Icon name="x" />
@@ -261,7 +333,7 @@ export function RolesScreen() {
                 <button className="btn btn-secondary" onClick={browser.clearQuery}>
                   Xóa tìm kiếm
                 </button>
-                <button className="btn btn-ink" onClick={browser.openCustom}>
+                <button className="btn btn-ink" onClick={() => setSheet({ type: 'custom' })}>
                   <Icon name="plus" />
                   Tạo vai tùy chỉnh
                 </button>
@@ -277,7 +349,7 @@ export function RolesScreen() {
                 <div key={r.id} className={cx('tile', c > 0 && 'tile--on')} data-team={v.team}>
                   <button
                     className="tile__body"
-                    onClick={() => browser.openRole(r.id)}
+                    onClick={() => setSheet({ type: 'role', id: r.id })}
                     aria-label={`Xem chi tiết ${v.name}`}
                   >
                     <RoleMedal team={v.team} icon={v.icon} size={54} iconSize={26} />
@@ -298,7 +370,7 @@ export function RolesScreen() {
                     <div className="counter">
                       <button
                         className="btn btn-secondary btn-icon"
-                        onClick={() => setState((s) => ({ counts: decCount(s.counts, r.id) }))}
+                        onClick={() => update((x) => decCount(x, r.id))}
                         disabled={c === 0}
                         aria-label={`Bớt một ${v.name}`}
                       >
@@ -309,7 +381,7 @@ export function RolesScreen() {
                       </span>
                       <button
                         className="btn btn-ink btn-icon"
-                        onClick={() => setState((s) => ({ counts: incCount(s.counts, r.id) }))}
+                        onClick={() => update((x) => incCount(x, r.id))}
                         aria-label={`Thêm một ${v.name}`}
                       >
                         <Icon name="plus" />
@@ -320,7 +392,7 @@ export function RolesScreen() {
               )
             })}
             {browser.results.length > 0 && (
-              <button className="tile-add" onClick={browser.openCustom}>
+              <button className="tile-add" onClick={() => setSheet({ type: 'custom' })}>
                 <Icon name="plus" />
                 <span className="tile-add__title">Thêm vai tùy chỉnh</span>
                 <span className="muted">Cho luật riêng của nhóm</span>
@@ -344,7 +416,10 @@ export function RolesScreen() {
                     {counts.cupid ? 'Tự động · khi gọi Cupid' : 'Cần có Cupid trong bộ vai'}
                   </span>
                 </div>
-                <button className="btn btn-ghost" onClick={() => browser.openRole('lovers')}>
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => setSheet({ type: 'role', id: 'lovers' })}
+                >
                   Chi tiết
                 </button>
               </div>
@@ -352,11 +427,18 @@ export function RolesScreen() {
                 <Icon name="crown" />
                 <div className="status-row__text">
                   <span className="status-row__name">Trưởng làng</span>
-                  <span className="muted">{chief ? 'Bật · bầu vào Ngày 1' : 'Tắt'}</span>
+                  <span className="muted">
+                    {state.options.chief ? 'Bật · bầu vào Ngày 1' : 'Tắt'}
+                  </span>
                 </div>
                 <Switch
-                  checked={chief}
-                  onToggle={() => setState({ chief: !chief })}
+                  checked={state.options.chief}
+                  onToggle={() =>
+                    void run(
+                      { type: 'options.set', options: { chief: !state.options.chief } },
+                      { silent: true },
+                    )
+                  }
                   label="Bật Trưởng làng"
                 />
               </div>
@@ -364,15 +446,13 @@ export function RolesScreen() {
           </section>
         </main>
 
-        {!desk && rolesSheet && (
-          <div className="deck-scrim" onClick={() => setState({ rolesSheet: false })} />
-        )}
-        {(desk || rolesSheet) && (
+        {!desk && deckOpen && <div className="deck-scrim" onClick={() => setDeckOpen(false)} />}
+        {(desk || deckOpen) && (
           <aside
             aria-label="Bộ vai đã chọn"
             className={cx('deck', desk ? 'deck--side' : 'deck--sheet')}
           >
-            <DeckPanel mobile={!desk} />
+            {deckPanel(!desk)}
           </aside>
         )}
       </div>
@@ -381,12 +461,12 @@ export function RolesScreen() {
         <div className="bottom-bar roles__bar">
           <button
             className="roles__bar-summary"
-            onClick={() => setState({ rolesSheet: true })}
+            onClick={() => setDeckOpen(true)}
             aria-label="Mở bộ vai đã chọn"
           >
             <span className="roles__bar-text">
               <span className="roles__bar-total tabular">
-                {d.total}/{d.n} thẻ
+                {d.total}/{n} thẻ
               </span>
               <span className="roles__bar-status" data-tone={d.status.tone}>
                 {d.status.text}
@@ -396,13 +476,113 @@ export function RolesScreen() {
           </button>
           <button
             className="btn btn-ink btn-lg"
-            disabled={!d.ok}
-            onClick={() => setState({ screen: 'assign', assign: null, rolesSheet: false })}
+            disabled={!d.ok || missing.length > 0}
+            onClick={cont}
           >
             Chia vai
             <Icon name="right" />
           </button>
         </div>
+      )}
+
+      {sheet && (
+        <Sheet onClose={() => setSheet(null)} label="Chi tiết">
+          {sheet.type === 'role' && (
+            <RoleDetailSheet
+              view={viewOf(sheet.id, defs)}
+              count={counts[sheet.id] ?? 0}
+              onInc={() => update((c) => incCount(c, sheet.id))}
+              onDec={() => update((c) => decCount(c, sheet.id))}
+              onEdit={
+                rowOf(sheet.id)
+                  ? () => setSheet({ type: 'custom', row: rowOf(sheet.id) })
+                  : undefined
+              }
+            />
+          )}
+          {sheet.type === 'custom' && (
+            <CustomRoleSheet
+              initial={sheet.row}
+              presetName={sheet.row ? undefined : browser.query}
+              presetTeam={browser.filter === 'all' ? undefined : browser.filter}
+              onSaved={(row) => {
+                void custom.reload()
+                if (!sheet.row) update((c) => incCount(c, 'custom:' + row.id))
+                setSheet(null)
+              }}
+              onDeleted={() => {
+                void custom.reload()
+                setSheet(null)
+              }}
+            />
+          )}
+          {sheet.type === 'savePreset' && (
+            <>
+              <h2 className="sheet__title">Lưu bộ vai</h2>
+              <div className="field">
+                <label htmlFor="pname">Tên bộ vai</label>
+                <input
+                  id="pname"
+                  className="input"
+                  data-autofocus
+                  maxLength={60}
+                  value={presetName}
+                  onChange={(e) => setPresetName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && void save()}
+                />
+              </div>
+              <p className="muted">
+                {d.total} thẻ. Lưu cùng tên sẽ ghi đè bộ vai cũ. Bộ vai được lưu cho phiên trên máy
+                này.
+              </p>
+              <button
+                className="btn btn-ink btn-lg"
+                onClick={() => void save()}
+                disabled={!presetName.trim()}
+              >
+                Lưu
+              </button>
+            </>
+          )}
+          {sheet.type === 'presets' && (
+            <>
+              <h2 className="sheet__title">Bộ vai đã lưu</h2>
+              {presets.length === 0 ? (
+                <p className="muted">Chưa có bộ vai nào. Chọn vai rồi bấm “Lưu bộ vai”.</p>
+              ) : (
+                <ul className="preset-list">
+                  {presets.map((p) => (
+                    <li key={p.id}>
+                      <button className="preset-list__apply" onClick={() => applyPreset(p)}>
+                        <span className="preset-list__name">{p.name}</span>
+                        <span className="muted">
+                          {Object.values(p.counts).reduce((a, b) => a + b, 0)} thẻ ·{' '}
+                          {Object.entries(p.counts)
+                            .map(([id, c]) => `${c} ${findRoleDef(id, defs)?.name ?? 'vai đã xóa'}`)
+                            .join(', ')}
+                        </span>
+                      </button>
+                      <button
+                        className="btn btn-ghost btn-ghost--muted btn-icon"
+                        aria-label={`Xóa bộ vai ${p.name}`}
+                        onClick={async () => {
+                          try {
+                            await deletePreset(p.id)
+                            setPresets(await listPresets())
+                          } catch (e) {
+                            fb.error(e)
+                          }
+                        }}
+                      >
+                        <Icon name="x" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          )}
+        </Sheet>
       )}
     </Paper>
   )

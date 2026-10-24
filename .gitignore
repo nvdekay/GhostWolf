@@ -31,3 +31,7 @@ dist-ssr
 # Tooling
 *.tsbuildinfo
 .eslintcache
+
+# Test
+test-results
+playwright-report

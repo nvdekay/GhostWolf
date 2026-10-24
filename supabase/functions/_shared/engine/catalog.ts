@@ -1,7 +1,18 @@
-import type { IconName } from '@/components/Icon'
-import type { Counts, Role, StatusDef, Team } from '@/types/game'
+import type { Counts, RoleDef, RuleOptions, StatusDef, Team } from './types.ts'
 
-export const ROLES: Role[] = [
+/** Phiên bản bộ luật. Tăng khi đổi cách engine xử lý luật. */
+export const RULESET_VERSION = 1
+
+export const DEFAULT_OPTIONS: RuleOptions = {
+  chief: true,
+  revealOnDeath: false,
+  hunterShootsWhenPoisoned: false,
+  witchSelfHeal: true,
+  callDeadRoles: true,
+}
+
+/** Mô tả trong thư viện phải khớp với cách engine xử lý (xem docs/ruleset.md). */
+export const ROLES: RoleDef[] = [
   {
     id: 'villager',
     name: 'Dân làng',
@@ -19,9 +30,9 @@ export const ROLES: Role[] = [
     team: 'village',
     icon: 'eye',
     short: 'Mỗi đêm soi một người để biết họ có phải Ma sói.',
-    skill: 'Mỗi đêm chọn một người. Quản trò ra hiệu người đó có thuộc phe Ma sói hay không.',
+    skill: 'Mỗi đêm chọn một người khác. Quản trò ra hiệu người đó có thuộc bầy sói hay không.',
     wake: 'Mỗi đêm, sau Phù thủy',
-    note: 'Có nhóm cho Tiên tri biết đúng tên vai thay vì chỉ phe. Hãy thống nhất trước ván.',
+    note: 'Ứng dụng chỉ báo “là Ma sói” hoặc “không phải Ma sói”, không báo tên vai. Sói trắng hiện là Ma sói.',
   },
   {
     id: 'guard',
@@ -30,9 +41,9 @@ export const ROLES: Role[] = [
     icon: 'shield',
     short: 'Mỗi đêm che chở một người khỏi Ma sói.',
     skill:
-      'Mỗi đêm chọn một người, có thể là chính mình. Nếu Ma sói cắn người đó, họ sống sót. Không được bảo vệ cùng một người hai đêm liền.',
+      'Mỗi đêm chọn một người, có thể là chính mình, hoặc không chọn ai. Nếu bầy sói cắn người đó, họ sống sót. Không được bảo vệ cùng một người hai đêm liền.',
     wake: 'Mỗi đêm, trước Ma sói',
-    note: 'Khi Bảo vệ và Phù thủy cùng cứu một người, có biến thể coi người đó vẫn chết. Ứng dụng coi là sống.',
+    note: 'Bảo vệ không chặn bình độc hay Sói trắng. Khi Bảo vệ và Phù thủy cùng cứu một người, ứng dụng coi là sống.',
   },
   {
     id: 'witch',
@@ -41,9 +52,9 @@ export const ROLES: Role[] = [
     icon: 'flask',
     short: 'Một bình cứu và một bình độc, mỗi bình dùng một lần.',
     skill:
-      'Quản trò cho Phù thủy biết ai bị cắn. Phù thủy có thể dùng bình cứu cho người đó, và có thể dùng bình độc để loại một người. Mỗi bình chỉ dùng một lần trong cả ván.',
+      'Quản trò cho Phù thủy biết ai bị bầy sói cắn. Phù thủy có thể dùng bình cứu cho người đó, và có thể dùng bình độc để loại một người. Mỗi bình chỉ dùng một lần trong cả ván.',
     wake: 'Mỗi đêm, sau Ma sói',
-    note: 'Có nhóm không cho Phù thủy tự cứu mình. Quản trò quyết định trước ván.',
+    note: 'Mặc định Phù thủy được tự cứu mình. Quản trò đổi trong “Luật biến thể” khi tạo phòng.',
   },
   {
     id: 'hunter',
@@ -53,9 +64,9 @@ export const ROLES: Role[] = [
     gm: true,
     short: 'Khi bị loại, được kéo theo một người.',
     skill:
-      'Khi bị loại bằng bất kỳ cách nào, Thợ săn chọn ngay một người để bắn. Người đó bị loại theo.',
+      'Khi bị loại, Thợ săn chọn ngay một người còn sống để bắn. Người đó bị loại theo. Thợ săn có thể không bắn.',
     wake: 'Không thức dậy · kích hoạt khi bị loại',
-    note: 'Nếu Thợ săn trúng độc, nhiều nhóm không cho bắn. Quản trò xử lý.',
+    note: 'Mặc định Thợ săn trúng độc không được bắn. Quản trò đổi trong “Luật biến thể”.',
   },
   {
     id: 'cupid',
@@ -65,8 +76,8 @@ export const ROLES: Role[] = [
     gm: true,
     short: 'Đêm đầu tiên ghép đôi hai người.',
     skill:
-      'Đêm đầu tiên chọn hai người thành Cặp đôi. Nếu một người trong Cặp đôi bị loại, người kia bị loại theo.',
-    win: 'Thắng cùng phe Dân làng. Nếu Cặp đôi khác phe, họ thắng khi chỉ còn lại hai người.',
+      'Đêm đầu tiên chọn hai người khác nhau thành Cặp đôi. Nếu một người trong Cặp đôi bị loại, người kia bị loại theo.',
+    win: 'Thắng cùng phe Dân làng. Cặp đôi khác phe thắng riêng khi chỉ còn lại hai người.',
     wake: 'Chỉ đêm đầu tiên, gọi đầu tiên',
     note: 'Cặp đôi là trạng thái liên kết, không phải thẻ vai.',
   },
@@ -78,7 +89,7 @@ export const ROLES: Role[] = [
     gm: true,
     short: 'Bị dân bỏ phiếu loại thì lật thẻ, ở lại nhưng mất quyền bầu.',
     skill:
-      'Nếu bị loại bằng phiếu bầu ban ngày, Thằng ngốc lật thẻ và tiếp tục chơi nhưng không còn được bỏ phiếu.',
+      'Lần đầu bị loại bằng phiếu bầu ban ngày, Thằng ngốc lật thẻ, vẫn còn sống nhưng không còn được bỏ phiếu. Bị loại bằng cách khác thì chết như thường.',
     wake: 'Không thức dậy',
   },
   {
@@ -88,7 +99,7 @@ export const ROLES: Role[] = [
     icon: 'paw',
     short: 'Mỗi đêm cùng bầy chọn một người để cắn.',
     skill:
-      'Mỗi đêm các Ma sói thức dậy, nhận ra nhau và thống nhất chọn một người để loại. Ban ngày giả làm dân thường.',
+      'Mỗi đêm bầy sói thức dậy, nhận ra nhau và thống nhất chọn một người không thuộc bầy để cắn. Ban ngày giả làm dân thường.',
     wake: 'Mỗi đêm, sau Bảo vệ',
     note: 'Nên có khoảng một Ma sói cho mỗi 3–4 người chơi.',
   },
@@ -100,10 +111,10 @@ export const ROLES: Role[] = [
     gm: true,
     short: 'Thức cùng bầy sói nhưng muốn sống sót một mình.',
     skill:
-      'Thức dậy cùng Ma sói mỗi đêm. Cứ hai đêm một lần, Sói trắng được thức thêm một lượt để loại một Ma sói khác.',
+      'Thức dậy và cắn cùng bầy sói mỗi đêm. Vào các đêm chẵn, Sói trắng có thêm một lượt riêng để chọn loại một Ma sói khác; người đó bị loại lúc trời sáng.',
     win: 'Thắng một mình khi là người duy nhất còn sống.',
     wake: 'Mỗi đêm cùng Ma sói · thêm lượt vào đêm chẵn',
-    note: 'Bầy sói nhìn thấy Sói trắng như một Ma sói bình thường.',
+    note: 'Bầy sói nhìn thấy Sói trắng như một Ma sói bình thường. Sói trắng tính vào bầy khi cắn, nhưng thuộc phe riêng khi tính thắng.',
   },
   {
     id: 'tanner',
@@ -113,7 +124,7 @@ export const ROLES: Role[] = [
     gm: true,
     short: 'Thắng nếu bị dân làng bỏ phiếu loại.',
     skill: 'Không có kỹ năng ban đêm. Tìm cách khiến cả làng nghi ngờ mình.',
-    win: 'Thắng một mình nếu bị loại bằng phiếu bầu ban ngày.',
+    win: 'Thắng một mình ngay khi bị loại bằng phiếu bầu ban ngày.',
     wake: 'Không thức dậy',
   },
   {
@@ -124,8 +135,8 @@ export const ROLES: Role[] = [
     gm: true,
     short: 'Mỗi đêm mê hoặc hai người.',
     skill:
-      'Mỗi đêm chọn hai người để mê hoặc. Quản trò chạm vai những người bị mê hoặc để họ biết.',
-    win: 'Thắng một mình khi mọi người còn sống đều bị mê hoặc.',
+      'Mỗi đêm chọn hai người còn sống chưa bị mê hoặc. Quản trò chạm vai những người bị mê hoặc để họ biết.',
+    win: 'Thắng một mình khi còn sống và mọi người còn sống khác đều bị mê hoặc.',
     wake: 'Mỗi đêm, gọi cuối cùng',
   },
 ]
@@ -138,7 +149,7 @@ export const STATUSES: StatusDef[] = [
     icon: 'link',
     short: 'Hai người được Cupid ghép đôi. Một người bị loại thì người kia đi theo.',
     skill: 'Không phải thẻ vai. Quản trò đánh dấu hai người trong lượt gọi Cupid.',
-    win: 'Cùng phe thì thắng cùng phe. Khác phe thì thắng khi chỉ còn hai người.',
+    win: 'Cùng phe thì thắng cùng phe. Khác phe thì thắng riêng khi chỉ còn hai người.',
     wake: 'Mở mắt nhìn nhau ở đêm đầu tiên',
     note: 'Không cộng vào số thẻ vai.',
   },
@@ -152,11 +163,11 @@ export const STATUSES: StatusDef[] = [
       'Cả làng bầu một Trưởng làng vào Ngày 1. Phiếu của Trưởng làng tính 2. Khi bị loại, Trưởng làng chỉ định người kế nhiệm.',
     win: 'Giữ điều kiện thắng của vai gốc.',
     wake: 'Không thức dậy',
-    note: 'Không cộng vào số thẻ vai. Có thể tắt ở bước chọn bộ vai.',
+    note: 'Không cộng vào số thẻ vai. Có thể tắt khi tạo phòng hoặc ở bước chọn bộ vai.',
   },
 ]
 
-/** Bộ vai gợi ý theo số người chơi. */
+/** Bộ vai gợi ý theo số người chơi (dữ liệu của mock). */
 export const PRESETS: Record<number, Counts> = {
   6: { wolf: 1, seer: 1, guard: 1, villager: 3 },
   8: { wolf: 2, seer: 1, guard: 1, witch: 1, villager: 3 },
@@ -187,23 +198,27 @@ export const PRESETS: Record<number, Counts> = {
   },
 }
 
-export const PRESET_SIZES = Object.keys(PRESETS).map(Number)
+export const MIN_PLAYERS = 4
 
-/** Bộ gợi ý khớp đúng số người, hoặc bộ lớn nhất không vượt quá. */
-export function presetSizeFor(n: number): number | undefined {
-  if (PRESETS[n]) return n
-  return PRESET_SIZES.filter((k) => k <= n).pop()
-}
-
-export const TEAMS: Record<Team, { label: string; icon: IconName }> = {
+export const TEAMS: Record<Team, { label: string; icon: 'house' | 'paw' | 'sparkles' }> = {
   village: { label: 'Phe Dân', icon: 'house' },
   wolf: { label: 'Phe Sói', icon: 'paw' },
   solo: { label: 'Phe riêng', icon: 'sparkles' },
 }
 
-export const TEAM_FILTERS: { key: Team | 'all'; label: string }[] = [
-  { key: 'all', label: 'Tất cả' },
-  { key: 'village', label: 'Dân làng' },
-  { key: 'wolf', label: 'Ma sói' },
-  { key: 'solo', label: 'Phe riêng' },
-]
+/**
+ * Gợi ý bộ vai cho n người: dùng preset đúng số, hoặc preset lớn nhất ≤ n rồi điền Dân làng.
+ * Dưới 6 người: 1 Ma sói, 1 Tiên tri, còn lại Dân làng.
+ */
+export function suggestCounts(n: number): { counts: Counts; base: number | null } {
+  const sizes = Object.keys(PRESETS).map(Number)
+  const base = PRESETS[n] ? n : (sizes.filter((k) => k <= n).pop() ?? null)
+  const counts: Counts = base ? { ...PRESETS[base] } : { wolf: 1, seer: 1 }
+  const total = Object.values(counts).reduce((a, b) => a + b, 0)
+  if (total < n) counts.villager = (counts.villager ?? 0) + (n - total)
+  return { counts, base }
+}
+
+export function findRoleDef(id: string, custom: RoleDef[] = []): RoleDef | undefined {
+  return ROLES.find((r) => r.id === id) ?? custom.find((r) => r.id === id)
+}

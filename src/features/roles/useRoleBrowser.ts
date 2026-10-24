@@ -1,39 +1,32 @@
-import { setState, useAppState } from '@/app/store'
+import { useState } from 'react'
+import type { RoleDef, Team } from '@engine'
 import { normalize } from '@/lib/text'
-import { TEAM_FILTERS } from './catalog'
 import { allRoles } from './roles'
 
-/** Tìm kiếm + lọc phe, dùng chung cho màn Chọn bộ vai và Thư viện vai. */
-export function useRoleBrowser() {
-  const { filter, query } = useAppState()
-  const roles = allRoles()
-  const q = normalize(query)
+const FILTERS: { key: Team | 'all'; label: string }[] = [
+  { key: 'all', label: 'Tất cả' },
+  { key: 'village', label: 'Dân làng' },
+  { key: 'wolf', label: 'Ma sói' },
+  { key: 'solo', label: 'Phe riêng' },
+]
 
-  const filters = TEAM_FILTERS.map((f) => ({
+/** Tìm kiếm không phân biệt hoa thường/dấu + lọc phe. */
+export function useRoleBrowser(custom: RoleDef[]) {
+  const [query, setQuery] = useState('')
+  const [filter, setFilter] = useState<Team | 'all'>('all')
+  const roles = allRoles(custom)
+  const q = normalize(query.trim())
+  const filters = FILTERS.map((f) => ({
     key: f.key,
     label: f.label,
     count: roles.filter((r) => f.key === 'all' || r.team === f.key).length,
     active: filter === f.key,
-    onPick: () => setState({ filter: f.key }),
+    onPick: () => setFilter(f.key),
   }))
-
   const results = roles.filter(
     (r) =>
       (filter === 'all' || r.team === filter) &&
-      (!q || normalize(r.name + ' ' + r.short).includes(q)),
+      (!q || normalize(`${r.name} ${r.short}`).includes(q)),
   )
-
-  return {
-    query,
-    filters,
-    results,
-    setQuery: (v: string) => setState({ query: v }),
-    clearQuery: () => setState({ query: '' }),
-    openCustom: () =>
-      setState({
-        sheet: { type: 'custom' },
-        cr: { name: query, team: filter === 'all' ? 'village' : filter, short: '', wakes: false },
-      }),
-    openRole: (id: string) => setState({ sheet: { type: 'role', id } }),
-  }
+  return { query, setQuery, filter, filters, results, clearQuery: () => setQuery('') }
 }

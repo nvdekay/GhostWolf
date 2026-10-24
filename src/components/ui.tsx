@@ -243,7 +243,7 @@ export function EmptyState({
   )
 }
 
-/** Thẻ vai hai mặt: mặt sau "Trăng Sói", lật để xem vai. */
+/** Thẻ vai hai mặt: mặt sau "Ghostwolf", lật để xem vai. */
 export function FlipCard({
   role,
   flipped,
@@ -263,7 +263,7 @@ export function FlipCard({
         <div className="flip__back" aria-hidden={flipped}>
           <div className="flip__back-frame">
             <Crescent size={72} className="crescent--card" />
-            <span className="flip__brand">Trăng Sói</span>
+            <span className="flip__brand">Ghostwolf</span>
             {backAction}
           </div>
         </div>

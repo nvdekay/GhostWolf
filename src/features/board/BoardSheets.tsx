@@ -1,58 +1,96 @@
-import { setState, toast, useAppState } from '@/app/store'
+import { useState } from 'react'
+import { type Effect, type GameState, type Player, type PublicState } from '@engine'
 import { Icon } from '@/components/Icon'
 import { Dialog } from '@/components/overlay'
 import { RoleMedal } from '@/components/ui'
-import type { KillCause } from '@/types/game'
 import { viewOf } from '@/features/roles/roles'
-import {
-  confirmKill,
-  endGameAs,
-  hunterShoot,
-  hunterSkip,
-  resetToNightOne,
-  revivePlayer,
-  toggleChiefOf,
-  undo,
-} from './actions'
-import { playerById } from './logic'
 import './board.css'
 
-export function PlayerSheet({ id }: { id: string }) {
-  const { game: g, shared } = useAppState()
-  if (!g) return null
-  const p = playerById(g, id)
-  const v = viewOf(p.roleId)
-  const partner = p.lover ? g.players.find((x) => x.lover && x.id !== p.id) : null
+/** Chi tiết người chơi. Màn hình chung chỉ nhận dữ liệu công khai. */
+export function PlayerSheet({
+  s,
+  pub,
+  id,
+  shared,
+  viewed,
+  onRole,
+  onChief,
+  onKill,
+  onRevive,
+  onShowRole,
+}: {
+  s: GameState
+  pub: PublicState
+  id: string
+  shared: boolean
+  viewed: boolean
+  onRole: (roleId: string) => void
+  onChief: (p: Player) => void
+  onKill: (p: Player) => void
+  onRevive: (p: Player) => void
+  onShowRole: (p: Player) => void
+}) {
+  if (shared) {
+    const pp = pub.players.find((x) => x.id === id)
+    if (!pp) return null
+    return (
+      <>
+        <div className="player-sheet__head">
+          <span className="player-sheet__seat tabular">{pp.seat}</span>
+          <div className="player-sheet__who">
+            <h2>{pp.name}</h2>
+            <span className="muted">{pp.alive ? 'Còn sống' : 'Đã bị loại'}</span>
+          </div>
+        </div>
+        {pp.role ? (
+          <div className="player-sheet__hidden">Vai đã công bố: {pp.role.name}</div>
+        ) : (
+          <div className="player-sheet__hidden">
+            <Icon name="lock" />
+            Vai được giấu trên màn hình chung
+          </div>
+        )}
+        {pp.chief && (
+          <div className="player-sheet__tags">
+            <span className="player-sheet__tag player-sheet__tag--gold">
+              <Icon name="crown" size={15} />
+              Trưởng làng
+            </span>
+          </div>
+        )}
+      </>
+    )
+  }
+
+  const p = s.players.find((x) => x.id === id)
+  if (!p) return null
+  const v = viewOf(p.roleId, s.customRoles)
+  const partner = p.lover ? s.players.find((x) => x.lover && x.id !== p.id) : null
+  const night = s.phase === 'night'
+  const markedNight = night && s.night?.actions.gmKills?.includes(p.id)
 
   return (
     <>
       <div className="player-sheet__head">
-        <span className="player-sheet__seat tabular">{g.players.indexOf(p) + 1}</span>
+        <span className="player-sheet__seat tabular">{p.seat}</span>
         <div className="player-sheet__who">
           <h2>{p.name}</h2>
-          <span className="muted">{p.alive ? 'Còn sống' : 'Đã bị loại'}</span>
+          <span className="muted">
+            {p.alive ? 'Còn sống' : 'Đã bị loại'}
+            {!p.canVote && p.alive ? ' · mất quyền bầu' : ''}
+            {p.device ? '' : ' · không có điện thoại'}
+          </span>
         </div>
       </div>
-      {shared ? (
-        <div className="player-sheet__hidden">
-          <Icon name="lock" />
-          Vai được giấu trên màn hình chung
-        </div>
-      ) : (
-        <button
-          className="player-sheet__role"
-          data-team={v.team}
-          onClick={() => setState({ sheet: { type: 'role', id: p.roleId } })}
-        >
-          <RoleMedal team={v.team} icon={v.icon} size={48} iconSize={26} ring={false} />
-          <span className="player-sheet__role-text">
-            <span className="player-sheet__role-name">{v.name}</span>
-            <span className="team-ink">{v.teamLabel}</span>
-          </span>
-          <Icon name="right" />
-        </button>
-      )}
-      {(p.lover || p.chief) && (
+      <button className="player-sheet__role" data-team={v.team} onClick={() => onRole(p.roleId)}>
+        <RoleMedal team={v.team} icon={v.icon} size={48} iconSize={26} ring={false} />
+        <span className="player-sheet__role-text">
+          <span className="player-sheet__role-name">{v.name}</span>
+          <span className="team-ink">{v.teamLabel}</span>
+        </span>
+        <Icon name="right" />
+      </button>
+      {(p.lover || p.chief || p.charmed || p.revealed) && (
         <div className="player-sheet__tags">
           {p.lover && (
             <span className="player-sheet__tag">
@@ -66,27 +104,36 @@ export function PlayerSheet({ id }: { id: string }) {
               Trưởng làng
             </span>
           )}
+          {p.charmed && <span className="player-sheet__tag">Bị mê hoặc</span>}
+          {p.revealed && <span className="player-sheet__tag">Vai đã công khai</span>}
         </div>
       )}
       <div className="player-sheet__actions">
+        {!p.device && !viewed && (
+          <button className="btn btn-secondary" onClick={() => onShowRole(p)}>
+            <Icon name="eye" />
+            Cho xem vai trên máy này
+          </button>
+        )}
         {p.alive ? (
           <>
-            <button className="btn btn-secondary" onClick={() => toggleChiefOf(p.id)}>
-              <Icon name="crown" />
-              {p.chief ? 'Bỏ chức Trưởng làng' : 'Đặt làm Trưởng làng'}
-            </button>
+            {s.options.chief && (
+              <button className="btn btn-secondary" onClick={() => onChief(p)}>
+                <Icon name="crown" />
+                {p.chief ? 'Bỏ chức Trưởng làng' : 'Đặt làm Trưởng làng'}
+              </button>
+            )}
             <button
               className="btn btn-secondary btn-danger"
-              onClick={() =>
-                setState({ dialog: { type: 'kill', id: p.id, cause: 'gm' }, sheet: null })
-              }
+              disabled={markedNight}
+              onClick={() => onKill(p)}
             >
               <Icon name="skull" />
-              Loại khỏi ván
+              {markedNight ? 'Đã đánh dấu · công bố lúc sáng' : 'Loại khỏi ván'}
             </button>
           </>
         ) : (
-          <button className="btn btn-secondary" onClick={() => revivePlayer(p.id)}>
+          <button className="btn btn-secondary" onClick={() => onRevive(p)}>
             <Icon name="reset" />
             Hồi sinh (sửa nhầm)
           </button>
@@ -96,48 +143,45 @@ export function PlayerSheet({ id }: { id: string }) {
   )
 }
 
-export function MenuSheet() {
-  const { game: g } = useAppState()
-  const items = [
-    {
-      icon: 'list' as const,
-      label: 'Mở nhật ký ván',
-      onClick: () => setState({ sheet: null, logOpen: true }),
-    },
-    {
-      icon: 'info' as const,
-      label: 'Cách chơi',
-      onClick: () => setState({ sheet: { type: 'howto' } }),
-    },
-    {
-      icon: 'home' as const,
-      label: 'Lưu và về trang chủ',
-      onClick: () => {
-        setState({ screen: 'home', sheet: null })
-        toast('Đã lưu ván. Có thể tiếp tục từ trang chủ.')
-      },
-    },
-    {
-      icon: 'check' as const,
-      label: 'Kết thúc ván',
-      onClick: () => setState({ sheet: null, dialog: 'endGame' }),
-    },
+export function MenuSheet({
+  name,
+  onLog,
+  onHowto,
+  onHome,
+  onEnd,
+  onReset,
+  onLobby,
+}: {
+  name: string
+  onLog: () => void
+  onHowto: () => void
+  onHome: () => void
+  onEnd: () => void
+  onReset: () => void
+  onLobby: () => void
+}) {
+  const items: {
+    icon: 'list' | 'info' | 'home' | 'check' | 'users'
+    label: string
+    on: () => void
+  }[] = [
+    { icon: 'list', label: 'Mở nhật ký ván', on: onLog },
+    { icon: 'info', label: 'Cách chơi', on: onHowto },
+    { icon: 'users', label: 'Xem phòng và mã phòng', on: onLobby },
+    { icon: 'home', label: 'Về trang chủ (ván vẫn được lưu)', on: onHome },
+    { icon: 'check', label: 'Kết thúc ván', on: onEnd },
   ]
-
   return (
     <>
-      <h2 className="sheet__title menu__title">{g?.name}</h2>
+      <h2 className="sheet__title menu__title">{name}</h2>
       <div className="menu">
         {items.map((it) => (
-          <button key={it.label} className="menu__item" onClick={it.onClick}>
+          <button key={it.label} className="menu__item" onClick={it.on}>
             <Icon name={it.icon} />
             {it.label}
           </button>
         ))}
-        <button
-          className="menu__item menu__item--danger"
-          onClick={() => setState({ sheet: null, dialog: 'reset' })}
-        >
+        <button className="menu__item menu__item--danger" onClick={onReset}>
           <Icon name="reset" />
           Reset ván về Đêm 1
         </button>
@@ -146,44 +190,49 @@ export function MenuSheet() {
   )
 }
 
-const closeDialog = () => setState({ dialog: null })
-
-function KillDialog({ id, cause }: { id: string; cause: KillCause }) {
-  const { game: g } = useAppState()
-  if (!g) return null
-  const p = playerById(g, id)
-  const extra = [
-    p.lover ? 'Người còn lại trong Cặp đôi sẽ bị loại theo.' : '',
-    p.roleId === 'hunter' ? 'Thợ săn sẽ được chọn một người để bắn.' : '',
-    p.roleId === 'idiot' && cause === 'vote'
-      ? 'Đây là Thằng ngốc: quản trò có thể Hoàn tác để giữ người này lại.'
-      : '',
-  ]
-    .filter(Boolean)
-    .join(' ')
-
+/** Hiệu ứng bắt buộc: Thợ săn bắn / Trưởng làng chỉ định kế nhiệm. */
+export function EffectDialog({
+  s,
+  effect,
+  busy,
+  onResolve,
+}: {
+  s: GameState
+  effect: Effect
+  busy: boolean
+  onResolve: (target: string | null) => void
+}) {
+  const source = s.players.find((p) => p.id === effect.playerId)!
+  const targets = s.players.filter((p) => p.alive && p.id !== source.id)
+  const hunter = effect.kind === 'hunter'
   return (
     <Dialog
-      title={`Loại ${p.name}?`}
-      onClose={closeDialog}
+      layer="hunter"
+      title={hunter ? `Thợ săn ${source.name} bị loại` : `Trưởng làng ${source.name} bị loại`}
       actions={
-        <>
-          <button className="btn btn-secondary" onClick={closeDialog}>
-            Hủy
-          </button>
-          <button className="btn btn-danger" onClick={() => confirmKill(id, cause)}>
-            <Icon name="skull" />
-            Xác nhận loại
-          </button>
-        </>
+        <button className="btn btn-ghost" disabled={busy} onClick={() => onResolve(null)}>
+          {hunter ? 'Thợ săn không bắn' : 'Không chỉ định ai'}
+        </button>
       }
     >
+      <span className="gm-badge hunter__badge">Quản trò xử lý</span>
       <p className="dialog__body">
-        {cause === 'vote'
-          ? `${p.name} nhận nhiều phiếu nhất và sẽ bị loại khỏi ván.`
-          : `Đánh dấu ${p.name} là đã bị loại.`}{' '}
-        {extra}
+        {hunter
+          ? 'Hỏi Thợ săn muốn bắn ai, rồi chọn bên dưới.'
+          : 'Trưởng làng chỉ định người kế nhiệm còn sống.'}
       </p>
+      <div className="hunter__targets">
+        {targets.map((p) => (
+          <button
+            key={p.id}
+            className="btn btn-secondary"
+            disabled={busy}
+            onClick={() => onResolve(p.id)}
+          >
+            {p.name}
+          </button>
+        ))}
+      </div>
     </Dialog>
   )
 }
@@ -194,116 +243,45 @@ const END_OPTIONS = [
   ['none', 'Kết thúc không phân thắng bại'],
 ] as const
 
-/** Hộp thoại của bàn quản trò: loại người, Thợ săn, người thắng, reset, kết thúc. */
-export function BoardDialogs() {
-  const { screen, game: g, dialog, winnerSeen } = useAppState()
-  if (!g) return null
-  const hunter = g.pendingHunter ? playerById(g, g.pendingHunter) : null
-  const showWinner = screen === 'board' && g.winner && !g.pendingHunter && !winnerSeen
-
+export function EndDialog({
+  onPick,
+  onClose,
+}: {
+  onPick: (t: 'village' | 'wolf' | 'none') => void
+  onClose: () => void
+}) {
+  const [team, setTeam] = useState<'village' | 'wolf' | 'none' | null>(null)
   return (
-    <>
-      {dialog === 'reset' && (
-        <Dialog
-          title="Reset ván về Đêm 1?"
-          onClose={closeDialog}
-          actions={
-            <>
-              <button className="btn btn-secondary" onClick={closeDialog}>
-                Hủy
-              </button>
-              <button className="btn btn-danger" onClick={resetToNightOne}>
-                Reset ván
-              </button>
-            </>
-          }
-        >
-          <p className="dialog__body">
-            Mọi người sống lại, Cặp đôi và Trưởng làng bị xóa, nhật ký bắt đầu lại. Vai đã chia được
-            giữ nguyên. Bạn vẫn có thể Hoàn tác.
-          </p>
-        </Dialog>
-      )}
-      {dialog === 'endGame' && (
-        <Dialog
-          title="Kết thúc ván"
-          onClose={closeDialog}
-          actions={
-            <button className="btn btn-ghost" onClick={closeDialog}>
-              Hủy
-            </button>
-          }
-        >
-          <p className="dialog__body">Chọn kết quả để công bố vai của mọi người.</p>
-          <div className="dialog__stack">
-            {END_OPTIONS.map(([team, title]) => (
-              <button
-                key={team}
-                className="btn btn-secondary"
-                onClick={() => endGameAs(team, title)}
-              >
-                {title}
-              </button>
-            ))}
-          </div>
-        </Dialog>
-      )}
-      {typeof dialog === 'object' && dialog?.type === 'kill' && screen === 'board' && (
-        <KillDialog id={dialog.id} cause={dialog.cause} />
-      )}
-      {screen === 'board' && hunter && (
-        <Dialog
-          layer="hunter"
-          title={`Thợ săn ${hunter.name} bị loại`}
-          actions={
-            <button className="btn btn-ghost" onClick={hunterSkip}>
-              Thợ săn không bắn
-            </button>
-          }
-        >
-          <span className="gm-badge hunter__badge">Quản trò xử lý</span>
-          <p className="dialog__body">Hỏi Thợ săn muốn bắn ai, rồi chọn bên dưới.</p>
-          <div className="hunter__targets">
-            {g.players
-              .filter((p) => p.alive)
-              .map((p) => (
-                <button key={p.id} className="btn btn-secondary" onClick={() => hunterShoot(p.id)}>
-                  {p.name}
-                </button>
-              ))}
-          </div>
-        </Dialog>
-      )}
-      {showWinner && (
-        <Dialog
-          layer="winner"
-          className="dialog--center"
-          title={
-            <>
-              <span className="gold-text winner__crown">
-                <Icon name="crown" />
-              </span>
-              {g.winner!.title}
-            </>
-          }
-          actions={
-            <>
-              <button className="btn btn-secondary" onClick={undo}>
-                <Icon name="undo" />
-                Hoàn tác
-              </button>
-              <button
-                className="btn btn-ink"
-                onClick={() => setState({ screen: 'result', winnerSeen: true })}
-              >
-                Xem kết quả
-              </button>
-            </>
-          }
-        >
-          <p className="dialog__body">{g.winner!.reason}</p>
-        </Dialog>
-      )}
-    </>
+    <Dialog
+      title="Kết thúc ván"
+      onClose={onClose}
+      actions={
+        <>
+          <button className="btn btn-ghost" onClick={onClose}>
+            Hủy
+          </button>
+          <button className="btn btn-ink" disabled={!team} onClick={() => team && onPick(team)}>
+            Công bố kết quả
+          </button>
+        </>
+      }
+    >
+      <p className="dialog__body">
+        Chọn kết quả để công bố vai của mọi người. Sau khi kết thúc không thể hoàn tác.
+      </p>
+      <div className="dialog__stack" role="radiogroup" aria-label="Kết quả">
+        {END_OPTIONS.map(([t, title]) => (
+          <button
+            key={t}
+            role="radio"
+            aria-checked={team === t}
+            className="btn btn-secondary end-option"
+            onClick={() => setTeam(t)}
+          >
+            {title}
+          </button>
+        ))}
+      </div>
+    </Dialog>
   )
 }

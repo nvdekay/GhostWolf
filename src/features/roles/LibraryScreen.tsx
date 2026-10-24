@@ -1,5 +1,8 @@
-import { go } from '@/app/store'
+import { useState } from 'react'
+import { STATUSES } from '@engine'
+import { useNav } from '@/app/App'
 import { Icon } from '@/components/Icon'
+import { Sheet } from '@/components/overlay'
 import {
   EmptyState,
   FilterChips,
@@ -10,19 +13,27 @@ import {
   TopBar,
 } from '@/components/ui'
 import { useIsDesktop } from '@/lib/media'
-import { STATUSES } from './catalog'
-import { roleView } from './roles'
+import type { CustomRoleRow } from '@/services/types'
+import { CustomRoleSheet, RoleDetailSheet } from './RoleSheets'
+import { roleView, viewOf } from './roles'
+import { useCustomRoles } from './useCustomRoles'
 import { useRoleBrowser } from './useRoleBrowser'
 import './roles.css'
 
+type SheetState = { type: 'role'; id: string } | { type: 'custom'; row?: CustomRoleRow } | null
+
 export function LibraryScreen() {
+  const nav = useNav()
   const desk = useIsDesktop()
-  const browser = useRoleBrowser()
+  const custom = useCustomRoles()
+  const browser = useRoleBrowser(custom.defs)
+  const [sheet, setSheet] = useState<SheetState>(null)
+  const rowOf = (id: string) => custom.rows.find((r) => 'custom:' + r.id === id)
 
   return (
     <Paper label="Thư viện vai">
-      <TopBar onBack={() => go('home')} backLabel="Về trang chủ" title="Thư viện vai">
-        <button className="btn btn-ink" onClick={browser.openCustom}>
+      <TopBar onBack={nav.home} backLabel="Về trang chủ" title="Thư viện vai">
+        <button className="btn btn-ink" onClick={() => setSheet({ type: 'custom' })}>
           <Icon name="plus" />
           {desk ? 'Vai tùy chỉnh' : 'Thêm'}
         </button>
@@ -36,10 +47,11 @@ export function LibraryScreen() {
             aria-label="Tìm vai"
             value={browser.query}
             onChange={(e) => browser.setQuery(e.target.value)}
-            placeholder="Tìm vai"
+            placeholder="Tìm vai, ví dụ: tien tri"
           />
         </div>
         <FilterChips items={browser.filters} label="Lọc theo phe" />
+        {custom.error && <p className="danger-text">{custom.error}</p>}
 
         {browser.results.length === 0 && (
           <EmptyState title={`Không tìm thấy vai “${browser.query}”`}>
@@ -47,7 +59,7 @@ export function LibraryScreen() {
               <button className="btn btn-secondary" onClick={browser.clearQuery}>
                 Xóa tìm kiếm
               </button>
-              <button className="btn btn-ink" onClick={browser.openCustom}>
+              <button className="btn btn-ink" onClick={() => setSheet({ type: 'custom' })}>
                 <Icon name="plus" />
                 Tạo vai tùy chỉnh
               </button>
@@ -63,7 +75,7 @@ export function LibraryScreen() {
                 key={r.id}
                 className="lib-tile"
                 data-team={v.team}
-                onClick={() => browser.openRole(r.id)}
+                onClick={() => setSheet({ type: 'role', id: r.id })}
               >
                 <RoleMedal team={v.team} icon={v.icon} size={60} iconSize={26} />
                 <span className="tile__text">
@@ -71,6 +83,7 @@ export function LibraryScreen() {
                   <span className="badges">
                     <TeamBadge view={v} />
                     {v.gm && <GmBadge />}
+                    {v.custom && <span className="custom-badge">Tùy chỉnh</span>}
                   </span>
                   <span className="tile__short">{v.short}</span>
                   <span className="lib-tile__more">
@@ -93,7 +106,7 @@ export function LibraryScreen() {
               <button
                 key={st.id}
                 className="status-row status-row--button"
-                onClick={() => browser.openRole(st.id)}
+                onClick={() => setSheet({ type: 'role', id: st.id })}
               >
                 <Icon name={st.icon} size={26} />
                 <span className="status-row__text">
@@ -107,6 +120,39 @@ export function LibraryScreen() {
           </div>
         </section>
       </main>
+
+      {sheet && (
+        <Sheet
+          onClose={() => setSheet(null)}
+          label={sheet.type === 'role' ? 'Chi tiết vai' : 'Vai tùy chỉnh'}
+        >
+          {sheet.type === 'role' && (
+            <RoleDetailSheet
+              view={viewOf(sheet.id, custom.defs)}
+              onEdit={
+                rowOf(sheet.id)
+                  ? () => setSheet({ type: 'custom', row: rowOf(sheet.id) })
+                  : undefined
+              }
+            />
+          )}
+          {sheet.type === 'custom' && (
+            <CustomRoleSheet
+              initial={sheet.row}
+              presetName={sheet.row ? undefined : browser.query}
+              presetTeam={browser.filter === 'all' ? undefined : browser.filter}
+              onSaved={() => {
+                void custom.reload()
+                setSheet(null)
+              }}
+              onDeleted={() => {
+                void custom.reload()
+                setSheet(null)
+              }}
+            />
+          )}
+        </Sheet>
+      )}
     </Paper>
   )
 }
