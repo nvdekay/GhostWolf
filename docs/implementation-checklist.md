@@ -1,79 +1,82 @@
 # Ghostwolf — checklist triển khai
 
 Nguồn tham chiếu: `GhostWolf.html` (bundle: `__bundler/template` + manifest base64/gzip + component `text/x-dc`).
-Trạng thái: `[ ]` chưa làm · `[x]` xong và đã kiểm · `[~]` xong nhưng chưa xác minh đầy đủ (ghi lý do).
+Trạng thái: `[x]` xong và đã kiểm · `[~]` xong nhưng chưa xác minh đầy đủ (ghi lý do) · `[ ]` chưa làm.
+
+Kiểm thử đã chạy (Supabase local + Edge Function chạy bằng Deno):
+`npm test` 38 test engine · `npm run test:integration` 22 test (RLS, lobby, idempotency, revision, realtime, undo/reset/replay, thư viện) · `npm run test:e2e` 3 kịch bản (quản trò + 2 người chơi, kick/mất mạng/đóng phòng, responsive 360–1440px).
 
 ## 0. Kiến trúc
 
-- [ ] Frontend React + TS strict + Vite, CSS thuần dùng tokens của mock, deploy static `dist/`.
-- [ ] Supabase: Postgres + RLS, anonymous auth, Realtime (postgres_changes + presence kênh private).
-- [ ] Game engine thuần TS, dùng chung cho Edge Function và frontend (`supabase/functions/_shared/engine`, alias `@engine`).
-- [ ] Lệnh phòng (tạo/vào/rời/kick/chốt/mở/đóng/ack) là RPC `security definer` trong Postgres.
-- [ ] Lệnh ván (chia, gửi, đêm, ngày, phiếu, hiệu ứng, undo, reset, kết thúc, chơi lại) chạy qua Edge Function `game-command` → engine → `commit_game` (1 transaction, revision, idempotency).
-- [ ] Tách: UI (`src/features`, `src/components`) · domain (`@engine`) · backend commands (`src/services`) · realtime (`src/realtime`) · session/khôi phục (`src/app/session`).
+- [x] React + TS strict + Vite, CSS thuần dùng tokens của mock, build static `dist/`.
+- [x] Supabase: Postgres + RLS, anonymous auth, Realtime (postgres_changes theo RLS + presence kênh private).
+- [x] Game engine TS thuần dùng chung Edge Function và frontend (`supabase/functions/_shared/engine`, alias `@engine`); `deno check` qua.
+- [x] Lệnh phòng là RPC `security definer`; lệnh ván qua Edge Function `game-command` → `commit_game` (1 transaction, revision, idempotency).
+- [x] Tách UI / domain / services / realtime / session.
+- [~] Edge runtime của Supabase CLI không chạy được trên máy kiểm thử (jsr.io trả 403 Cloudflare challenge). Function được chạy bằng Deno trực tiếp với đúng mã nguồn (`npm run functions:serve`). Chưa deploy lên Supabase hosted (không có thông tin dự án).
 
-## 1. Màn hình (đối chiếu mock)
+## 1. Màn hình
 
-| Màn | Thao tác | Dữ liệu thật |
-| --- | --- | --- |
-| `home` | Tạo ván, vào phòng bằng mã, tiếp tục ván, thư viện vai, cách chơi | Phòng/membership đang hoạt động của phiên ẩn danh |
-| `choose` | Quản trò / Người chơi | — |
-| `gmConfig` | Tên ván, Trưởng làng, công bố vai khi loại, luật biến thể | `create_room` |
-| `lobby` | Mã thật, sao chép, chia sẻ URL thật, danh sách realtime + online, thêm thủ công, kick, chốt (≥4), mở lại, đóng | `rooms`, `room_members`, presence |
-| `roles` | Tìm (không dấu), lọc phe, +/-, chi tiết, tổng + phân bố phe, thiếu/thừa/thiếu sói, điền Dân làng, xóa, preset, gợi ý, lưu/áp dụng bộ vai, vai tùy chỉnh (thêm/sửa/xóa) | `deck.set`, `presets`, `custom_roles` |
-| `lib` | Tìm, lọc, chi tiết, vai tùy chỉnh | catalog + `custom_roles` |
-| `assign` | Chia (server, CSPRNG), giấu/hiện, xáo lại trước gửi, gửi, tiến độ xem thật, xem trên máy này, bắt đầu (cảnh báo khi chưa đủ) | `deal`, `send`, `assignments.viewed_at` |
-| `deal` | Handoff trung tính → lật vai → ẩn → trả máy | assignment của người thủ công |
-| `join` | Mã/link → tên → chờ → nhận vai → lật → ack → theo dõi → kết quả; kick/đóng | `join_room`, assignment riêng, `ack_role`, `public_state` |
-| `board` | Pha, người sống, ghế vòng (desktop)/grid (mobile), gọi vai, phù thủy, tiên tri, công bố, timer, phiếu, hòa, nhật ký, màn hình chung, hoàn tác, menu | `game_secrets` (host), `public_state` |
-| `result` | Phe/người thắng, lý do, vai mọi người, diễn biến, chơi lại, đổi bộ vai, về trang chủ | `public_state.result` |
+- [x] `home`: tạo ván, vào bằng mã, tiếp tục ván từ server (không dùng demo), thư viện, cách chơi (luồng nhiều điện thoại + chuyền máy).
+- [x] `choose`, `gmConfig` (Trưởng làng, công bố vai, luật biến thể).
+- [x] `lobby`: mã thật, sao chép (có fallback hiện mã/link để tự chọn), chia sẻ URL thật `?join=`, danh sách realtime + online/offline, thêm thủ công, kick, chốt (≥4), mở lại trước khi gửi, đóng phòng.
+- [x] `roles`: tìm không dấu, lọc phe, +/-, chi tiết, tổng + phân bố phe, thiếu/thừa/thiếu sói, chặn chia khi sai, điền Dân làng, xóa hết, gợi ý theo số người (không ghi đè khi đã chỉnh), bộ vai lưu server (đặt tên, áp dụng, xóa), vai tùy chỉnh (thêm/sửa/xóa, chặn xóa khi đang dùng), sidebar desktop / bottom sheet mobile.
+- [x] `lib`: thư viện + vai tùy chỉnh.
+- [x] `assign`: chia ở server (CSPRNG + Fisher–Yates), giấu/hiện, xáo lại trước khi gửi, gửi một lần, tiến độ xem thật, xem trên máy này, xác nhận bắt đầu khi chưa đủ.
+- [x] `deal`: handoff trung tính → lật → ẩn → trả máy; cũng mở được từ bàn quản trò cho người chưa xem.
+- [x] `join` + máy người chơi: mã/link → tên → chờ → nhận vai thật → lật → ack → theo dõi → kết quả; kick/đóng/rời.
+- [x] `board`: dữ liệu thật, vòng (desktop) / lưới (mobile), gọi vai, Phù thủy, Tiên tri, công bố, timer, phiếu, hòa, nhật ký công khai/riêng, màn hình chung, hoàn tác, menu.
+- [x] `result`: người thắng (kể cả phe riêng), lý do, vai mọi người, diễn biến, chơi lại, đổi bộ vai, về trang chủ; máy người chơi cũng thấy kết quả.
+- [x] Sheet/dialog/toast: chi tiết vai, thêm/sửa vai, chi tiết người, menu, reset, dừng xem vai, kết thúc, xác nhận loại, Thợ săn, kế nhiệm Trưởng làng, chiến thắng, đóng phòng, rời phòng, bắt đầu khi chưa xem đủ.
 
-Sheet/dialog/toast: chi tiết vai, thêm/sửa vai, chi tiết người, menu, reset, dừng chia vai, kết thúc, xác nhận loại, Thợ săn, kế nhiệm Trưởng làng, chiến thắng, đóng phòng, bắt đầu khi chưa xem đủ, bị kick/phòng đóng.
+## 2. Phần mô phỏng của mock đã thay
 
-## 2. Phần mô phỏng của mock cần thay
+- [x] Tự thêm tên mẫu bằng interval → người chơi thật qua `join_room` + realtime.
+- [x] `sendRoles()` tự đánh dấu đã xem → `ack_role` từ máy người chơi / `host_ack_role` cho người không có điện thoại.
+- [x] `playerJoinSim()` + vai random → assignment thật, đọc qua RLS.
+- [x] `demoGame()` làm ván lưu mặc định → danh sách phòng/ván thật từ server.
+- [x] Mã demo `TRANG6`, “Phòng của Quân”, danh sách cố định → dữ liệu phòng thật.
+- [x] Link `trangsoi.vn` → URL thật từ `location.origin`.
+- [x] Toast chỉ hiện khi thao tác thành công; lỗi mạng/backend/clipboard có thông báo riêng.
+- [x] Thương hiệu “Trăng Sói” → Ghostwolf.
 
-- [ ] `createRoom()` tự thêm tên mẫu bằng interval → người chơi thật qua `join_room` + realtime.
-- [ ] `sendRoles()` tự đánh dấu đã xem → ack thật từ máy người chơi.
-- [ ] `playerJoinSim()` + vai random trên máy người chơi → assignment thật, đọc qua RLS.
-- [ ] `demoGame()` làm ván lưu mặc định → "Tiếp tục ván" từ server.
-- [ ] Mã demo `TRANG6`, `Phòng của Quân`, danh sách người cố định → dữ liệu phòng thật.
-- [ ] Link `trangsoi.vn/p/…` → URL thật `?join=CODE` từ `location.origin`.
-- [ ] Toast "đã sao chép/đã lưu/đã gửi" luôn hiện → chỉ hiện khi thành công, có lỗi/fallback.
-- [ ] Thương hiệu "Trăng Sói" → **Ghostwolf** (giữ thiết kế).
+## 3. Engine & luật (`docs/ruleset.md`, `RULESET_VERSION = 1`)
 
-## 3. Engine & luật (ruleset có version)
-
-- [ ] Catalog 11 vai + 2 trạng thái, mô tả khớp engine.
-- [ ] Năng lực tách riêng: phe thắng, thuộc bầy (cắn), kết quả soi, mục tiêu hợp lệ.
-- [ ] Đêm: Cupid (đêm 1) → Bảo vệ → Bầy sói → Sói trắng (đêm chẵn) → Phù thủy → Tiên tri → Người thổi sáo → vai tùy chỉnh; gọi vai đã chết không cho hành động.
-- [ ] Hành động đêm là pending, giải quyết lúc trời sáng; không lộ người chết giữa đêm (kể cả loại thủ công ban đêm).
-- [ ] Tài nguyên Phù thủy bền vững; Bảo vệ không lặp liên tiếp.
-- [ ] Nguyên nhân chết riêng; hàng đợi hiệu ứng (Thợ săn, kế nhiệm Trưởng làng); Cặp đôi chết theo; không kích hoạt lặp.
-- [ ] Thằng ngốc lần đầu bị phiếu: lộ vai, sống, mất quyền bầu.
-- [ ] Phiếu: người có quyền bầu, trọng số Trưởng làng nhập riêng, chặn vượt tổng, bỏ phiếu trắng, hòa (sửa/bầu lại/không loại/quản trò quyết có lý do).
-- [ ] Thắng: thứ tự ưu tiên ghi trong `docs/ruleset.md`; không chốt khi còn hiệu ứng chờ.
-- [ ] Command kiểm tra giai đoạn; không vượt bước, không làm lại kỹ năng, không sửa assignment sau gửi, không thao tác sau kết thúc.
-- [ ] Undo (lịch sử server), reset Đêm 1 (giữ assignment), replay tạo ván mới.
+- [x] 11 vai + 2 trạng thái, mô tả khớp engine.
+- [x] Năng lực tách riêng: phe thắng / thuộc bầy / kết quả soi / mục tiêu hợp lệ.
+- [x] Thứ tự đêm theo mock; chỉ bước của vai có trong ván; gọi vai đã chết không cho hành động.
+- [x] Hành động đêm pending, giải quyết lúc sáng; loại thủ công ban đêm công bố lúc sáng.
+- [x] Tài nguyên Phù thủy bền vững; Bảo vệ không lặp; Sói trắng lượt riêng đêm chẵn; bầy vẫn cắn khi chỉ còn Sói trắng.
+- [x] Nguyên nhân chết riêng; hàng đợi hiệu ứng; Cặp đôi chết theo; không kích hoạt lặp; Thợ săn trúng độc theo cấu hình.
+- [x] Thằng ngốc lần đầu bị phiếu: lộ vai, sống, mất quyền bầu.
+- [x] Phiếu: người có quyền bầu, trọng số Trưởng làng riêng (không cộng hai lần), chặn vượt tổng, bỏ trắng, hòa (sửa/bầu lại/không loại/quyết định có lý do).
+- [x] Thắng theo thứ tự ưu tiên ghi trong ruleset; không chốt khi còn hiệu ứng; sửa các lỗi của mock (Cặp đôi cùng phe, Sói trắng còn sống chặn bầy sói, không còn ai sống).
+- [x] Chặn vượt bước, làm lại bước, sửa assignment sau gửi, thao tác sau kết thúc.
+- [x] Undo (lịch sử 40 bước ở server), reset Đêm 1, replay tạo ván mới.
 
 ## 4. Bảo mật
 
-- [ ] RLS mọi bảng; player chỉ đọc assignment của chính mình sau khi gửi.
-- [ ] `game_secrets`, lịch sử, command log: chỉ host / service role.
-- [ ] Không service-role key ở frontend; realtime dựa trên RLS, kênh presence private.
-- [ ] Màn hình chung render từ public state → không rò vai, mục tiêu, tài nguyên, soi, Cặp đôi, nhật ký riêng, label.
+- [x] RLS mọi bảng; người chơi chỉ đọc assignment của mình sau khi gửi (integration + e2e kiểm phản hồi mạng).
+- [x] `game_secrets`, lịch sử, command log: chỉ quản trò / service role; client không ghi trực tiếp bảng ván.
+- [x] Không service-role key ở frontend; realtime không gửi `game_secrets` tới người chơi (integration).
+- [x] Màn hình chung render từ public state; e2e kiểm không có tên vai trên bàn khi bật. Nhãn hoàn tác chung chung, không chứa mục tiêu.
+- [~] Chính sách kênh presence private (`realtime.messages`) chạy được local; chưa kiểm trên Supabase hosted.
 
 ## 5. Persistence & đồng bộ
 
-- [ ] Lưu sau mỗi command; transaction; idempotency (command id); revision chống ghi đè.
-- [ ] Reconnect: refetch snapshot khi (re)subscribe; subscription có refcount, không trùng.
-- [ ] Phân biệt phòng đóng / ván kết thúc / reset / chơi lại.
-- [ ] localStorage chỉ cho session auth, timer, nháp phiếu của host; không cache bí mật cả phòng.
+- [x] Lưu sau mỗi lệnh; transaction; idempotency theo commandId (integration); revision chống ghi đè (integration).
+- [x] Reconnect: lấy lại snapshot khi (re)subscribe; store có refcount, không tạo kênh trùng khi remount.
+- [x] Phân biệt phòng đóng / ván kết thúc / reset / chơi lại; ván cũ giữ nguyên.
+- [x] localStorage chỉ cho phiên auth, route đang mở, timer, chế độ màn hình chung. Không cache bí mật.
+- [~] Hai tab quản trò cùng lúc: revision conflict được báo và tải lại (integration ở mức API); chưa có e2e hai tab.
 
 ## 6. Kiểm thử & bàn giao
 
-- [ ] Vitest: chia bài, đêm, dây chuyền, Thợ săn, Thằng ngốc, Trưởng làng, phiếu, thắng, public view không rò.
-- [ ] Integration (Supabase local): RLS, chốt/kick/reconnect, idempotency, revision.
-- [ ] Playwright: host + 2 người chơi.
-- [ ] Responsive 360/390/768/1024/1440; focus trap dialog; hold-to-reveal touch/keyboard.
-- [ ] typecheck, lint, test, build.
-- [ ] `.env.example`, README cấu hình Supabase + deploy.
+- [x] Vitest: chia bài + tần suất, đêm, dây chuyền, Thợ săn, Thằng ngốc, Trưởng làng, phiếu, thắng, reset, public view.
+- [x] Integration: RLS, lobby, kick, khóa, reconnect, idempotency, revision, realtime, undo/reset/kết thúc/replay, thư viện.
+- [x] Playwright: quản trò + 2 người chơi; kick / mất mạng / đóng phòng; responsive 360/390/768/1024/1440 (không tràn ngang, nút ≥ 32px chiều cao).
+- [~] Focus trap + trả focus trong dialog/sheet, hold-to-reveal bằng bàn phím: đã cài đặt, chưa có test tự động.
+- [~] Bàn phím ảo che CTA trên điện thoại thật: chưa kiểm trên thiết bị thật.
+- [x] typecheck, lint, test, build.
+- [x] `.env.example`, README (Supabase, anonymous auth, realtime, deploy).
+- [ ] Deploy thật (Supabase hosted + host static): cần thông tin dự án của bạn — các bước ở README.

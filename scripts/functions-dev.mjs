@@ -3,7 +3,10 @@
 // Hosted Supabase: deploy bằng `supabase functions deploy game-command`, không cần script này.
 import { execSync, spawn } from 'node:child_process'
 
-const out = execSync('supabase status -o env', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] })
+const out = execSync('supabase status -o env', {
+  encoding: 'utf8',
+  stdio: ['ignore', 'pipe', 'inherit'],
+})
 const get = (k) => out.match(new RegExp(`^${k}="?([^"\\n]+)"?$`, 'm'))?.[1]
 const env = {
   ...process.env,
@@ -17,7 +20,17 @@ if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
 }
 const port = process.env.FUNCTIONS_PORT ?? '54329'
 console.log(`game-command: http://127.0.0.1:${port}/game-command`)
-spawn('deno', ['run', '--allow-net', '--allow-env', `--watch=supabase/functions`, 'supabase/functions/game-command/index.ts'], {
-  env: { ...env, PORT: port },
-  stdio: 'inherit',
-})
+spawn(
+  'deno',
+  [
+    'run',
+    '--allow-net',
+    '--allow-env',
+    `--watch=supabase/functions`,
+    'supabase/functions/game-command/index.ts',
+  ],
+  {
+    env: { ...env, PORT: port },
+    stdio: 'inherit',
+  },
+)
