@@ -270,3 +270,15 @@
 .join__rules {
   font-size: 15px;
 }
+
+.join__alive[data-alive='true'] > .dot {
+  background: var(--success);
+}
+
+.join__alive[data-alive='false'] {
+  color: var(--muted);
+}
+
+.join__alive[data-alive='false'] > .dot {
+  background: var(--danger-line);
+}
