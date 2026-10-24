@@ -1,0 +1,201 @@
+/* — Chia vai — */
+.assign {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 28px clamp(16px, 4vw, 40px) 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.assign__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.assign__head .hero {
+  max-width: 560px;
+  gap: 8px;
+}
+
+.assign__head .hero > h1 {
+  font-size: clamp(34px, 6vw, 50px);
+}
+
+.assign__progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 15px;
+}
+
+.assign__note {
+  font-size: 15px;
+}
+
+.assign__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--color-divider);
+}
+
+.assign__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  min-height: 64px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.assign__row[data-shuffling='true'] {
+  opacity: 0.75;
+}
+
+.assign__seat {
+  width: 24px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.assign__who {
+  flex: 1 1 140px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.assign__name {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+.assign__offline {
+  font-size: 13px;
+}
+
+.assign__role {
+  flex: 1 1 160px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+  color: var(--team-ink);
+}
+
+.assign__status {
+  min-width: 140px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.assign__status[data-viewed='true'] {
+  color: var(--success);
+}
+
+.assign__main {
+  flex: 1;
+  max-width: 520px;
+  margin: 0 auto;
+  min-height: 56px;
+  font-size: 19px;
+}
+
+/* — Chuyền máy — */
+.deal__head {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 12px 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.deal__bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.deal__label {
+  flex: 1;
+}
+
+.deal__segs {
+  display: flex;
+  gap: 4px;
+}
+
+.deal__segs > span {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  border: 1px solid var(--line-dashed);
+}
+
+.deal__segs > span[data-state='current'] {
+  border-color: var(--gold);
+}
+
+.deal__segs > span[data-state='done'] {
+  border-color: var(--gold);
+  background: var(--gold);
+}
+
+.deal {
+  flex: 1;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 24px 16px calc(24px + var(--safe-bottom));
+  display: flex;
+  flex-direction: column;
+}
+
+.deal__center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 20px;
+  animation: rise 0.3s ease;
+}
+
+.deal__title {
+  font-size: clamp(40px, 11vw, 60px);
+  line-height: 1.05;
+}
+
+.deal__sub {
+  max-width: 360px;
+  font-size: 17px;
+}
+
+.deal__btn {
+  min-height: 60px;
+  font-size: 20px;
+}
+
+.deal__reveal {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.deal__whose {
+  font-size: 15px;
+  text-align: center;
+}
