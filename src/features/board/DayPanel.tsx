@@ -1,45 +1,71 @@
-import { setState, useAppState } from '@/app/store'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { eligibleVoters, voteCandidates, votingChief, type DayStep, type GameState } from '@engine'
+import { useFeedback } from '@/app/feedback'
 import { Icon } from '@/components/Icon'
 import { cssVars } from '@/lib/css'
-import type { DayStep, Game } from '@/types/game'
-import { findRole } from '@/features/roles/roles'
-import { addVote, noElimination, revote, updateGame } from './actions'
-import { playerById } from './logic'
-import type { BoardModel } from './useBoard'
+import { useHost } from '@/features/host/context'
+import { viewOf } from '@/features/roles/roles'
+import { useTimer } from './useTimer'
 
-const DAY_TABS: [DayStep, string][] = [
+const TABS: [Exclude<DayStep, 'after'>, string][] = [
   ['announce', 'Công bố'],
   ['discuss', 'Thảo luận'],
   ['vote', 'Bỏ phiếu'],
 ]
-const DAY_ORDER: DayStep[] = ['announce', 'discuss', 'vote', 'after']
+const ORDER: DayStep[] = ['announce', 'discuss', 'vote', 'after']
 
-function Timer() {
-  const { timer: t } = useAppState()
+export interface VoteDraft {
+  votes: Record<string, number>
+  chiefVote: string | null
+}
+
+export function Timer({
+  gameId,
+  day,
+  readOnly,
+}: {
+  gameId: string
+  day: number
+  readOnly?: boolean
+}) {
+  const fb = useFeedback()
+  const t = useTimer(gameId, day)
+  const warned = useRef(false)
+  useEffect(() => {
+    if (t.expired && !warned.current) {
+      warned.current = true
+      if (!readOnly) fb.toast('Hết giờ thảo luận')
+    }
+    if (!t.expired) warned.current = false
+  }, [t.expired, fb, readOnly])
   const mm = Math.floor(t.left / 60)
   const ss = t.left % 60
-  const set = (patch: Partial<typeof t>) => setState({ timer: { ...t, ...patch } })
-
   return (
     <>
       <div className="day-head">
         <h2>Thảo luận</h2>
-        <div className="presets">
-          {[2, 3, 5].map((min) => (
-            <button
-              key={min}
-              className="chip chip--sm"
-              aria-pressed={t.total === min * 60}
-              onClick={() =>
-                setState({ timer: { left: min * 60, total: min * 60, running: false } })
-              }
-            >
-              {min} phút
-            </button>
-          ))}
-        </div>
+        {!readOnly && (
+          <div className="presets">
+            {[2, 3, 5].map((min) => (
+              <button
+                key={min}
+                className="chip chip--sm"
+                aria-pressed={t.total === min * 60}
+                onClick={() => t.preset(min * 60)}
+              >
+                {min} phút
+              </button>
+            ))}
+          </div>
+        )}
       </div>
-      <div role="timer" aria-live="off" className="timer tabular" data-low={t.left <= 30}>
+      <div
+        role="timer"
+        aria-live="off"
+        aria-label={`Còn ${mm} phút ${ss} giây`}
+        className="timer tabular"
+        data-low={t.left <= 30}
+      >
         {mm}:{String(ss).padStart(2, '0')}
       </div>
       <div
@@ -48,123 +74,164 @@ function Timer() {
       >
         <span />
       </div>
-      <div className="timer-actions">
-        <button
-          className="btn btn-ink btn-lg timer-actions__main"
-          onClick={() => set({ running: !t.running })}
-        >
-          <Icon name={t.running ? 'pause' : 'play'} />
-          {t.running ? 'Tạm dừng' : t.left < t.total ? 'Tiếp tục' : 'Bắt đầu'}
-        </button>
-        <button
-          className="btn btn-secondary"
-          onClick={() => set({ left: t.left + 30, total: t.total + 30 })}
-        >
-          +30 giây
-        </button>
-        <button
-          className="btn btn-secondary"
-          onClick={() => set({ left: t.total, running: false })}
-          aria-label="Đặt lại đồng hồ"
-        >
-          <Icon name="reset" />
-          Đặt lại
-        </button>
-      </div>
+      {!readOnly && (
+        <div className="timer-actions">
+          <button
+            className="btn btn-ink btn-lg timer-actions__main"
+            onClick={t.running ? t.pause : t.start}
+            disabled={t.left === 0}
+          >
+            <Icon name={t.running ? 'pause' : 'play'} />
+            {t.running ? 'Tạm dừng' : t.left < t.total ? 'Tiếp tục' : 'Bắt đầu'}
+          </button>
+          <button className="btn btn-secondary" onClick={() => t.add(30)}>
+            +30 giây
+          </button>
+          <button className="btn btn-secondary" onClick={t.reset} aria-label="Đặt lại đồng hồ">
+            <Icon name="reset" />
+            Đặt lại
+          </button>
+        </div>
+      )}
     </>
   )
 }
 
-function Vote({ g, m }: { g: Game; m: BoardModel }) {
-  const chiefAlive = m.alive.some((p) => p.chief)
-  const maxVotes = m.alive.length + (chiefAlive ? 1 : 0)
-  const vr = g.voteRes
-  const redo = () =>
-    updateGame((x) => {
-      x.voteRes = null
-    })
+function VoteStep({
+  s,
+  draft,
+  setDraft,
+  onEliminate,
+}: {
+  s: GameState
+  draft: VoteDraft
+  setDraft: (d: VoteDraft) => void
+  onEliminate: (id: string, reason?: string) => void
+}) {
+  const { run } = useHost()
+  const [reason, setReason] = useState('')
+  const d = s.dayState!
+  const result = d.result
+  const candidates = voteCandidates(s)
+  const maxRaw = eligibleVoters(s).length
+  const chief = votingChief(s)
+  const sum = candidates.reduce((a, p) => a + (draft.votes[p.id] ?? 0), 0)
+  const over = sum > maxRaw
+  const set = (id: string, v: number) =>
+    setDraft({ ...draft, votes: { ...draft.votes, [id]: Math.max(0, v) } })
+  const nameOf = (id: string) => s.players.find((p) => p.id === id)?.name ?? ''
+  const noVoteRight = s.players.filter((p) => p.alive && !p.canVote)
 
   return (
     <>
       <h2>Bỏ phiếu</h2>
-      {g.voteOnly && (
-        <p className="gold-text">
-          Đang bỏ phiếu lại giữa: {g.voteOnly.map((id) => playerById(g, id).name).join(', ')}
-        </p>
+      {d.voteOnly && (
+        <p className="gold-text">Đang bỏ phiếu lại giữa: {d.voteOnly.map(nameOf).join(', ')}</p>
       )}
-      {!vr && (
+      {!result && (
         <>
           <p className="muted panel-note">
-            Đếm tay rồi nhập số phiếu cho từng người. Có thể chạm tên trên sơ đồ để cộng nhanh 1
-            phiếu.
+            Đếm tay rồi nhập số phiếu cho từng người (mỗi người có quyền bầu một phiếu). Có thể chạm
+            tên trên sơ đồ để cộng nhanh 1 phiếu.
           </p>
-          {chiefAlive && (
+          {noVoteRight.length > 0 && (
             <p className="muted panel-note">
-              <Icon name="crown" size={15} />
-              Phiếu của Trưởng làng tính 2: cộng thêm 1 cho người Trưởng làng bầu.
+              Không có quyền bầu: {noVoteRight.map((p) => p.name).join(', ')}
             </p>
           )}
           <ul className="votes">
-            {m.voteRows.map((v) => (
-              <li key={v.id}>
-                <span
-                  className="votes__bar"
-                  style={cssVars({
-                    '--pct': Math.min(100, (v.v / Math.max(1, m.alive.length)) * 100) + '%',
-                  })}
-                />
-                <span className="votes__name">{v.name}</span>
-                <button
-                  className="btn btn-ghost btn-ghost--muted btn-icon"
-                  onClick={() => addVote(v.id, -1)}
-                  disabled={v.v === 0}
-                  aria-label={`Bớt phiếu cho ${v.name}`}
-                >
-                  <Icon name="minus" />
-                </button>
-                <span className="votes__num tabular">{v.v}</span>
-                <button
-                  className="btn btn-ink btn-icon"
-                  onClick={() => addVote(v.id)}
-                  aria-label={`Thêm phiếu cho ${v.name}`}
-                >
-                  <Icon name="plus" />
-                </button>
-              </li>
-            ))}
+            {candidates.map((p) => {
+              const v = draft.votes[p.id] ?? 0
+              return (
+                <li key={p.id}>
+                  <span
+                    className="votes__bar"
+                    style={cssVars({
+                      '--pct': Math.min(100, (v / Math.max(1, maxRaw)) * 100) + '%',
+                    })}
+                  />
+                  <span className="votes__name">{p.name}</span>
+                  <button
+                    className="btn btn-ghost btn-ghost--muted btn-icon"
+                    onClick={() => set(p.id, v - 1)}
+                    disabled={v === 0}
+                    aria-label={`Bớt phiếu cho ${p.name}`}
+                  >
+                    <Icon name="minus" />
+                  </button>
+                  <span className="votes__num tabular" aria-live="polite">
+                    {v}
+                  </span>
+                  <button
+                    className="btn btn-ink btn-icon"
+                    onClick={() => set(p.id, v + 1)}
+                    aria-label={`Thêm phiếu cho ${p.name}`}
+                  >
+                    <Icon name="plus" />
+                  </button>
+                </li>
+              )
+            })}
           </ul>
-          <div className="votes__foot">
+          {chief && (
+            <div className="field">
+              <label htmlFor="chiefvote">
+                <Icon name="crown" size={15} /> Trưởng làng {chief.name} bầu cho (tính thêm 1 phiếu,
+                phiếu tay của Trưởng làng đã đếm ở trên)
+              </label>
+              <select
+                id="chiefvote"
+                className="input"
+                value={draft.chiefVote ?? ''}
+                onChange={(e) => setDraft({ ...draft, chiefVote: e.target.value || null })}
+              >
+                <option value="">Không bầu / bỏ phiếu trắng</option>
+                {candidates.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          <div className="votes__foot" data-over={over}>
             <span className="tabular">
-              {m.voteTotal} phiếu đã nhập · tối đa {maxVotes}
+              {sum}/{maxRaw} phiếu · {over ? `vượt ${sum - maxRaw}` : `${maxRaw - sum} bỏ trắng`}
             </span>
             <button
               className="btn btn-ghost"
-              onClick={() =>
-                updateGame((x) => {
-                  x.votes = {}
-                  x.voteRes = null
-                })
-              }
+              onClick={() => setDraft({ votes: {}, chiefVote: null })}
             >
               Xóa phiếu
             </button>
           </div>
+          <button
+            className="btn btn-ghost vote-redo"
+            onClick={() => void run({ type: 'vote.skip' })}
+          >
+            Hôm nay không ai bị loại
+          </button>
         </>
       )}
-      {vr && m.top.length === 1 && (
+      {result && result.top.length === 1 && (
         <>
           <div className="vote-result vote-result--single">
             <span className="muted">Nhiều phiếu nhất</span>
-            <span className="vote-result__name">{m.top[0]!.name}</span>
-            <span className="muted tabular">{vr.max} phiếu</span>
+            <span className="vote-result__name">{nameOf(result.top[0]!)}</span>
+            <span className="muted tabular">
+              {result.max} phiếu · {result.abstain} bỏ trắng
+            </span>
           </div>
-          <button className="btn btn-ghost vote-redo" onClick={redo}>
+          <button
+            className="btn btn-ghost vote-redo"
+            onClick={() => void run({ type: 'vote.clear' })}
+          >
             <Icon name="pencil" />
             Sửa phiếu
           </button>
         </>
       )}
-      {vr && m.top.length > 1 && (
+      {result && result.top.length > 1 && (
         <>
           <div className="vote-result vote-result--tie">
             <span className="gold-text inline-icon">
@@ -172,28 +239,48 @@ function Vote({ g, m }: { g: Game; m: BoardModel }) {
               Hòa phiếu
             </span>
             <span className="vote-result__name vote-result__name--tie">
-              {m.top.map((p) => p.name).join(', ')}
+              {result.top.map(nameOf).join(', ')}
             </span>
-            <span className="muted">cùng {vr.max} phiếu</span>
+            <span className="muted">cùng {result.max} phiếu</span>
           </div>
           <div className="tie-actions">
-            <button className="btn btn-ink" onClick={revote}>
+            <button className="btn btn-ink" onClick={() => void run({ type: 'vote.revote' })}>
               <Icon name="vote" />
               Bỏ phiếu lại giữa những người hòa
             </button>
-            <button className="btn btn-secondary" onClick={noElimination}>
+            <button className="btn btn-secondary" onClick={() => void run({ type: 'vote.skip' })}>
               Hôm nay không ai bị loại
             </button>
           </div>
-          <div className="muted panel-note">Hoặc Trưởng làng / quản trò quyết định loại:</div>
+          <div className="field">
+            <label htmlFor="tiereason">
+              Hoặc Trưởng làng / quản trò quyết định loại — ghi lý do
+            </label>
+            <input
+              id="tiereason"
+              className="input"
+              maxLength={200}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Ví dụ: Trưởng làng quyết định"
+            />
+          </div>
           <div className="tie-picks">
-            {m.top.map((p) => (
-              <button key={p.id} className="btn btn-secondary" onClick={() => m.elim(p.id)}>
-                Loại {p.name}
+            {result.top.map((id) => (
+              <button
+                key={id}
+                className="btn btn-secondary"
+                disabled={!reason.trim()}
+                onClick={() => onEliminate(id, reason.trim())}
+              >
+                Loại {nameOf(id)}
               </button>
             ))}
           </div>
-          <button className="btn btn-ghost vote-redo" onClick={redo}>
+          <button
+            className="btn btn-ghost vote-redo"
+            onClick={() => void run({ type: 'vote.clear' })}
+          >
             <Icon name="pencil" />
             Sửa phiếu
           </button>
@@ -203,52 +290,63 @@ function Vote({ g, m }: { g: Game; m: BoardModel }) {
   )
 }
 
-export function DayPanel({ g, m, desk }: { g: Game; m: BoardModel; desk: boolean }) {
-  const { shared, cfg, chief } = useAppState()
-  const ci = DAY_ORDER.indexOf(g.dayStep)
-  const deaths = g.lastDeaths.map((id) => {
-    const p = playerById(g, id)
-    const show = !shared || cfg.reveal
-    return { id, name: p.name, role: show ? findRole(p.roleId).name : '' }
-  })
+export function DayPanel({
+  s,
+  gameId,
+  draft,
+  setDraft,
+  onEliminate,
+  footer,
+}: {
+  s: GameState
+  gameId: string
+  draft: VoteDraft
+  setDraft: (d: VoteDraft) => void
+  onEliminate: (id: string, reason?: string) => void
+  footer: ReactNode
+}) {
+  const { run } = useHost()
+  const d = s.dayState!
+  const ci = ORDER.indexOf(d.step)
+  const deaths = s.lastDeaths.map((id) => s.players.find((p) => p.id === id)!)
   const chiefHint =
-    g.day === 1 && chief && !g.players.some((p) => p.chief) && g.dayStep === 'announce'
+    s.day === 1 && s.options.chief && !s.players.some((p) => p.chief) && d.step === 'announce'
 
   return (
     <>
       <div role="tablist" aria-label="Giai đoạn ban ngày" className="day-tabs">
-        {DAY_TABS.map(([k, label], i) => (
+        {TABS.map(([k, label], i) => (
           <button
             key={k}
             role="tab"
-            aria-selected={g.dayStep === k}
+            aria-selected={d.step === k}
             data-past={i < ci}
             className="day-tab"
-            onClick={() =>
-              updateGame((x) => {
-                x.dayStep = k
-              })
-            }
+            disabled={d.resolved || i > ci + 1 || s.effects.length > 0}
+            onClick={() => d.step !== k && void run({ type: 'day.goto', step: k })}
           >
             {i + 1}. {label}
           </button>
         ))}
       </div>
       <div className="panel-card">
-        {g.dayStep === 'announce' && (
+        {d.step === 'announce' && (
           <>
             <h2>Trời sáng</h2>
             {deaths.length > 0 ? (
               <>
                 <p className="muted">Công bố với cả làng:</p>
                 <ul className="deaths">
-                  {deaths.map((d) => (
-                    <li key={d.id}>
+                  {deaths.map((p) => (
+                    <li key={p.id}>
                       <Icon name="skull" size={15} />
                       <span className="deaths__name">
-                        <strong>{d.name}</strong> đã bị loại
+                        <strong>{p.name}</strong> đã bị loại
                       </span>
-                      {d.role && <span className="muted deaths__role">{d.role}</span>}
+                      <span className="muted deaths__role">
+                        {viewOf(p.roleId, s.customRoles).name}
+                        {s.options.revealOnDeath ? ' · công khai' : ' · chỉ quản trò thấy'}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -264,27 +362,19 @@ export function DayPanel({ g, m, desk }: { g: Game; m: BoardModel; desk: boolean
             )}
           </>
         )}
-        {g.dayStep === 'discuss' && <Timer />}
-        {g.dayStep === 'vote' && <Vote g={g} m={m} />}
-        {g.dayStep === 'after' && (
+        {d.step === 'discuss' && <Timer gameId={gameId} day={s.day} />}
+        {d.step === 'vote' && (
+          <VoteStep s={s} draft={draft} setDraft={setDraft} onEliminate={onEliminate} />
+        )}
+        {d.step === 'after' && (
           <>
-            <h2>Ngày {g.day} đã xong</h2>
+            <h2>Ngày {s.day} đã xong</h2>
             <p className="muted">
               Cả làng chuẩn bị đi ngủ. Xem lại nhật ký nếu cần trước khi sang đêm.
             </p>
           </>
         )}
-        {desk && m.primary && (
-          <div className="panel-card__foot">
-            <button
-              className="btn btn-ink btn-lg btn-block"
-              onClick={m.primary.onClick}
-              disabled={m.primary.disabled}
-            >
-              {m.primary.label}
-            </button>
-          </div>
-        )}
+        {footer}
       </div>
     </>
   )

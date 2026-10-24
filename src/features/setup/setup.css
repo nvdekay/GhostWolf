@@ -321,3 +321,39 @@
   max-width: 380px;
   min-width: 220px;
 }
+
+.config__variants {
+  display: flex;
+  flex-direction: column;
+}
+
+.config__variants-toggle {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-heading);
+  font-size: 19px;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.lobby__online {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--placeholder);
+}
+
+.lobby__online[data-on='true'] {
+  background: var(--success);
+}
+
+.lobby__share-text {
+  font-size: 14px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  user-select: all;
+}

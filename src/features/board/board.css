@@ -128,11 +128,12 @@
   top: 96px;
   display: flex;
   justify-content: center;
+  padding: 44px 0;
 }
 
 .ring {
   position: relative;
-  width: min(680px, 100vw - 460px);
+  width: min(680px, 100vw - 480px);
   max-width: 100%;
   aspect-ratio: 1;
 }
@@ -211,8 +212,25 @@
   text-align: center;
 }
 
+/* Đông người (từ 13): ghế nhỏ hơn để không chồng lên nhau. */
 .ring:has(.seat--ring:nth-child(16)) .seat--ring {
-  width: 92px;
+  width: 88px;
+  min-height: 72px;
+  padding: 6px 4px;
+}
+
+.ring:has(.seat--ring:nth-child(16)) .seat__name {
+  font-size: 16px;
+}
+
+/* Từ 19 người: thu nhỏ thêm. */
+.ring:has(.seat--ring:nth-child(22)) .seat--ring {
+  width: 76px;
+  min-height: 64px;
+}
+
+.ring:has(.seat--ring:nth-child(22)) .seat__name {
+  font-size: 14px;
 }
 
 .seat--grid {
@@ -258,6 +276,13 @@
   font-size: 19px;
   line-height: 1.1;
   overflow-wrap: anywhere;
+}
+
+.seat--ring .seat__name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .seat--grid .seat__name {
@@ -980,4 +1005,25 @@
   display: flex;
   justify-content: center;
   margin-bottom: 14px;
+}
+
+.end-option[aria-checked='true'] {
+  color: var(--gold-ink);
+  border-color: var(--gold);
+  background: var(--gold-tint);
+}
+
+.votes__foot[data-over='true'] {
+  color: var(--danger);
+}
+
+.effect-note {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 12px 14px;
+  font-size: 15px;
+  color: var(--gold-ink);
+  border: 1px dashed var(--gold-line-soft);
+  border-radius: var(--radius-lg);
 }

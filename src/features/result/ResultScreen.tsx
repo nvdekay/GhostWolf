@@ -1,9 +1,13 @@
-import { getState, setState, useAppState } from '@/app/store'
+import { useState } from 'react'
+import type { PublicState, WinnerTeam } from '@engine'
+import { useNav } from '@/app/App'
+import { useFeedback } from '@/app/feedback'
 import { Icon, type IconName } from '@/components/Icon'
 import { Ornament, Paper, RoleMedal } from '@/components/ui'
-import type { Game, WinnerTeam } from '@/types/game'
-import { isWolfTeam, viewOf } from '@/features/roles/roles'
-import { genRoomCode, nextId } from '@/lib/random'
+import { refreshRoom } from '@/realtime/roomStore'
+import { sendRoomCommand } from '@/services/game'
+import { useHost } from '@/features/host/context'
+import { roleView, viewOf } from '@/features/roles/roles'
 import './result.css'
 
 const TEAM_ICON: Record<WinnerTeam, IconName> = {
@@ -11,62 +15,56 @@ const TEAM_ICON: Record<WinnerTeam, IconName> = {
   wolf: 'paw',
   solo: 'sparkles',
   lovers: 'heart',
+  whitewolf: 'moon',
+  tanner: 'ghost',
+  piper: 'music',
   none: 'moon',
 }
 
-/** Bắt đầu lại với cùng nhóm người: tới màn chia vai hoặc chọn bộ vai. */
-function playAgain(g: Game, screen: 'assign' | 'roles') {
-  const players = g.players.map((p) => ({ id: nextId(), name: p.name, device: true }))
-  setState({
-    room: { code: getState().room?.code ?? genRoomCode(), name: g.name, locked: true, players },
-    players,
-    counts: { ...g.counts },
-    savedGame: null,
-    assign: null,
-    screen,
-  })
-}
-
-export function ResultScreen() {
-  const { game: g } = useAppState()
-  if (!g) return null
-
-  const w = g.winner ?? {
-    team: 'none' as const,
-    title: 'Ván kết thúc sớm',
-    reason: 'Quản trò đã dừng ván trước khi có phe chiến thắng.',
-  }
-  const isWinner = (roleId: string, lover: boolean) =>
-    w.team === 'village'
-      ? viewOf(roleId).team === 'village'
-      : w.team === 'wolf'
-        ? isWolfTeam(roleId) && roleId !== 'whitewolf'
-        : w.team === 'lovers'
-          ? lover
-          : false
-  const events = g.log.filter((e) => e.pub || /Cupid|Phù thủy|Tiên tri/.test(e.text))
-
+/** Kết quả đã công bố — dùng chung cho máy quản trò và máy người chơi. */
+export function ResultView({
+  pub,
+  highlight,
+  actions,
+}: {
+  pub: PublicState
+  highlight?: string
+  actions?: React.ReactNode
+}) {
+  const r = pub.result
+  if (!r) return null
+  const alive = pub.players.filter((p) => p.alive).length
+  const lovers = new Set(r.lovers)
+  const winners = new Set(r.winners)
   return (
     <Paper size="result" label="Kết quả ván" as="main" className="result">
       <div className="result__hero">
         <span className="result__medal">
-          <Icon name={TEAM_ICON[w.team]} size={48} />
+          <Icon name={TEAM_ICON[r.team]} size={48} />
         </span>
         <div className="eyebrow eyebrow--muted">
-          {g.name} · {g.day} đêm · {g.players.filter((p) => p.alive).length}/{g.players.length}{' '}
-          người còn sống
+          {pub.name} · {pub.day} đêm · {alive}/{pub.players.length} người còn sống
         </div>
-        <h1 className="result__title">{w.title}</h1>
+        <h1 className="result__title">{r.title}</h1>
         <Ornament width={320} center />
-        <p className="muted pretty result__reason">{w.reason}</p>
+        <p className="muted pretty result__reason">{r.reason}</p>
+        {highlight && (
+          <p className="result__me">
+            {winners.has(highlight)
+              ? 'Bạn thuộc phe chiến thắng.'
+              : 'Bạn không thuộc phe chiến thắng.'}
+          </p>
+        )}
       </div>
 
       <section className="result__section">
         <h2 className="result__h2">Vai của mọi người</h2>
         <div className="result__grid">
-          {g.players.map((p) => {
-            const v = viewOf(p.roleId)
-            const win = isWinner(p.roleId, p.lover)
+          {pub.players.map((p) => {
+            const v = p.role
+              ? roleView({ ...p.role, short: '', skill: '', wake: '' })
+              : viewOf('villager')
+            const win = winners.has(p.id)
             return (
               <div
                 key={p.id}
@@ -74,19 +72,20 @@ export function ResultScreen() {
                 data-team={v.team}
                 data-win={win}
                 data-dead={!p.alive}
+                data-me={p.id === highlight}
               >
                 <RoleMedal team={v.team} icon={v.icon} size={46} iconSize={26} ring={false} />
                 <div className="result-card__text">
                   <span className="result-card__name">{p.name}</span>
-                  <span className="team-ink">{v.name}</span>
+                  <span className="team-ink">{p.role?.name ?? '—'}</span>
                   <span className="muted result-card__status">
                     {p.alive ? 'Còn sống' : 'Bị loại'}
-                    {p.lover && ' · Cặp đôi'}
+                    {lovers.has(p.id) && ' · Cặp đôi'}
                     {p.chief && ' · Trưởng làng'}
                   </span>
                 </div>
                 {win && (
-                  <span className="gold-text" aria-label="Phe thắng">
+                  <span className="gold-text" aria-label="Phe thắng" title="Phe thắng">
                     <Icon name="crown" size={15} />
                   </span>
                 )}
@@ -99,7 +98,7 @@ export function ResultScreen() {
       <section className="result__section">
         <h2 className="result__h2">Diễn biến chính</h2>
         <ol className="result__events">
-          {events.map((e, i) => (
+          {pub.log.map((e, i) => (
             <li key={i}>
               <span className="muted">{e.tag}</span>
               <span>{e.text}</span>
@@ -107,23 +106,58 @@ export function ResultScreen() {
           ))}
         </ol>
       </section>
-
-      <div className="result__actions">
-        <button className="btn btn-ink result__replay" onClick={() => playAgain(g, 'assign')}>
-          <Icon name="reset" />
-          Chơi lại với nhóm này
-        </button>
-        <button className="btn btn-secondary" onClick={() => playAgain(g, 'roles')}>
-          Đổi bộ vai
-        </button>
-        <button
-          className="btn btn-secondary"
-          onClick={() => setState({ screen: 'home', savedGame: null })}
-        >
-          <Icon name="home" />
-          Về trang chủ
-        </button>
-      </div>
+      {actions && <div className="result__actions">{actions}</div>}
     </Paper>
+  )
+}
+
+export function ResultScreen() {
+  const nav = useNav()
+  const fb = useFeedback()
+  const { game, room, setView } = useHost()
+  const [busy, setBusy] = useState(false)
+  if (!game) return null
+
+  const replay = async (to: 'assign' | 'roles') => {
+    setBusy(true)
+    try {
+      setView(to, { afterChange: true })
+      await sendRoomCommand(room.id, { type: 'game.replay' })
+      await refreshRoom(room.id)
+    } catch (e) {
+      setView(null)
+      fb.error(e)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <ResultView
+      pub={game.public_state}
+      actions={
+        <>
+          <button
+            className="btn btn-ink result__replay"
+            disabled={busy}
+            onClick={() => void replay('assign')}
+          >
+            <Icon name="reset" />
+            Chơi lại với nhóm này
+          </button>
+          <button
+            className="btn btn-secondary"
+            disabled={busy}
+            onClick={() => void replay('roles')}
+          >
+            Đổi bộ vai
+          </button>
+          <button className="btn btn-secondary" onClick={nav.home}>
+            <Icon name="home" />
+            Về trang chủ
+          </button>
+        </>
+      }
+    />
   )
 }

@@ -1,17 +1,27 @@
-import { setState, toast, useAppState } from '@/app/store'
+import { useState } from 'react'
+import { TEAMS, type Team } from '@engine'
+import { useFeedback } from '@/app/feedback'
 import { Icon } from '@/components/Icon'
 import { GmBadge, RoleMedal, Switch, TeamBadge } from '@/components/ui'
-import { nextId } from '@/lib/random'
-import type { Role, Team } from '@/types/game'
-import { TEAMS } from './catalog'
-import { decCount, incCount, viewOf } from './roles'
+import { deleteCustomRole, saveCustomRole } from '@/services/library'
+import type { CustomRoleRow } from '@/services/types'
+import type { RoleView } from './roles'
 import './roles.css'
 
-export function RoleDetailSheet({ id }: { id: string }) {
-  const { counts, screen } = useAppState()
-  const v = viewOf(id)
-  const c = counts[id] ?? 0
-
+/** Chi tiết vai/trạng thái; có bộ đếm khi mở từ màn chọn bộ vai. */
+export function RoleDetailSheet({
+  view: v,
+  count,
+  onInc,
+  onDec,
+  onEdit,
+}: {
+  view: RoleView
+  count?: number
+  onInc?: () => void
+  onDec?: () => void
+  onEdit?: () => void
+}) {
   return (
     <>
       <div className="role-sheet__head" data-team={v.team}>
@@ -45,22 +55,32 @@ export function RoleDetailSheet({ id }: { id: string }) {
           </div>
         )}
       </dl>
-      {screen === 'roles' && !v.isStatus && (
+      {onEdit && (
+        <button className="btn btn-secondary" onClick={onEdit}>
+          <Icon name="pencil" />
+          Sửa vai tùy chỉnh
+        </button>
+      )}
+      {count !== undefined && onInc && onDec && !v.isStatus && (
         <div className="role-sheet__count">
-          <span className="muted">{c ? `${c} thẻ trong bộ vai` : 'Chưa có trong bộ vai'}</span>
+          <span className="muted">
+            {count ? `${count} thẻ trong bộ vai` : 'Chưa có trong bộ vai'}
+          </span>
           <button
             className="btn btn-secondary btn-icon role-sheet__step"
-            onClick={() => setState((s) => ({ counts: decCount(s.counts, id) }))}
-            disabled={c === 0}
-            aria-label="Bớt"
+            onClick={onDec}
+            disabled={count === 0}
+            aria-label={`Bớt một ${v.name}`}
           >
             <Icon name="minus" />
           </button>
-          <span className="counter__value role-sheet__num">{c}</span>
+          <span className="counter__value role-sheet__num" aria-live="polite">
+            {count}
+          </span>
           <button
             className="btn btn-ink btn-icon role-sheet__step"
-            onClick={() => setState((s) => ({ counts: incCount(s.counts, id) }))}
-            aria-label="Thêm"
+            onClick={onInc}
+            aria-label={`Thêm một ${v.name}`}
           >
             <Icon name="plus" />
           </button>
@@ -70,50 +90,71 @@ export function RoleDetailSheet({ id }: { id: string }) {
   )
 }
 
-export function CustomRoleSheet() {
-  const { cr } = useAppState()
-  const patch = (p: Partial<typeof cr>) => setState({ cr: { ...cr, ...p } })
+/** Thêm hoặc sửa vai tùy chỉnh (lưu ở server). Vai tùy chỉnh luôn do quản trò xử lý. */
+export function CustomRoleSheet({
+  initial,
+  presetName,
+  presetTeam,
+  onSaved,
+  onDeleted,
+}: {
+  initial?: CustomRoleRow
+  presetName?: string
+  presetTeam?: Team
+  onSaved: (row: CustomRoleRow) => void
+  onDeleted?: () => void
+}) {
+  const fb = useFeedback()
+  const [name, setName] = useState(initial?.name ?? presetName ?? '')
+  const [team, setTeam] = useState<Team>(initial?.team ?? presetTeam ?? 'village')
+  const [short, setShort] = useState(initial?.short ?? '')
+  const [wakes, setWakes] = useState(initial?.wakes ?? false)
+  const [busy, setBusy] = useState(false)
 
-  const save = () => {
-    const name = cr.name.trim()
-    if (!name) return
-    const id = nextId('c')
-    const role: Role = {
-      id,
-      name,
-      team: cr.team,
-      icon: 'sparkles',
-      short: cr.short.trim() || 'Vai tùy chỉnh do nhóm tự đặt luật.',
-      skill: cr.short.trim() || 'Quản trò xử lý theo luật của nhóm.',
-      wake: cr.wakes ? 'Mỗi đêm, sau các vai gốc' : 'Không thức dậy',
-      gm: true,
-      custom: true,
-      wakes: cr.wakes,
-      note: 'Vai do nhóm tạo. Quản trò xử lý kỹ năng thủ công.',
+  const save = async () => {
+    if (!name.trim()) return
+    setBusy(true)
+    try {
+      const row = await saveCustomRole({ id: initial?.id, name, team, short, wakes })
+      fb.toast(initial ? `Đã lưu vai “${row.name}”` : `Đã thêm vai “${row.name}”`)
+      onSaved(row)
+    } catch (e) {
+      fb.error(e)
+    } finally {
+      setBusy(false)
     }
-    setState((s) => ({
-      customRoles: [...s.customRoles, role],
-      sheet: null,
-      query: '',
-      filter: 'all',
-      counts: s.screen === 'roles' ? { ...s.counts, [id]: 1 } : s.counts,
-    }))
-    toast(`Đã thêm vai “${name}”`)
+  }
+
+  const remove = async () => {
+    if (!initial) return
+    setBusy(true)
+    try {
+      await deleteCustomRole(initial.id)
+      fb.toast(`Đã xóa vai “${initial.name}”`)
+      onDeleted?.()
+    } catch (e) {
+      fb.error(e)
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
     <>
-      <h2 className="sheet__title">Thêm vai tùy chỉnh</h2>
+      <h2 className="sheet__title">{initial ? 'Sửa vai tùy chỉnh' : 'Thêm vai tùy chỉnh'}</h2>
       <p className="muted custom__lead">
-        Vai tùy chỉnh luôn được gắn nhãn “Quản trò xử lý”. Ứng dụng không tự áp luật cho vai này.
+        Vai tùy chỉnh luôn được gắn nhãn “Quản trò xử lý”. Ứng dụng không tự áp luật theo mô tả của
+        vai này.
       </p>
       <div className="field">
         <label htmlFor="crn">Tên vai</label>
         <input
           id="crn"
           className="input"
-          value={cr.name}
-          onChange={(e) => patch({ name: e.target.value })}
+          data-autofocus
+          maxLength={40}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
           placeholder="Ví dụ: Bà đồng"
         />
       </div>
@@ -124,8 +165,8 @@ export function CustomRoleSheet() {
             <button
               key={k}
               className="custom__team"
-              aria-pressed={cr.team === k}
-              onClick={() => patch({ team: k })}
+              aria-pressed={team === k}
+              onClick={() => setTeam(k)}
             >
               <Icon name={TEAMS[k].icon} size={16} />
               {TEAMS[k].label}
@@ -138,25 +179,28 @@ export function CustomRoleSheet() {
         <textarea
           id="crs"
           className="input"
-          value={cr.short}
-          onChange={(e) => patch({ short: e.target.value })}
+          maxLength={500}
+          value={short}
+          onChange={(e) => setShort(e.target.value)}
           placeholder="Mỗi đêm…"
         />
       </div>
       <div className="custom__wake">
         <div className="custom__wake-text">
           <span>Thức dậy ban đêm</span>
-          <span className="muted">{cr.wakes ? 'Có · thêm vào thứ tự gọi ban đêm' : 'Không'}</span>
+          <span className="muted">{wakes ? 'Có · thêm vào cuối thứ tự gọi ban đêm' : 'Không'}</span>
         </div>
-        <Switch
-          checked={cr.wakes}
-          onToggle={() => patch({ wakes: !cr.wakes })}
-          label="Thức dậy ban đêm"
-        />
+        <Switch checked={wakes} onToggle={() => setWakes(!wakes)} label="Thức dậy ban đêm" />
       </div>
-      <button className="btn btn-ink btn-lg" onClick={save} disabled={!cr.name.trim()}>
-        Lưu vai
+      <button className="btn btn-ink btn-lg" onClick={save} disabled={!name.trim() || busy}>
+        {busy ? 'Đang lưu…' : 'Lưu vai'}
       </button>
+      {initial && (
+        <button className="btn btn-secondary btn-danger" onClick={remove} disabled={busy}>
+          <Icon name="x" />
+          Xóa vai
+        </button>
+      )}
     </>
   )
 }

@@ -1,7 +1,6 @@
-import { go, setState } from '@/app/store'
+import { useNav } from '@/app/App'
 import { Icon, type IconName } from '@/components/Icon'
 import { Ornament, Paper, TopBar } from '@/components/ui'
-import { openJoin } from '@/features/join/actions'
 import './setup.css'
 
 function RoleChoice({
@@ -47,9 +46,10 @@ function RoleChoice({
 }
 
 export function ChooseScreen() {
+  const nav = useNav()
   return (
     <Paper label="Chọn vai trò">
-      <TopBar onBack={() => go('home')} backLabel="Về trang chủ" title="Ván mới" />
+      <TopBar onBack={nav.home} backLabel="Về trang chủ" title="Ván mới" />
       <main className="choose">
         <div className="choose__intro">
           <div className="eyebrow">Bắt đầu</div>
@@ -71,7 +71,7 @@ export function ChooseScreen() {
               'Bàn điều hành đêm và ngày',
             ]}
             cta="Tạo phòng"
-            onPick={() => setState({ screen: 'gmConfig' })}
+            onPick={() => nav.go({ name: 'gmConfig' })}
           />
           <RoleChoice
             icon="users"
@@ -79,7 +79,7 @@ export function ChooseScreen() {
             desc="Nhập mã quản trò đưa cho bạn. Vai bí mật hiện trên máy của bạn."
             points={['Không cần tài khoản', 'Chỉ bạn thấy vai của mình', 'Theo dõi đêm và ngày']}
             cta="Nhập mã phòng"
-            onPick={openJoin}
+            onPick={() => nav.go({ name: 'join' })}
           />
         </div>
       </main>

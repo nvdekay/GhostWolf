@@ -1,11 +1,18 @@
-import { getState } from '@/app/store'
+/* Dữ liệu hiển thị vai, dựa trên catalog của engine (một nguồn duy nhất cho mô tả và luật). */
+import {
+  findRoleDef,
+  ROLES,
+  STATUSES,
+  TEAMS,
+  type Counts,
+  type RoleDef,
+  type StatusDef,
+  type Team,
+} from '@engine'
 import type { IconName } from '@/components/Icon'
-import type { Counts, Role, StatusDef, Team } from '@/types/game'
-import { ROLES, STATUSES, TEAMS } from './catalog'
 
 export type TeamKey = Team | 'status'
 
-/** Dữ liệu hiển thị chung cho vai và trạng thái. */
 export interface RoleView {
   id: string
   name: string
@@ -23,31 +30,13 @@ export interface RoleView {
   teamIcon: IconName
 }
 
-export function allRoles(): Role[] {
-  return [...ROLES, ...getState().customRoles]
-}
-
-export function findRole(id: string): Role | StatusDef {
-  return allRoles().find((r) => r.id === id) ?? STATUSES.find((r) => r.id === id) ?? ROLES[0]!
-}
-
-export function roleTeam(id: string): Team | undefined {
-  const r = findRole(id)
-  return 'team' in r ? r.team : undefined
-}
-
-/** Sói trắng thuộc phe riêng nhưng tính là sói khi soi và khi đếm thắng thua. */
-export function isWolfTeam(id: string): boolean {
-  return roleTeam(id) === 'wolf' || id === 'whitewolf'
-}
-
 const DEFAULT_WIN: Record<Team, string> = {
-  village: 'Thắng cùng phe Dân làng khi mọi Ma sói bị loại.',
-  wolf: 'Thắng cùng phe Ma sói khi số sói còn sống bằng hoặc nhiều hơn số người còn lại.',
+  village: 'Thắng cùng phe Dân làng khi mọi Ma sói, Sói trắng và Người thổi sáo bị loại.',
+  wolf: 'Thắng cùng bầy sói khi số Ma sói còn sống bằng hoặc nhiều hơn số người còn lại, và không còn Sói trắng hay Người thổi sáo.',
   solo: 'Có điều kiện thắng riêng. Quản trò thống nhất trước ván.',
 }
 
-export function roleView(r: Role | StatusDef): RoleView {
+export function roleView(r: RoleDef | StatusDef): RoleView {
   if ('kind' in r) {
     return {
       id: r.id,
@@ -84,16 +73,31 @@ export function roleView(r: Role | StatusDef): RoleView {
   }
 }
 
-export function viewOf(id: string): RoleView {
-  return roleView(findRole(id))
+export function findAny(id: string, custom: RoleDef[]): RoleDef | StatusDef | undefined {
+  return findRoleDef(id, custom) ?? STATUSES.find((s) => s.id === id)
 }
+
+/** Vai không còn (vai tùy chỉnh đã xóa) hiển thị như vai tùy chỉnh không tên. */
+export function viewOf(id: string, custom: RoleDef[] = []): RoleView {
+  const def = findAny(id, custom)
+  if (def) return roleView(def)
+  return roleView({
+    id,
+    name: 'Vai đã xóa',
+    team: 'solo',
+    icon: 'sparkles',
+    short: '',
+    skill: '',
+    wake: '',
+    gm: true,
+    custom: true,
+  })
+}
+
+export const allRoles = (custom: RoleDef[]) => [...ROLES, ...custom]
 
 export function totalCards(counts: Counts): number {
   return Object.values(counts).reduce((a, b) => a + b, 0)
-}
-
-export function buildDeck(counts: Counts): string[] {
-  return Object.entries(counts).flatMap(([id, c]) => Array<string>(c).fill(id))
 }
 
 export function incCount(counts: Counts, id: string): Counts {
@@ -106,4 +110,37 @@ export function decCount(counts: Counts, id: string): Counts {
   if (c) next[id] = c
   else delete next[id]
   return next
+}
+
+/** Tổng hợp bộ vai cho n người. Đếm theo phe thắng (Sói trắng thuộc phe riêng). */
+export function deckSummary(counts: Counts, n: number, custom: RoleDef[]) {
+  const total = totalCards(counts)
+  const by = (team: Team) =>
+    Object.entries(counts).reduce(
+      (a, [id, c]) => a + (findRoleDef(id, custom)?.team === team ? c : 0),
+      0,
+    )
+  const village = by('village')
+  const wolf = by('wolf')
+  const solo = by('solo')
+  const diff = total - n
+  const ok = n > 0 && diff === 0 && wolf > 0
+  let status: {
+    text: string
+    tone: 'muted' | 'warn' | 'bad' | 'good'
+    icon: 'info' | 'alert' | 'check'
+  }
+  if (total === 0) status = { text: `Chưa chọn vai · cần ${n} thẻ`, tone: 'muted', icon: 'info' }
+  else if (diff < 0) status = { text: `Thiếu ${-diff} thẻ`, tone: 'warn', icon: 'alert' }
+  else if (diff > 0) status = { text: `Thừa ${diff} thẻ`, tone: 'bad', icon: 'alert' }
+  else if (wolf === 0) status = { text: 'Chưa có Ma sói', tone: 'bad', icon: 'alert' }
+  else status = { text: `Khớp ${n}/${n} người`, tone: 'good', icon: 'check' }
+  const reason = ok
+    ? 'Sẵn sàng chia vai.'
+    : diff < 0
+      ? `Thêm ${-diff} thẻ hoặc bấm “Điền Dân làng”.`
+      : diff > 0
+        ? `Bớt ${diff} thẻ để khớp ${n} người chơi.`
+        : 'Bộ vai cần ít nhất một Ma sói.'
+  return { total, village, wolf, solo, diff, ok, status, reason }
 }
