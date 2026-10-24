@@ -42,13 +42,24 @@ export function detectWinner(s: GameState): Winner | null {
 
   if (s.tannerVoted) {
     const t = s.players.find((p) => p.id === s.tannerVoted)
-    return make('tanner', `${t?.name ?? 'Kẻ chán đời'} là Kẻ chán đời và đã bị cả làng bỏ phiếu loại.`, [s.tannerVoted])
+    return make(
+      'tanner',
+      `${t?.name ?? 'Kẻ chán đời'} là Kẻ chán đời và đã bị cả làng bỏ phiếu loại.`,
+      [s.tannerVoted],
+    )
   }
 
   if (alive.length === 2 && alive.every((p) => p.lover)) {
     const [a, b] = alive
-    if (winTeam(s, a!.roleId) !== winTeam(s, b!.roleId) || a!.roleId === 'whitewolf' || b!.roleId === 'whitewolf') {
-      return make('lovers', `Chỉ còn lại Cặp đôi khác phe: ${a!.name} và ${b!.name}.`, [a!.id, b!.id])
+    if (
+      winTeam(s, a!.roleId) !== winTeam(s, b!.roleId) ||
+      a!.roleId === 'whitewolf' ||
+      b!.roleId === 'whitewolf'
+    ) {
+      return make('lovers', `Chỉ còn lại Cặp đôi khác phe: ${a!.name} và ${b!.name}.`, [
+        a!.id,
+        b!.id,
+      ])
     }
   }
 

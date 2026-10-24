@@ -1,7 +1,14 @@
 export * from './types.ts'
 export * from './catalog.ts'
 export * from './errors.ts'
-export { buildDeck, cryptoRandomInt, dealPlayers, deckProblem, shuffle, type RandomInt } from './deal.ts'
+export {
+  buildDeck,
+  cryptoRandomInt,
+  dealPlayers,
+  deckProblem,
+  shuffle,
+  type RandomInt,
+} from './deal.ts'
 export { alivePlayers, isPack, isWolfSide, roleDef, seerSeesWolf, winTeam } from './abilities.ts'
 export {
   availableTargets,

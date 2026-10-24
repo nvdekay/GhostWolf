@@ -13,7 +13,8 @@ import {
 } from '@engine'
 import { act, P, rng, run, startedGame } from './helpers'
 
-const seats = (n: number) => Array.from({ length: n }, (_, i) => ({ id: 'm' + i, name: 'N' + i, seat: i + 1, device: true }))
+const seats = (n: number) =>
+  Array.from({ length: n }, (_, i) => ({ id: 'm' + i, name: 'N' + i, seat: i + 1, device: true }))
 
 const expectError = (fn: () => unknown, code: string) => {
   try {
@@ -65,14 +66,30 @@ describe('chia bài', () => {
     let g = createGame('x', {}, { wolf: 1, villager: 3 }, [])
     g = applyCommand(g, { type: 'deal' }, { randomInt: rng, seats: seats(4) })
     g = applyCommand(g, { type: 'send' }, { randomInt: rng })
-    expectError(() => applyCommand(g, { type: 'deal' }, { randomInt: rng, seats: seats(4) }), 'BAD_STATUS')
-    expectError(() => applyCommand(g, { type: 'deck.set', counts: { wolf: 2, villager: 2 } }, { randomInt: rng }), 'BAD_STATUS')
+    expectError(
+      () => applyCommand(g, { type: 'deal' }, { randomInt: rng, seats: seats(4) }),
+      'BAD_STATUS',
+    )
+    expectError(
+      () =>
+        applyCommand(g, { type: 'deck.set', counts: { wolf: 2, villager: 2 } }, { randomInt: rng }),
+      'BAD_STATUS',
+    )
   })
 })
 
 describe('đêm', () => {
   it('thứ tự gọi theo mock và chỉ cho vai có trong ván', () => {
-    const g = startedGame(['cupid', 'guard', 'wolf', 'witch', 'seer', 'piper', 'whitewolf', 'villager'])
+    const g = startedGame([
+      'cupid',
+      'guard',
+      'wolf',
+      'witch',
+      'seer',
+      'piper',
+      'whitewolf',
+      'villager',
+    ])
     expect(g.night!.steps).toEqual(['cupid', 'guard', 'wolf', 'witch', 'seer', 'piper'])
     const g2 = startedGame(['wolf', 'villager', 'villager', 'villager'])
     expect(g2.night!.steps).toEqual(['wolf'])
@@ -82,16 +99,29 @@ describe('đêm', () => {
     let g = startedGame(['whitewolf', 'wolf', 'villager', 'villager', 'villager', 'villager'])
     expect(g.night!.steps).toEqual(['wolf'])
     g = act(g, 'wolf', { targets: ['p2'] })
-    g = run(g, { type: 'night.end' }, { type: 'day.goto', step: 'discuss' }, { type: 'day.goto', step: 'vote' }, { type: 'vote.skip' }, { type: 'night.start' })
+    g = run(
+      g,
+      { type: 'night.end' },
+      { type: 'day.goto', step: 'discuss' },
+      { type: 'day.goto', step: 'vote' },
+      { type: 'vote.skip' },
+      { type: 'night.start' },
+    )
     expect(g.night!.steps).toEqual(['wolf', 'whitewolf'])
   })
 
   it('không cho vượt bước, làm lại bước, hay xác nhận bước cũ', () => {
     let g = startedGame(['guard', 'wolf', 'villager', 'villager'])
-    expectError(() => run(g, { type: 'night.act', step: 'wolf', stepIndex: 1, targets: ['p2'] }), 'STEP_STALE')
+    expectError(
+      () => run(g, { type: 'night.act', step: 'wolf', stepIndex: 1, targets: ['p2'] }),
+      'STEP_STALE',
+    )
     expectError(() => run(g, { type: 'night.end' }), 'NIGHT_UNFINISHED')
     g = act(g, 'guard', { targets: ['p2'] })
-    expectError(() => run(g, { type: 'night.act', step: 'guard', stepIndex: 0, targets: ['p3'] }), 'STEP_STALE')
+    expectError(
+      () => run(g, { type: 'night.act', step: 'guard', stepIndex: 0, targets: ['p3'] }),
+      'STEP_STALE',
+    )
   })
 
   it('Bảo vệ cứu người bị cắn; không bảo vệ cùng người hai đêm liền', () => {
@@ -101,7 +131,13 @@ describe('đêm', () => {
     g = run(g, { type: 'night.end' })
     expect(P(g, 2).alive).toBe(true)
     expect(g.lastDeaths).toEqual([])
-    g = run(g, { type: 'day.goto', step: 'discuss' }, { type: 'day.goto', step: 'vote' }, { type: 'vote.skip' }, { type: 'night.start' })
+    g = run(
+      g,
+      { type: 'day.goto', step: 'discuss' },
+      { type: 'day.goto', step: 'vote' },
+      { type: 'vote.skip' },
+      { type: 'night.start' },
+    )
     expectError(() => act(g, 'guard', { targets: ['p2'] }), 'BAD_TARGET')
   })
 
@@ -117,7 +153,13 @@ describe('đêm', () => {
     g = run(g, { type: 'night.end' })
     expect(P(g, 0).alive).toBe(false)
     expect(P(g, 2).alive).toBe(false)
-    g = run(g, { type: 'day.goto', step: 'discuss' }, { type: 'day.goto', step: 'vote' }, { type: 'vote.skip' }, { type: 'night.start' })
+    g = run(
+      g,
+      { type: 'day.goto', step: 'discuss' },
+      { type: 'day.goto', step: 'vote' },
+      { type: 'vote.skip' },
+      { type: 'night.start' },
+    )
     expect(g.night!.steps[0]).toBe('wolf')
     g = act(g, 'wolf', { targets: ['p3'] })
     expect(g.night!.actions.wolf).toBe('p3')
@@ -132,7 +174,13 @@ describe('đêm', () => {
     expect(P(g, 3).alive).toBe(false)
     expect(P(g, 3).death?.cause).toBe('poison')
     expect(g.witch).toEqual({ heal: false, poison: false })
-    g = run(g, { type: 'day.goto', step: 'discuss' }, { type: 'day.goto', step: 'vote' }, { type: 'vote.skip' }, { type: 'night.start' })
+    g = run(
+      g,
+      { type: 'day.goto', step: 'discuss' },
+      { type: 'day.goto', step: 'vote' },
+      { type: 'vote.skip' },
+      { type: 'night.start' },
+    )
     g = act(g, 'wolf', { targets: ['p4'] })
     expectError(() => act(g, 'witch', { heal: true }), 'NO_HEAL')
     expectError(() => act(g, 'witch', { poison: 'p5' }), 'NO_POISON')
@@ -150,7 +198,10 @@ describe('đêm', () => {
     g = run(g, { type: 'night.act', step: 'seer', stepIndex: 1, targets: ['p1'] })
     expect(g.night!.step).toBe(1)
     expect(g.log.at(-1)!.text).toMatch(/Ma sói/)
-    expectError(() => run(g, { type: 'night.act', step: 'seer', stepIndex: 1, targets: ['p2'] }), 'DONE')
+    expectError(
+      () => run(g, { type: 'night.act', step: 'seer', stepIndex: 1, targets: ['p2'] }),
+      'DONE',
+    )
     g = run(g, { type: 'night.sleep', step: 'seer', stepIndex: 1 })
     expect(g.night!.step).toBe(2)
   })
@@ -159,10 +210,20 @@ describe('đêm', () => {
     let g = startedGame(['seer', 'wolf', 'villager', 'villager', 'villager'])
     g = act(g, 'wolf', { targets: ['p0'] })
     g = act(g, 'seer', { targets: ['p1'] })
-    g = run(g, { type: 'night.end' }, { type: 'day.goto', step: 'discuss' }, { type: 'day.goto', step: 'vote' }, { type: 'vote.skip' }, { type: 'night.start' })
+    g = run(
+      g,
+      { type: 'night.end' },
+      { type: 'day.goto', step: 'discuss' },
+      { type: 'day.goto', step: 'vote' },
+      { type: 'vote.skip' },
+      { type: 'night.start' },
+    )
     expect(g.night!.steps).toContain('seer')
     g = act(g, 'wolf', { targets: ['p2'] })
-    expectError(() => run(g, { type: 'night.act', step: 'seer', stepIndex: 1, targets: ['p1'] }), 'ACTOR_DEAD')
+    expectError(
+      () => run(g, { type: 'night.act', step: 'seer', stepIndex: 1, targets: ['p1'] }),
+      'ACTOR_DEAD',
+    )
     g = run(g, { type: 'night.act', step: 'seer', stepIndex: 1 })
     expect(g.night!.step).toBe(2)
   })
@@ -174,7 +235,11 @@ describe('đêm', () => {
     expect(publicView(g).players[1]!.alive).toBe(true)
     g = act(g, 'wolf', { targets: ['p2'] })
     g = run(g, { type: 'night.end' })
-    expect(publicView(g).announcements.map((a) => a.id).sort()).toEqual(['p1', 'p2'])
+    expect(
+      publicView(g)
+        .announcements.map((a) => a.id)
+        .sort(),
+    ).toEqual(['p1', 'p2'])
   })
 
   it('Người thổi sáo thắng khi mọi người còn sống đều bị mê hoặc', () => {
@@ -205,7 +270,9 @@ describe('chết dây chuyền và hiệu ứng', () => {
 
   it('Thợ săn trúng độc không bắn (mặc định), bắn được nếu bật luật', () => {
     const play = (shoot: boolean) => {
-      let g = startedGame(['witch', 'wolf', 'hunter', 'villager', 'villager', 'villager'], { hunterShootsWhenPoisoned: shoot })
+      let g = startedGame(['witch', 'wolf', 'hunter', 'villager', 'villager', 'villager'], {
+        hunterShootsWhenPoisoned: shoot,
+      })
       g = act(g, 'wolf', { targets: ['p3'] })
       g = act(g, 'witch', { poison: 'p2' })
       return run(g, { type: 'night.end' })
@@ -240,16 +307,34 @@ describe('chết dây chuyền và hiệu ứng', () => {
   it('Thằng ngốc bị phiếu lần đầu: lộ vai, còn sống, mất quyền bầu', () => {
     let g = startedGame(['idiot', 'wolf', 'villager', 'villager', 'villager'])
     g = act(g, 'wolf', { targets: ['p2'] })
-    g = run(g, { type: 'night.end' }, { type: 'day.goto', step: 'discuss' }, { type: 'day.goto', step: 'vote' })
-    g = run(g, { type: 'vote.tally', votes: { p0: 3 }, chiefVote: null }, { type: 'vote.eliminate', target: 'p0' })
+    g = run(
+      g,
+      { type: 'night.end' },
+      { type: 'day.goto', step: 'discuss' },
+      { type: 'day.goto', step: 'vote' },
+    )
+    g = run(
+      g,
+      { type: 'vote.tally', votes: { p0: 3 }, chiefVote: null },
+      { type: 'vote.eliminate', target: 'p0' },
+    )
     expect(P(g, 0).alive).toBe(true)
     expect(P(g, 0).canVote).toBe(false)
     expect(publicView(g).players[0]!.role?.id).toBe('idiot')
     // Lần sau bị phiếu thì chết như thường.
     g = run(g, { type: 'night.start' })
     g = act(g, 'wolf', { targets: ['p3'] })
-    g = run(g, { type: 'night.end' }, { type: 'day.goto', step: 'discuss' }, { type: 'day.goto', step: 'vote' })
-    g = run(g, { type: 'vote.tally', votes: { p0: 1 }, chiefVote: null }, { type: 'vote.eliminate', target: 'p0' })
+    g = run(
+      g,
+      { type: 'night.end' },
+      { type: 'day.goto', step: 'discuss' },
+      { type: 'day.goto', step: 'vote' },
+    )
+    g = run(
+      g,
+      { type: 'vote.tally', votes: { p0: 1 }, chiefVote: null },
+      { type: 'vote.eliminate', target: 'p0' },
+    )
     expect(P(g, 0).alive).toBe(false)
   })
 })
@@ -258,26 +343,40 @@ describe('bỏ phiếu', () => {
   const dayGame = (roles: string[]) => {
     let g = startedGame(roles)
     g = act(g, 'wolf', { targets: [g.players.find((p) => p.roleId === 'villager')!.id] })
-    return run(g, { type: 'night.end' }, { type: 'day.goto', step: 'discuss' }, { type: 'day.goto', step: 'vote' })
+    return run(
+      g,
+      { type: 'night.end' },
+      { type: 'day.goto', step: 'discuss' },
+      { type: 'day.goto', step: 'vote' },
+    )
   }
 
   it('không cho tổng phiếu vượt số người có quyền bầu', () => {
     const g = dayGame(['wolf', 'villager', 'villager', 'villager', 'villager'])
     // 5 người, 1 chết → 4 người bầu.
-    expectError(() => run(g, { type: 'vote.tally', votes: { p0: 3, p2: 2 }, chiefVote: null }), 'VOTE_OVER')
+    expectError(
+      () => run(g, { type: 'vote.tally', votes: { p0: 3, p2: 2 }, chiefVote: null }),
+      'VOTE_OVER',
+    )
     const r = run(g, { type: 'vote.tally', votes: { p0: 2, p2: 1 }, chiefVote: null })
     expect(r.dayState!.result!.abstain).toBe(1)
   })
 
   it('không bầu cho người đã chết', () => {
     const g = dayGame(['wolf', 'villager', 'villager', 'villager', 'villager'])
-    expectError(() => run(g, { type: 'vote.tally', votes: { p1: 1 }, chiefVote: null }), 'VOTE_TARGET')
+    expectError(
+      () => run(g, { type: 'vote.tally', votes: { p1: 1 }, chiefVote: null }),
+      'VOTE_TARGET',
+    )
   })
 
   it('trọng số Trưởng làng nhập riêng, phải nằm trong phiếu đếm tay', () => {
     let g = dayGame(['wolf', 'villager', 'villager', 'villager', 'villager'])
     g = run(g, { type: 'player.setChief', playerId: 'p2' })
-    expectError(() => run(g, { type: 'vote.tally', votes: { p0: 2, p3: 2 }, chiefVote: 'p4' }), 'VOTE_CHIEF')
+    expectError(
+      () => run(g, { type: 'vote.tally', votes: { p0: 2, p3: 2 }, chiefVote: 'p4' }),
+      'VOTE_CHIEF',
+    )
     const r = run(g, { type: 'vote.tally', votes: { p0: 2, p3: 2 }, chiefVote: 'p0' })
     expect(r.dayState!.result!.tally).toEqual({ p0: 3, p3: 2 })
     expect(r.dayState!.result!.top).toEqual(['p0'])
@@ -289,7 +388,10 @@ describe('bỏ phiếu', () => {
     expectError(() => run(g, { type: 'vote.eliminate', target: 'p0' }), 'NEED_REASON')
     g = run(g, { type: 'vote.revote' })
     expect(g.dayState!.voteOnly).toEqual(['p0', 'p3'])
-    expectError(() => run(g, { type: 'vote.tally', votes: { p2: 1 }, chiefVote: null }), 'VOTE_TARGET')
+    expectError(
+      () => run(g, { type: 'vote.tally', votes: { p2: 1 }, chiefVote: null }),
+      'VOTE_TARGET',
+    )
     g = run(g, { type: 'vote.tally', votes: { p0: 2, p3: 2 }, chiefVote: null })
     g = run(g, { type: 'vote.eliminate', target: 'p0', reason: 'Quản trò rút thăm' })
     expect(P(g, 0).death?.cause).toBe('vote')
@@ -313,7 +415,8 @@ describe('điều kiện thắng', () => {
     for (const id of ids) s = run(s, { type: 'player.kill', playerId: id })
     return s
   }
-  const toDay = (g: GameState, target: string) => run(act(g, 'wolf', { targets: [target] }), { type: 'night.end' })
+  const toDay = (g: GameState, target: string) =>
+    run(act(g, 'wolf', { targets: [target] }), { type: 'night.end' })
 
   it('bầy sói thắng khi số sói ≥ số người còn lại', () => {
     let g = base(['wolf', 'wolf', 'villager', 'villager', 'villager', 'villager'])
@@ -358,7 +461,11 @@ describe('điều kiện thắng', () => {
     let g = base(['tanner', 'wolf', 'villager', 'villager', 'villager'])
     g = toDay(g, 'p2')
     g = run(g, { type: 'day.goto', step: 'discuss' }, { type: 'day.goto', step: 'vote' })
-    g = run(g, { type: 'vote.tally', votes: { p0: 3 }, chiefVote: null }, { type: 'vote.eliminate', target: 'p0' })
+    g = run(
+      g,
+      { type: 'vote.tally', votes: { p0: 3 }, chiefVote: null },
+      { type: 'vote.eliminate', target: 'p0' },
+    )
     expect(g.winner?.team).toBe('tanner')
     expect(g.winner?.winners).toEqual(['p0'])
   })
@@ -406,7 +513,13 @@ describe('reset và dữ liệu công khai', () => {
     g = act(g, 'wolf', { targets: ['p3'] })
     g = act(g, 'witch', { heal: true })
     g = run(g, { type: 'night.end' }, { type: 'reset' })
-    expect(g.players.map((p) => p.roleId)).toEqual(['cupid', 'witch', 'wolf', 'villager', 'villager'])
+    expect(g.players.map((p) => p.roleId)).toEqual([
+      'cupid',
+      'witch',
+      'wolf',
+      'villager',
+      'villager',
+    ])
     expect(g.players.every((p) => p.alive && !p.lover)).toBe(true)
     expect(g.witch).toEqual({ heal: true, poison: true })
     expect(g.day).toBe(1)
@@ -419,7 +532,18 @@ describe('reset và dữ liệu công khai', () => {
     g = act(g, 'wolf', { targets: ['p4'] })
     g = act(g, 'witch', { heal: true })
     const json = JSON.stringify(publicView(g))
-    for (const secret of ['cupid', 'seer', 'witch', 'wolf', 'villager', 'lover', 'heal', 'poison', 'Cupid ghép', 'Bầy sói chọn']) {
+    for (const secret of [
+      'cupid',
+      'seer',
+      'witch',
+      'wolf',
+      'villager',
+      'lover',
+      'heal',
+      'poison',
+      'Cupid ghép',
+      'Bầy sói chọn',
+    ]) {
       expect(json).not.toContain(secret)
     }
     const ended = run(g, { type: 'finish', team: 'none' })

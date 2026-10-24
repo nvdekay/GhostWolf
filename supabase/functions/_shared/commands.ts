@@ -10,7 +10,13 @@ export type GameCommand = Command | { type: 'undo' }
 
 export type CommandRequest =
   | { scope: 'room'; roomId: string; commandId: string; command: RoomCommand }
-  | { scope: 'game'; gameId: string; commandId: string; expectedRevision: number; command: GameCommand }
+  | {
+      scope: 'game'
+      gameId: string
+      commandId: string
+      expectedRevision: number
+      command: GameCommand
+    }
 
 export interface CommandResponse {
   gameId: string
@@ -94,7 +100,8 @@ export function parseGameCommand(x: unknown): GameCommand | null {
     case 'night.act':
       return Number.isInteger(c.stepIndex) &&
         isStr(c.step) &&
-        (c.targets === undefined || (Array.isArray(c.targets) && c.targets.length <= 4 && c.targets.every(isStr))) &&
+        (c.targets === undefined ||
+          (Array.isArray(c.targets) && c.targets.length <= 4 && c.targets.every(isStr))) &&
         isStrOrNull(c.poison) &&
         (c.heal === undefined || typeof c.heal === 'boolean') &&
         (c.note === undefined || (typeof c.note === 'string' && c.note.length <= 500))
@@ -107,7 +114,8 @@ export function parseGameCommand(x: unknown): GameCommand | null {
     case 'vote.tally':
       return isNumMap(c.votes) && isStrOrNull(c.chiefVote) ? (c as GameCommand) : null
     case 'vote.eliminate':
-      return isStr(c.target) && (c.reason === undefined || (typeof c.reason === 'string' && c.reason.length <= 200))
+      return isStr(c.target) &&
+        (c.reason === undefined || (typeof c.reason === 'string' && c.reason.length <= 200))
         ? (c as GameCommand)
         : null
     case 'effect.resolve':
@@ -118,7 +126,9 @@ export function parseGameCommand(x: unknown): GameCommand | null {
     case 'player.setChief':
       return isStrOrNull(c.playerId) ? (c as GameCommand) : null
     case 'finish':
-      return c.team === undefined || ['village', 'wolf', 'none'].includes(c.team as string) ? (c as GameCommand) : null
+      return c.team === undefined || ['village', 'wolf', 'none'].includes(c.team as string)
+        ? (c as GameCommand)
+        : null
     default:
       return c as GameCommand
   }

@@ -6,7 +6,15 @@ import { roleDef, seerSeesWolf } from './abilities.ts'
 import { DEFAULT_OPTIONS, RULESET_VERSION } from './catalog.ts'
 import { dealPlayers, type RandomInt } from './deal.ts'
 import { assert, EngineError } from './errors.ts'
-import { availableTargets, computeSteps, currentStep, stepActors, stepInfo, targetProblem, witchCanHeal } from './night.ts'
+import {
+  availableTargets,
+  computeSteps,
+  currentStep,
+  stepActors,
+  stepInfo,
+  targetProblem,
+  witchCanHeal,
+} from './night.ts'
 import type {
   Counts,
   DayStep,
@@ -59,7 +67,12 @@ export interface EngineContext {
   seats?: SeatInput[]
 }
 
-export function createGame(name: string, options: Partial<RuleOptions>, counts: Counts, customRoles: RoleDef[]): GameState {
+export function createGame(
+  name: string,
+  options: Partial<RuleOptions>,
+  counts: Counts,
+  customRoles: RoleDef[],
+): GameState {
   return {
     version: 1,
     rulesetVersion: RULESET_VERSION,
@@ -193,7 +206,11 @@ function requirePlaying(s: GameState) {
 }
 
 function requireNoEffects(s: GameState) {
-  assert(s.effects.length === 0, 'EFFECT_PENDING', 'Còn hiệu ứng cần quản trò xử lý trước (Thợ săn, Trưởng làng…).')
+  assert(
+    s.effects.length === 0,
+    'EFFECT_PENDING',
+    'Còn hiệu ứng cần quản trò xử lý trước (Thợ săn, Trưởng làng…).',
+  )
 }
 
 function requireDay(s: GameState) {
@@ -216,7 +233,11 @@ export function votingChief(s: GameState): Player | undefined {
   return s.options.chief ? s.players.find((p) => p.chief && p.alive && p.canVote) : undefined
 }
 
-export function tallyVotes(s: GameState, votes: Record<string, number>, chiefVote: string | null): VoteResult {
+export function tallyVotes(
+  s: GameState,
+  votes: Record<string, number>,
+  chiefVote: string | null,
+): VoteResult {
   const candidates = new Set(voteCandidates(s).map((p) => p.id))
   const maxRaw = eligibleVoters(s).length
   let sum = 0
@@ -231,7 +252,11 @@ export function tallyVotes(s: GameState, votes: Record<string, number>, chiefVot
   assert(sum <= maxRaw, 'VOTE_OVER', `Tổng phiếu (${sum}) vượt số người có quyền bầu (${maxRaw}).`)
   if (chiefVote) {
     assert(votingChief(s), 'VOTE_CHIEF', 'Không có Trưởng làng còn quyền bầu.')
-    assert((tally[chiefVote] ?? 0) >= 1, 'VOTE_CHIEF', 'Phiếu Trưởng làng phải nằm trong số phiếu đếm tay của người đó.')
+    assert(
+      (tally[chiefVote] ?? 0) >= 1,
+      'VOTE_CHIEF',
+      'Phiếu Trưởng làng phải nằm trong số phiếu đếm tay của người đó.',
+    )
     tally[chiefVote] = (tally[chiefVote] ?? 0) + 1
   }
   const max = Math.max(0, ...Object.values(tally))
@@ -364,7 +389,8 @@ export function applyCommand(prev: GameState, cmd: Command, ctx: EngineContext):
       assert(d.step === 'vote' && !d.resolved && d.result, 'NO_RESULT', 'Chưa có kết quả bỏ phiếu.')
       assert(d.result.top.includes(cmd.target), 'NOT_TOP', 'Chỉ loại người có nhiều phiếu nhất.')
       const reason = cmd.reason?.trim()
-      if (d.result.top.length > 1) assert(reason, 'NEED_REASON', 'Hòa phiếu: cần ghi lý do quyết định.')
+      if (d.result.top.length > 1)
+        assert(reason, 'NEED_REASON', 'Hòa phiếu: cần ghi lý do quyết định.')
       const p = player(s, cmd.target)
       if (reason) log(s, `Quyết định khi hòa phiếu: loại ${p.name} (${reason}).`, true)
       if (p.roleId === 'idiot' && !p.triggered.idiot) {
@@ -400,13 +426,21 @@ export function applyCommand(prev: GameState, cmd: Command, ctx: EngineContext):
     case 'effect.resolve': {
       requirePlaying(s)
       const e = s.effects[0]
-      assert(e && e.id === cmd.effectId, 'EFFECT_ORDER', 'Hiệu ứng này đã được xử lý hoặc chưa tới lượt.')
+      assert(
+        e && e.id === cmd.effectId,
+        'EFFECT_ORDER',
+        'Hiệu ứng này đã được xử lý hoặc chưa tới lượt.',
+      )
       const source = player(s, e.playerId)
       s.effects.shift()
       if (e.kind === 'hunter') {
         if (cmd.target) {
           const t = player(s, cmd.target)
-          assert(t.alive && t.id !== source.id, 'BAD_TARGET', 'Thợ săn chỉ bắn người còn sống khác.')
+          assert(
+            t.alive && t.id !== source.id,
+            'BAD_TARGET',
+            'Thợ săn chỉ bắn người còn sống khác.',
+          )
           log(s, `Thợ săn ${source.name} bắn ${t.name}.`, true)
           kill(s, t.id, 'hunter')
         } else {
@@ -431,7 +465,11 @@ export function applyCommand(prev: GameState, cmd: Command, ctx: EngineContext):
       requirePlaying(s)
       requireNoEffects(s)
       const d = requireDay(s)
-      assert(d.resolved, 'DAY_UNRESOLVED', 'Cần bỏ phiếu (hoặc chọn không loại ai) trước khi sang đêm.')
+      assert(
+        d.resolved,
+        'DAY_UNRESOLVED',
+        'Cần bỏ phiếu (hoặc chọn không loại ai) trước khi sang đêm.',
+      )
       beginNight(s, s.day + 1)
       log(s, 'Màn đêm buông xuống.', true)
       return s
@@ -529,11 +567,18 @@ export function applyCommand(prev: GameState, cmd: Command, ctx: EngineContext):
   }
 }
 
-function nightStep(s: GameState, cmd: Extract<Command, { type: 'night.act' | 'night.sleep' }>): GameState {
+function nightStep(
+  s: GameState,
+  cmd: Extract<Command, { type: 'night.act' | 'night.sleep' }>,
+): GameState {
   requirePlaying(s)
   const key = currentStep(s)
   const n = s.night
-  assert(key && n && cmd.stepIndex === n.step && cmd.step === key, 'STEP_STALE', 'Bước gọi vai đã thay đổi. Tải lại bàn.')
+  assert(
+    key && n && cmd.stepIndex === n.step && cmd.step === key,
+    'STEP_STALE',
+    'Bước gọi vai đã thay đổi. Tải lại bàn.',
+  )
   const info = stepInfo(s, key)
   const actorsAlive = stepActors(s, key).length > 0
   const a = n.actions
@@ -546,7 +591,11 @@ function nightStep(s: GameState, cmd: Extract<Command, { type: 'night.act' | 'ni
 
   const targets = ids(cmd.targets)
   if (!actorsAlive) {
-    assert(targets.length === 0 && !cmd.heal && !cmd.poison, 'ACTOR_DEAD', 'Vai này đã bị loại, không được hành động.')
+    assert(
+      targets.length === 0 && !cmd.heal && !cmd.poison,
+      'ACTOR_DEAD',
+      'Vai này đã bị loại, không được hành động.',
+    )
     log(s, `${info.title.replace('Gọi ', '')} đã bị loại, gọi cho có.`, false)
     n.step++
     return s
@@ -560,7 +609,11 @@ function nightStep(s: GameState, cmd: Extract<Command, { type: 'night.act' | 'ni
   const available = availableTargets(s, key).length
   const need = (min: number, max: number) => {
     const lo = Math.min(min, available)
-    assert(targets.length >= lo && targets.length <= max, 'PICK_COUNT', info.hint || 'Số người chọn không hợp lệ.')
+    assert(
+      targets.length >= lo && targets.length <= max,
+      'PICK_COUNT',
+      info.hint || 'Số người chọn không hợp lệ.',
+    )
     targets.forEach((id) => check(id))
   }
 
@@ -584,7 +637,11 @@ function nightStep(s: GameState, cmd: Extract<Command, { type: 'night.act' | 'ni
     case 'whitewolf':
       need(0, 1)
       a.whitewolf = targets[0] ?? null
-      log(s, targets[0] ? `Sói trắng chọn loại ${names(targets)}.` : 'Sói trắng không loại ai.', false)
+      log(
+        s,
+        targets[0] ? `Sói trắng chọn loại ${names(targets)}.` : 'Sói trắng không loại ai.',
+        false,
+      )
       break
     case 'witch': {
       assert(targets.length === 0, 'PICK_COUNT', 'Phù thủy dùng bình cứu/bình độc.')
@@ -602,7 +659,11 @@ function nightStep(s: GameState, cmd: Extract<Command, { type: 'night.act' | 'ni
         s.witch.poison = false
         parts.push('đầu độc ' + player(s, cmd.poison).name)
       }
-      log(s, parts.length ? 'Phù thủy ' + parts.join(', ') + '.' : 'Phù thủy không dùng bình.', false)
+      log(
+        s,
+        parts.length ? 'Phù thủy ' + parts.join(', ') + '.' : 'Phù thủy không dùng bình.',
+        false,
+      )
       break
     }
     case 'seer': {
@@ -610,7 +671,11 @@ function nightStep(s: GameState, cmd: Extract<Command, { type: 'night.act' | 'ni
       need(1, 1)
       const t = player(s, targets[0]!)
       a.seer = t.id
-      log(s, `Tiên tri soi ${t.name}: ${seerSeesWolf(s, t.roleId) ? 'Ma sói' : 'không phải Ma sói'}.`, false)
+      log(
+        s,
+        `Tiên tri soi ${t.name}: ${seerSeesWolf(s, t.roleId) ? 'Ma sói' : 'không phải Ma sói'}.`,
+        false,
+      )
       // Tiên tri nhận kết quả rồi mới "đi ngủ" bằng night.sleep.
       return s
     }
@@ -618,7 +683,11 @@ function nightStep(s: GameState, cmd: Extract<Command, { type: 'night.act' | 'ni
       need(2, 2)
       targets.forEach((id) => (player(s, id).charmed = true))
       a.piper = targets
-      log(s, targets.length ? `Người thổi sáo mê hoặc ${names(targets)}.` : 'Không còn ai để mê hoặc.', false)
+      log(
+        s,
+        targets.length ? `Người thổi sáo mê hoặc ${names(targets)}.` : 'Không còn ai để mê hoặc.',
+        false,
+      )
       break
     default: {
       assert(targets.length === 0, 'PICK_COUNT', 'Vai tùy chỉnh do quản trò xử lý thủ công.')
@@ -645,6 +714,7 @@ export function predictedDeaths(s: GameState): string[] {
   if (!a) return []
   const out: string[] = []
   if (a.wolf && a.wolf !== a.guard && !a.witchHeal) out.push(a.wolf)
-  for (const id of [a.whitewolf, a.witchPoison, ...(a.gmKills ?? [])]) if (id && !out.includes(id)) out.push(id)
+  for (const id of [a.whitewolf, a.witchPoison, ...(a.gmKills ?? [])])
+    if (id && !out.includes(id)) out.push(id)
   return out
 }

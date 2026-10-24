@@ -5,7 +5,16 @@
  */
 import { roleDef } from './abilities.ts'
 import { TEAMS } from './catalog.ts'
-import type { DayStep, GameState, GameStatus, IconName, LogEntry, RoleDef, Team, WinnerTeam } from './types.ts'
+import type {
+  DayStep,
+  GameState,
+  GameStatus,
+  IconName,
+  LogEntry,
+  RoleDef,
+  Team,
+  WinnerTeam,
+} from './types.ts'
 
 export interface PublicRole {
   id: string
@@ -73,8 +82,12 @@ export function publicView(s: GameState): PublicState {
     phase: s.phase,
     dayStep: s.dayState?.step ?? null,
     players,
-    announcements: s.phase === 'day' ? s.lastDeaths.map((id) => ({ id, name: byId.get(id)!.name, role: byId.get(id)!.role })) : [],
-    log: s.log.filter((e) => e.pub),
+    announcements:
+      s.phase === 'day'
+        ? s.lastDeaths.map((id) => ({ id, name: byId.get(id)!.name, role: byId.get(id)!.role }))
+        : [],
+    // Khi ván kết thúc, mọi bí mật đã công bố: nhật ký đầy đủ cho phần “Diễn biến chính”.
+    log: ended ? s.log : s.log.filter((e) => e.pub),
     result:
       ended && s.winner
         ? {
@@ -99,6 +112,10 @@ export interface AssignmentRow {
 export function assignmentRows(s: GameState): AssignmentRow[] {
   return s.players.map((p) => {
     const def = roleDef(s, p.roleId)
-    return { member_id: p.id, role_id: p.roleId, role: { ...def, teamLabel: TEAMS[def.team].label } }
+    return {
+      member_id: p.id,
+      role_id: p.roleId,
+      role: { ...def, teamLabel: TEAMS[def.team].label },
+    }
   })
 }

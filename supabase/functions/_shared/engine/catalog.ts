@@ -173,7 +173,17 @@ export const PRESETS: Record<number, Counts> = {
   8: { wolf: 2, seer: 1, guard: 1, witch: 1, villager: 3 },
   10: { wolf: 2, seer: 1, guard: 1, witch: 1, hunter: 1, cupid: 1, villager: 3 },
   12: { wolf: 3, seer: 1, guard: 1, witch: 1, hunter: 1, cupid: 1, villager: 4 },
-  16: { wolf: 3, whitewolf: 1, seer: 1, guard: 1, witch: 1, hunter: 1, cupid: 1, idiot: 1, villager: 6 },
+  16: {
+    wolf: 3,
+    whitewolf: 1,
+    seer: 1,
+    guard: 1,
+    witch: 1,
+    hunter: 1,
+    cupid: 1,
+    idiot: 1,
+    villager: 6,
+  },
   20: {
     wolf: 4,
     whitewolf: 1,

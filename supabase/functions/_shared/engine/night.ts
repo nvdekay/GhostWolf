@@ -116,7 +116,12 @@ export function currentStep(s: GameState): string | null {
  * Lý do một người không được chọn ở bước hiện tại (null = chọn được).
  * Dùng chung cho kiểm tra lệnh ở server và làm mờ ghế trên UI.
  */
-export function targetProblem(s: GameState, key: string, target: Player, mode: 'main' | 'poison' = 'main'): string | null {
+export function targetProblem(
+  s: GameState,
+  key: string,
+  target: Player,
+  mode: 'main' | 'poison' = 'main',
+): string | null {
   if (!target.alive) return 'Người này đã bị loại.'
   const actors = stepActors(s, key)
   switch (key) {
@@ -145,7 +150,11 @@ export function targetProblem(s: GameState, key: string, target: Player, mode: '
 }
 
 /** Số người tối đa thật sự chọn được ở bước (ví dụ bầy sói không còn ai để cắn). */
-export function availableTargets(s: GameState, key: string, mode: 'main' | 'poison' = 'main'): Player[] {
+export function availableTargets(
+  s: GameState,
+  key: string,
+  mode: 'main' | 'poison' = 'main',
+): Player[] {
   return s.players.filter((p) => targetProblem(s, key, p, mode) === null)
 }
 
