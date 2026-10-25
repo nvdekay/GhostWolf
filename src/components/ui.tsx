@@ -32,18 +32,16 @@ export function TopBar({
   backIcon = 'left',
   title,
   children,
-  wide,
 }: {
   onBack: () => void
   backLabel: string
   backIcon?: IconName
   title: ReactNode
   children?: ReactNode
-  wide?: boolean
 }) {
   return (
     <header className="topbar">
-      <div className={cx('topbar__inner', wide && 'topbar__inner--wide')}>
+      <div className="topbar__inner">
         <button className="btn btn-secondary btn-icon" onClick={onBack} aria-label={backLabel}>
           <Icon name={backIcon} />
         </button>

@@ -13,7 +13,7 @@
 
 /* — Chọn vai trò — */
 .choose {
-  max-width: 960px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: clamp(24px, 5vw, 56px) clamp(16px, 4vw, 40px) calc(40px + var(--safe-bottom));
   display: flex;
@@ -95,23 +95,6 @@
   text-wrap: pretty;
 }
 
-.choice__points {
-  list-style: none;
-  margin: 0;
-  padding: 14px 0 0;
-  border-top: 1px solid var(--color-divider);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.choice__points li {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  font-size: 15px;
-}
-
 .choice__cta {
   margin-top: auto;
   min-height: 48px;
@@ -136,15 +119,49 @@
   gap: 28px;
 }
 
+.config__form {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
 .config__switches {
   display: flex;
   flex-direction: column;
   border-top: 1px solid var(--color-divider);
 }
 
+/* Màn rộng: giới thiệu + ghi chú bên trái, form bên phải. */
+@media (min-width: 1024px) {
+  .config {
+    max-width: 1200px;
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    align-content: start;
+    column-gap: clamp(40px, 6vw, 96px);
+    padding-top: 56px;
+  }
+
+  .config > .hero {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .config > .note-box {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: start;
+  }
+
+  .config__form {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+}
+
 /* — Phòng chờ — */
 .lobby {
-  max-width: 1200px;
+  max-width: var(--page-max);
   margin: 0 auto;
   padding: 24px clamp(16px, 4vw, 40px) 150px;
   display: grid;

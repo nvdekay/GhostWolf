@@ -3,34 +3,19 @@
   flex: none;
 }
 
-/* — Tờ giấy — */
+/* — Tờ giấy: phủ kín màn hình ở mọi khổ; bề rộng nội dung do từng màn tự giới hạn. — */
 .paper {
   position: relative;
-  min-height: calc(100vh - 2 * clamp(0px, 2.5vw, 32px));
-  margin: clamp(0px, 2.5vw, 32px) auto;
+  min-height: 100vh;
+  min-height: 100dvh;
   background: var(--paper);
   color: var(--color-text);
-  border: 1px solid var(--frame);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-paper);
-}
-
-.paper--wide {
-  max-width: 1320px;
+  box-shadow: inset 0 0 clamp(90px, 10vw, 160px) rgba(122, 80, 28, 0.24);
 }
 
 .paper--narrow {
-  max-width: 620px;
   display: flex;
   flex-direction: column;
-}
-
-.paper--board {
-  max-width: 1440px;
-}
-
-.paper--result {
-  max-width: 1120px;
 }
 
 /* — Header — */
@@ -38,12 +23,13 @@
   position: sticky;
   top: 0;
   z-index: 30;
+  padding-top: var(--safe-top);
   background: var(--paper);
   border-bottom: 1px solid var(--color-divider);
 }
 
 .topbar__inner {
-  max-width: 1200px;
+  max-width: var(--page-max);
   margin: 0 auto;
   padding: 8px clamp(12px, 4vw, 40px);
   display: flex;
@@ -51,10 +37,6 @@
   align-items: center;
   gap: 8px 16px;
   min-height: 60px;
-}
-
-.topbar__inner--wide {
-  max-width: 1320px;
 }
 
 .topbar__title {
@@ -67,11 +49,10 @@
 /* — Thanh đáy — */
 .bottom-bar {
   position: fixed;
-  left: 50%;
+  left: 0;
+  right: 0;
   bottom: 0;
-  transform: translateX(-50%);
   z-index: 40;
-  width: min(100%, 1320px);
   background: var(--bar);
   box-shadow: var(--shadow-bar);
   border-top: 1px solid var(--color-divider);
@@ -79,7 +60,7 @@
 }
 
 .bottom-bar__inner {
-  max-width: 1200px;
+  max-width: var(--page-max);
   margin: 0 auto;
   display: flex;
   align-items: center;

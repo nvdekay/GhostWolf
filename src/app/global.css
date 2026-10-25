@@ -52,6 +52,10 @@
     inset 0 0 110px rgba(122, 80, 28, 0.3), inset 0 0 18px rgba(96, 60, 22, 0.35);
   --shadow-bar: 0 -8px 30px rgba(0, 0, 0, 0.35);
 
+  /* Bề rộng tối đa của nội dung trên màn rộng; tờ giấy luôn phủ kín màn hình. */
+  --page-max: 1600px;
+
+  --safe-top: env(safe-area-inset-top);
   --safe-bottom: env(safe-area-inset-bottom);
 
   color-scheme: light;

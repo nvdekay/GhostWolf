@@ -1,6 +1,6 @@
 /* — Chia vai — */
 .assign {
-  max-width: 900px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 28px clamp(16px, 4vw, 40px) 160px;
   display: flex;

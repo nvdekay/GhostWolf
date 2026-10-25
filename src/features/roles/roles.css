@@ -11,7 +11,7 @@
 
 /* — Bố cục màn chọn bộ vai — */
 .roles {
-  max-width: 1320px;
+  max-width: var(--page-max);
   margin: 0 auto;
   padding: 24px clamp(16px, 4vw, 40px) 140px;
   display: grid;
@@ -438,7 +438,7 @@
 
 /* — Thư viện — */
 .library {
-  max-width: 1200px;
+  max-width: var(--page-max);
   margin: 0 auto;
   padding: 24px clamp(16px, 4vw, 40px) 48px;
   display: flex;

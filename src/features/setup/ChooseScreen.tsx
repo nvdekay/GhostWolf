@@ -7,14 +7,12 @@ function RoleChoice({
   icon,
   title,
   desc,
-  points,
   cta,
   onPick,
 }: {
   icon: IconName
   title: string
   desc: string
-  points: string[]
   cta: string
   onPick: () => void
 }) {
@@ -27,16 +25,6 @@ function RoleChoice({
         <span className="choice__title">{title}</span>
         <span className="choice__desc">{desc}</span>
       </span>
-      <ul className="choice__points">
-        {points.map((p) => (
-          <li key={p}>
-            <span className="gold-text">
-              <Icon name="check" size={15} />
-            </span>
-            {p}
-          </li>
-        ))}
-      </ul>
       <span className="choice__cta">
         {cta}
         <Icon name="right" />
@@ -65,11 +53,6 @@ export function ChooseScreen() {
             icon="crown"
             title="Quản trò"
             desc="Tạo phòng, chọn bộ vai, chia vai ngẫu nhiên và điều hành từng đêm."
-            points={[
-              'Nhận mã phòng 6 ký tự',
-              'Gợi ý bộ vai theo số người',
-              'Bàn điều hành đêm và ngày',
-            ]}
             cta="Tạo phòng"
             onPick={() => nav.go({ name: 'gmConfig' })}
           />
@@ -77,7 +60,6 @@ export function ChooseScreen() {
             icon="users"
             title="Người chơi"
             desc="Nhập mã quản trò đưa cho bạn. Vai bí mật hiện trên máy của bạn."
-            points={['Không cần tài khoản', 'Chỉ bạn thấy vai của mình', 'Theo dõi đêm và ngày']}
             cta="Nhập mã phòng"
             onPick={() => nav.go({ name: 'join' })}
           />
