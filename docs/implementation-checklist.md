@@ -4,7 +4,7 @@ Nguồn tham chiếu: `GhostWolf.html` (bundle: `__bundler/template` + manifest 
 Trạng thái: `[x]` xong và đã kiểm · `[~]` xong nhưng chưa xác minh đầy đủ (ghi lý do) · `[ ]` chưa làm.
 
 Kiểm thử đã chạy (Supabase local + Edge Function chạy bằng Deno):
-`npm test` 38 test engine · `npm run test:integration` 22 test (RLS, lobby, idempotency, revision, realtime, undo/reset/replay, thư viện) · `npm run test:e2e` 3 kịch bản (quản trò + 2 người chơi, kick/mất mạng/đóng phòng, responsive 360–1440px).
+`npm test` 38 test engine · `npm run test:integration` 22 test (RLS, lobby, idempotency, revision, realtime, undo/reset/replay, thư viện) · `npm run test:e2e` 4 kịch bản (quản trò + 2 người chơi, kick/mất mạng/đóng phòng, ván 10 người chơi ngẫu nhiên tới kết quả, responsive 360–1920px).
 
 ## 0. Kiến trúc
 
@@ -74,7 +74,7 @@ Kiểm thử đã chạy (Supabase local + Edge Function chạy bằng Deno):
 
 - [x] Vitest: chia bài + tần suất, đêm, dây chuyền, Thợ săn, Thằng ngốc, Trưởng làng, phiếu, thắng, reset, public view.
 - [x] Integration: RLS, lobby, kick, khóa, reconnect, idempotency, revision, realtime, undo/reset/kết thúc/replay, thư viện.
-- [x] Playwright: quản trò + 2 người chơi; kick / mất mạng / đóng phòng; responsive 360/390/768/1024/1440 (không tràn ngang, nút ≥ 32px chiều cao).
+- [x] Playwright: quản trò + 2 người chơi; kick / mất mạng / đóng phòng; ván 10 người chọn ngẫu nhiên tới khi có kết quả (gồm hiệu ứng Thợ săn và kế nhiệm Trưởng làng); responsive 360/390/768/1024/1440/1920 (không tràn ngang, nút ≥ 32px chiều cao).
 - [~] Focus trap + trả focus trong dialog/sheet, hold-to-reveal bằng bàn phím: đã cài đặt, chưa có test tự động.
 - [~] Bàn phím ảo che CTA trên điện thoại thật: chưa kiểm trên thiết bị thật.
 - [x] typecheck, lint, test, build.

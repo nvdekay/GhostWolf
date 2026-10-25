@@ -169,7 +169,7 @@ export function LobbyScreen() {
                         {p.device ? (
                           <>
                             <span className="lobby__online" data-on={online} aria-hidden="true" />
-                            {online ? 'Đang kết nối' : 'Mất kết nối'}
+                            {online ? 'Đang online' : 'Mất kết nối'}
                           </>
                         ) : (
                           <>
