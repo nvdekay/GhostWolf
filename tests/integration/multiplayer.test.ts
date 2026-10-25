@@ -248,13 +248,13 @@ describe('ván và realtime', () => {
         { event: '*', schema: 'public', table: 'game_secrets', filter: `game_id=eq.${gameId}` },
         () => got.push('secrets'),
       )
-    await new Promise<void>((resolve, reject) =>
-      ch.subscribe((status) =>
-        status === 'SUBSCRIBED'
-          ? resolve()
-          : status === 'CHANNEL_ERROR' && reject(new Error(status)),
-      ),
-    )
+    // Chờ server báo postgres_changes đã sẵn sàng (đến sau SUBSCRIBED), nếu không sẽ lỡ sự kiện.
+    await new Promise<void>((resolve, reject) => {
+      ch.on('system', {}, (s: { extension?: string; status?: string }) => {
+        if (s.extension === 'postgres_changes' && s.status === 'ok') resolve()
+      })
+      ch.subscribe((status) => status === 'CHANNEL_ERROR' && reject(new Error(status)))
+    })
     const { data } = await host.db
       .from('game_secrets')
       .select('state')

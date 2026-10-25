@@ -267,12 +267,7 @@ export function RolesScreen() {
 
   return (
     <Paper label="Chọn bộ vai">
-      <TopBar
-        onBack={() => setView('lobby')}
-        backLabel="Quay lại phòng chờ"
-        title="Chọn bộ vai"
-        wide
-      >
+      <TopBar onBack={() => setView('lobby')} backLabel="Quay lại phòng chờ" title="Chọn bộ vai">
         <Stepper steps={stepper} label="Tiến trình thiết lập" />
       </TopBar>
       <div className="roles">

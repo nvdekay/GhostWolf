@@ -32,18 +32,16 @@ export function TopBar({
   backIcon = 'left',
   title,
   children,
-  wide,
 }: {
   onBack: () => void
   backLabel: string
   backIcon?: IconName
   title: ReactNode
   children?: ReactNode
-  wide?: boolean
 }) {
   return (
     <header className="topbar">
-      <div className={cx('topbar__inner', wide && 'topbar__inner--wide')}>
+      <div className="topbar__inner">
         <button className="btn btn-secondary btn-icon" onClick={onBack} aria-label={backLabel}>
           <Icon name={backIcon} />
         </button>
@@ -75,6 +73,44 @@ export function Ornament({ width = 260, center }: { width?: number; center?: boo
       <Icon name="compass" size={15} />
       <span />
     </div>
+  )
+}
+
+/** Đầu sói kiểu huy hiệu khắc: thân màu currentColor, nét khắc màu giấy. */
+export function WolfEmblem({ size, className }: { size: number; className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={cx('wolf-emblem', className)}
+      width={size}
+      height={size}
+      viewBox="0 0 64 64"
+      fill="none"
+    >
+      <path
+        fill="currentColor"
+        stroke="currentColor"
+        strokeWidth="1"
+        strokeLinejoin="round"
+        d="M32 17 L36.5 16.5 L45 4 L47.5 19 L51 23 L57 28 L52 30.5 L57.5 36 L51.5 37 L54 42 L47 42 L42 48 L37.5 53 L34.5 58 L32 59.5 L29.5 58 L26.5 53 L22 48 L17 42 L10 42 L12.5 37 L6.5 36 L12 30.5 L7 28 L13 23 L16.5 19 L19 4 L27.5 16.5Z"
+      />
+      <g stroke="var(--paper)" strokeLinecap="round" strokeLinejoin="round">
+        <path strokeWidth="1" d="M40.5 15.5l3.2-7.5.9 9.5M23.5 15.5l-3.2-7.5-.9 9.5" />
+        <path
+          fill="var(--paper)"
+          strokeWidth=".6"
+          d="M35.5 31.5c2-2.4 5-3.2 8-2.6-1.8 2.6-4.8 3.6-8 2.6zM28.5 31.5c-2-2.4-5-3.2-8-2.6 1.8 2.6 4.8 3.6 8 2.6z"
+        />
+        <path strokeWidth=".8" d="M32 21v6M29 22.5l1.2 4M35 22.5l-1.2 4M30 35l.6 13M34 35l-.6 13" />
+        <path
+          strokeWidth=".7"
+          d="M46 31.5l-4 2.5M47 37l-4.5 1.5M45 41.5h-4M18 31.5l4 2.5M17 37l4.5 1.5M19 41.5h4"
+        />
+      </g>
+      <circle cx="39.6" cy="30.4" r="1" fill="var(--ink)" />
+      <circle cx="24.4" cy="30.4" r="1" fill="var(--ink)" />
+      <path fill="var(--ink)" d="M29 50.3h6l-3 3.6z" />
+    </svg>
   )
 }
 

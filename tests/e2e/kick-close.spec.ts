@@ -28,7 +28,7 @@ test('kick, mất mạng rồi vào lại, đóng phòng: máy người chơi x�
 
   // Mất mạng → presence offline → có mạng lại → vẫn trong phòng
   const b = await join('Bé')
-  await expect(host.getByText('Đang kết nối').first()).toBeVisible()
+  await expect(host.getByText('Đang online').first()).toBeVisible()
   await b.ctx.setOffline(true)
   await b.ctx.setOffline(false)
   await b.p.reload()

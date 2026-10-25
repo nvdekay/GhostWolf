@@ -113,6 +113,11 @@ class RoomStore {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'assignments' }, () =>
         this.later('assignments'),
       )
+      // SUBSCRIBED đến trước khi server đăng ký xong postgres_changes; thay đổi trong khoảng đó
+      // không được đẩy về, nên đọc lại một lần nữa khi server báo đã sẵn sàng.
+      .on('system', {}, (p: { extension?: string; status?: string }) => {
+        if (p.extension === 'postgres_changes' && p.status === 'ok') void this.refreshAll()
+      })
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           this.set({ live: true })

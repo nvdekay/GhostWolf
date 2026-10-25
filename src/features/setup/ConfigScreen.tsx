@@ -37,68 +37,72 @@ export function ConfigScreen() {
           <Ornament />
           <p>Bạn có thể đổi bộ vai sau khi mọi người vào phòng.</p>
         </div>
-        <div className="field">
-          <label htmlFor="rname">Tên ván</label>
-          <input
-            id="rname"
-            className="input"
-            value={name}
-            maxLength={60}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Ví dụ: Ván tối thứ Sáu"
-          />
+        <div className="config__form">
+          <div className="field">
+            <label htmlFor="rname">Tên ván</label>
+            <input
+              id="rname"
+              className="input"
+              value={name}
+              maxLength={60}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ví dụ: Ván tối thứ Sáu"
+            />
+          </div>
+          <section className="config__switches">
+            <SwitchRow
+              title="Trưởng làng"
+              sub="Bầu vào Ngày 1, phiếu tính gấp đôi"
+              checked={opts.chief}
+              onToggle={() => patch({ chief: !opts.chief })}
+              label="Bật Trưởng làng"
+            />
+            <SwitchRow
+              title="Công bố vai khi bị loại"
+              sub="Hiện vai người bị loại trên máy mọi người"
+              checked={opts.revealOnDeath}
+              onToggle={() => patch({ revealOnDeath: !opts.revealOnDeath })}
+              label="Công bố vai khi bị loại"
+            />
+          </section>
+          <section className="config__variants">
+            <button
+              className="config__variants-toggle"
+              aria-expanded={variants}
+              onClick={() => setVariants(!variants)}
+            >
+              <span>Luật biến thể</span>
+              <Icon name={variants ? 'up' : 'down'} />
+            </button>
+            {variants && (
+              <div className="config__switches">
+                <SwitchRow
+                  title="Thợ săn trúng độc vẫn được bắn"
+                  sub={opts.hunterShootsWhenPoisoned ? 'Có' : 'Không (mặc định)'}
+                  checked={opts.hunterShootsWhenPoisoned}
+                  onToggle={() =>
+                    patch({ hunterShootsWhenPoisoned: !opts.hunterShootsWhenPoisoned })
+                  }
+                  label="Thợ săn trúng độc vẫn được bắn"
+                />
+                <SwitchRow
+                  title="Phù thủy được tự cứu"
+                  sub={opts.witchSelfHeal ? 'Có (mặc định)' : 'Không'}
+                  checked={opts.witchSelfHeal}
+                  onToggle={() => patch({ witchSelfHeal: !opts.witchSelfHeal })}
+                  label="Phù thủy được tự cứu"
+                />
+                <SwitchRow
+                  title="Vẫn gọi vai đã bị loại"
+                  sub="Gọi như bình thường để không lộ thông tin (không cho hành động)"
+                  checked={opts.callDeadRoles}
+                  onToggle={() => patch({ callDeadRoles: !opts.callDeadRoles })}
+                  label="Vẫn gọi vai đã bị loại"
+                />
+              </div>
+            )}
+          </section>
         </div>
-        <section className="config__switches">
-          <SwitchRow
-            title="Trưởng làng"
-            sub="Bầu vào Ngày 1, phiếu tính gấp đôi"
-            checked={opts.chief}
-            onToggle={() => patch({ chief: !opts.chief })}
-            label="Bật Trưởng làng"
-          />
-          <SwitchRow
-            title="Công bố vai khi bị loại"
-            sub="Hiện vai người bị loại trên máy mọi người"
-            checked={opts.revealOnDeath}
-            onToggle={() => patch({ revealOnDeath: !opts.revealOnDeath })}
-            label="Công bố vai khi bị loại"
-          />
-        </section>
-        <section className="config__variants">
-          <button
-            className="config__variants-toggle"
-            aria-expanded={variants}
-            onClick={() => setVariants(!variants)}
-          >
-            <span>Luật biến thể</span>
-            <Icon name={variants ? 'up' : 'down'} />
-          </button>
-          {variants && (
-            <div className="config__switches">
-              <SwitchRow
-                title="Thợ săn trúng độc vẫn được bắn"
-                sub={opts.hunterShootsWhenPoisoned ? 'Có' : 'Không (mặc định)'}
-                checked={opts.hunterShootsWhenPoisoned}
-                onToggle={() => patch({ hunterShootsWhenPoisoned: !opts.hunterShootsWhenPoisoned })}
-                label="Thợ săn trúng độc vẫn được bắn"
-              />
-              <SwitchRow
-                title="Phù thủy được tự cứu"
-                sub={opts.witchSelfHeal ? 'Có (mặc định)' : 'Không'}
-                checked={opts.witchSelfHeal}
-                onToggle={() => patch({ witchSelfHeal: !opts.witchSelfHeal })}
-                label="Phù thủy được tự cứu"
-              />
-              <SwitchRow
-                title="Vẫn gọi vai đã bị loại"
-                sub="Gọi như bình thường để không lộ thông tin (không cho hành động)"
-                checked={opts.callDeadRoles}
-                onToggle={() => patch({ callDeadRoles: !opts.callDeadRoles })}
-                label="Vẫn gọi vai đã bị loại"
-              />
-            </div>
-          )}
-        </section>
         <div className="note-box">
           <Icon name="info" />
           <span>

@@ -4,7 +4,7 @@
  * - commandId sinh một lần cho mỗi thao tác; retry khi lỗi mạng dùng lại id → server không xử lý trùng.
  */
 import type { CommandRequest, CommandResponse, GameCommand, RoomCommand } from '@shared/commands.ts'
-import { supabase } from '@/lib/supabase'
+import { sameHostUrl, supabase } from '@/lib/supabase'
 import { uuid } from '@/lib/uuid'
 import { AppError, networkError } from './errors'
 
@@ -20,8 +20,9 @@ async function post(body: CommandRequest): Promise<CommandResponse> {
   const { data: s } = await supabase.auth.getSession()
   const token = s.session?.access_token
   if (!token) throw new AppError('AUTH_REQUIRED', 'Phiên đăng nhập đã hết. Tải lại trang.')
-  const base =
-    import.meta.env.VITE_FUNCTIONS_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`
+  const base = sameHostUrl(
+    import.meta.env.VITE_FUNCTIONS_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`,
+  )
   const url = `${base}/game-command`
   for (let attempt = 0; ; attempt++) {
     let res: Response

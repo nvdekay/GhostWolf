@@ -9,6 +9,21 @@
   gap: 20px;
 }
 
+/* Màn rộng: màn người chơi là một tấm thẻ giữa tờ giấy thay vì cột dính sát mép trên. */
+@media (min-width: 1024px) {
+  .join {
+    flex: none;
+    max-width: 600px;
+    min-height: min(720px, calc(100dvh - 96px));
+    margin: auto;
+    padding: 32px 40px 36px;
+    background: var(--surface);
+    border: 1px solid var(--gold-line-soft);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 18px 50px rgba(60, 38, 14, 0.14);
+  }
+}
+
 .join__bar {
   display: flex;
   align-items: center;

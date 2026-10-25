@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 
-const WIDTHS = [360, 390, 768, 1024, 1440]
+const WIDTHS = [360, 390, 768, 1024, 1440, 1920]
 const SHOTS = process.env.E2E_SHOTS
 
 async function checkAll(page: Page, name: string) {
