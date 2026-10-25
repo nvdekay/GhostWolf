@@ -44,7 +44,7 @@ VITE_FUNCTIONS_URL=http://127.0.0.1:54329
 npm run dev               # http://localhost:5173
 ```
 
-Mở thêm cửa sổ ẩn danh/thiết bị khác để làm người chơi (mỗi trình duyệt là một danh tính ẩn danh riêng). Điện thoại trong cùng mạng: `npm run dev -- --host`, và đổi `127.0.0.1` trong `.env.local` thành IP máy chạy Supabase.
+Mở thêm cửa sổ ẩn danh/thiết bị khác để làm người chơi (mỗi trình duyệt là một danh tính ẩn danh riêng). Điện thoại trong cùng mạng: `npm run dev -- --host` rồi mở `http://<IP máy>:5173`. Khi `.env.local` trỏ tới `127.0.0.1`, app tự gọi backend ở cùng máy với trang nên không cần sửa `.env.local` khi đổi mạng.
 
 > `npm run db:start` bỏ container edge-runtime của CLI (`-x edge-runtime`) vì runtime đó cần tải từ jsr.io; `functions:serve` chạy đúng mã Edge Function bằng Deno. Nếu mạng của bạn tải được jsr.io, có thể dùng `supabase start` + `supabase functions serve` và bỏ `VITE_FUNCTIONS_URL`.
 
