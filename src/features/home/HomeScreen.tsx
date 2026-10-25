@@ -3,7 +3,7 @@ import { useNav } from '@/app/App'
 import { useSession } from '@/app/session'
 import { Icon } from '@/components/Icon'
 import { Sheet } from '@/components/overlay'
-import { Crescent, Ornament } from '@/components/ui'
+import { Crescent, Ornament, WolfEmblem } from '@/components/ui'
 import { mySessions, type SessionSummary } from '@/services/rooms'
 import { HowToSheet } from './HowToSheet'
 import './home.css'
@@ -38,82 +38,80 @@ export function HomeScreen() {
           <span />
           <span />
         </div>
-        <div className="home__moon">
-          <Crescent size={50} />
+        <div className="home__brand">
+          <div className="home__moon">
+            <WolfEmblem size={68} />
+          </div>
+          <h1 className="home__title">Ghost Wolf</h1>
+          <p className="home__lead">
+            Khi trăng lên, có kẻ trong làng không còn là người. Ai cũng giữ một bí mật — và không
+            phải ai cũng sống đến sáng.
+          </p>
+          <Ornament width={320} center />
         </div>
-        <div className="home__kicker">Ma Sói · từ 4 người chơi</div>
-        <h1 className="home__title">Ghostwolf</h1>
-        <p className="home__lead">
-          Mỗi người một chiếc điện thoại thay cho bộ thẻ. Quản trò tạo phòng và chia vai, vai bí mật
-          hiện trên máy từng người.
-        </p>
-        <Ornament width={320} center />
-        <div className="home__actions">
-          <button
-            className="btn btn-ink btn-block btn-xl home__primary"
-            onClick={() => nav.go({ name: 'choose' })}
-          >
-            Tạo ván mới
-          </button>
-          <button
-            className="btn btn-secondary btn-block home__secondary"
-            onClick={() => nav.go({ name: 'join' })}
-          >
-            <Icon name="users" />
-            Vào phòng bằng mã
-          </button>
-          {sessions === null && <p className="home__none">Đang tìm ván đang chơi…</p>}
-          {sessions?.map((s) => (
+        <div className="home__panel">
+          <div className="home__actions">
             <button
-              key={s.room.id}
-              className="home__resume"
-              onClick={() =>
-                nav.go(
-                  s.asHost
-                    ? { name: 'host', roomId: s.room.id }
-                    : { name: 'player', roomId: s.room.id },
-                )
-              }
+              className="btn btn-ink btn-block btn-xl home__primary"
+              onClick={() => nav.go({ name: 'choose' })}
             >
-              <span className="gold-text">
-                <Icon name="play" />
-              </span>
-              <span className="home__resume-text">
-                <span className="home__resume-title">
-                  {s.asHost ? 'Tiếp tục ván' : 'Quay lại phòng'}
-                </span>
-                <span className="home__resume-meta">
-                  {s.meta} · {s.asHost ? 'Quản trò' : 'Người chơi'}
-                </span>
-              </span>
-              <Icon name="right" />
+              Tạo ván mới
             </button>
-          ))}
-          {sessions?.length === 0 && (
-            <p className="home__none">
-              {loadError
-                ? 'Không tải được danh sách ván. Kiểm tra mạng.'
-                : 'Chưa có ván nào đang lưu.'}
-            </p>
-          )}
-        </div>
-        <div className="home__links">
-          <button className="link-btn" onClick={() => nav.go({ name: 'lib' })}>
-            Thư viện vai
-          </button>
-          <span aria-hidden="true" className="gold-text">
-            ·
-          </span>
-          <button className="link-btn" onClick={() => setHowto(true)}>
-            Cách chơi
-          </button>
-        </div>
-        <div className="home__footer">
-          <span className="gold-text">
-            <Icon name="moon" size={15} />
-          </span>
-          <span className="heading-font">Đêm buông xuống, cả làng đi ngủ.</span>
-          <span aria-hidden="true" className="home__rule" />
+            <button
+              className="btn btn-secondary btn-block home__secondary"
+              onClick={() => nav.go({ name: 'join' })}
+            >
+              <Icon name="users" />
+              Vào phòng bằng mã
+            </button>
+            {sessions?.map((s) => (
+              <button
+                key={s.room.id}
+                className="home__resume"
+                onClick={() =>
+                  nav.go(
+                    s.asHost
+                      ? { name: 'host', roomId: s.room.id }
+                      : { name: 'player', roomId: s.room.id },
+                  )
+                }
+              >
+                <span className="gold-text">
+                  <Icon name="play" />
+                </span>
+                <span className="home__resume-text">
+                  <span className="home__resume-title">
+                    {s.asHost ? 'Tiếp tục ván' : 'Quay lại phòng'}
+                  </span>
+                  <span className="home__resume-meta">
+                    {s.meta} · {s.asHost ? 'Quản trò' : 'Người chơi'}
+                  </span>
+                </span>
+                <Icon name="right" />
+              </button>
+            ))}
+            {loadError && (
+              <p className="home__none">Không tải được danh sách ván. Kiểm tra mạng.</p>
+            )}
+          </div>
+          <div className="home__links">
+            <button className="link-btn" onClick={() => nav.go({ name: 'lib' })}>
+              Thư viện vai
+            </button>
+            <span aria-hidden="true" className="gold-text">
+              ·
+            </span>
+            <button className="link-btn" onClick={() => setHowto(true)}>
+              Cách chơi
+            </button>
+          </div>
+          <div className="home__footer">
+            <span className="gold-text">
+              <Icon name="moon" size={15} />
+            </span>
+            <span className="heading-font">Đêm buông xuống, cả làng đi ngủ.</span>
+            <span aria-hidden="true" className="home__rule" />
+          </div>
         </div>
       </main>
       {howto && (
