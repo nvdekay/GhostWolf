@@ -4,9 +4,13 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import type { CommandRequest, CommandResponse } from '../../supabase/functions/_shared/commands.ts'
 
 /** Đọc URL/key của Supabase local (`supabase start`). */
-function localEnv(): { url: string; anon: string } {
+function localEnv(): { url: string; anon: string; service?: string } {
   if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) {
-    return { url: process.env.SUPABASE_URL, anon: process.env.SUPABASE_ANON_KEY }
+    return {
+      url: process.env.SUPABASE_URL,
+      anon: process.env.SUPABASE_ANON_KEY,
+      service: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    }
   }
   const out = execSync('supabase status -o env', {
     encoding: 'utf8',
@@ -17,7 +21,7 @@ function localEnv(): { url: string; anon: string } {
   const anon = get('ANON_KEY')
   if (!url || !anon)
     throw new Error('Không đọc được Supabase local. Chạy `npm run db:start` trước.')
-  return { url, anon }
+  return { url, anon, service: get('SERVICE_ROLE_KEY') }
 }
 
 export const env = localEnv()
@@ -29,6 +33,14 @@ export async function anonClient(): Promise<{ db: SupabaseClient; uid: string }>
   const { data, error } = await db.auth.signInAnonymously()
   if (error || !data.user) throw error ?? new Error('Không đăng nhập ẩn danh được')
   return { db, uid: data.user.id }
+}
+
+/** Client service role của Supabase local — chỉ dùng trong test để kiểm tra ràng buộc DB. */
+export function serviceClient(): SupabaseClient {
+  if (!env.service) throw new Error('Thiếu SERVICE_ROLE_KEY của Supabase local.')
+  return createClient(env.url, env.service, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
 }
 
 /** Gọi RPC, trả lỗi dạng { code, message } với code nằm ở `details`. */

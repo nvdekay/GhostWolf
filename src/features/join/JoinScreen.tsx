@@ -63,7 +63,7 @@ export function JoinScreen({ initialCode }: { initialCode?: string }) {
     } catch (e) {
       const ae = toAppError(e)
       setErr(ae.message)
-      if (ae.code === 'ROOM_NOT_FOUND' || ae.code === 'ROOM_LOCKED') setStage('code')
+      if (['ROOM_NOT_FOUND', 'ROOM_LOCKED', 'KICKED'].includes(ae.code)) setStage('code')
     } finally {
       setBusy(false)
     }

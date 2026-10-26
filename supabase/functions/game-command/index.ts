@@ -249,6 +249,7 @@ async function gameCommand(
   if (error) {
     if (error.details === 'REVISION_CONFLICT')
       throw new HttpError(409, 'REVISION_CONFLICT', error.message)
+    if (error.details === 'RATE_LIMITED') throw new HttpError(429, 'RATE_LIMITED', error.message)
     throw new HttpError(500, 'DB_ERROR', error.message)
   }
   const r = data as { revision: number; duplicate: boolean }
