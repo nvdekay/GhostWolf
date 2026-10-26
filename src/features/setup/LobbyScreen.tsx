@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { MIN_PLAYERS } from '@engine'
 import { useNav } from '@/app/App'
 import { useFeedback } from '@/app/feedback'
@@ -19,6 +19,7 @@ export function LobbyScreen() {
   const stepper = useStepper()
   const [manualName, setManualName] = useState('')
   const [busy, setBusy] = useState(false)
+  const inFlight = useRef(false)
   const [confirmClose, setConfirmClose] = useState(false)
   const [shareFallback, setShareFallback] = useState<string | null>(null)
 
@@ -29,6 +30,9 @@ export function LobbyScreen() {
   const rolesSent = !!game && !['setup', 'dealt', 'ended'].includes(game.status)
 
   const guard = async (fn: () => Promise<unknown>) => {
+    // State chỉ cập nhật sau khi React render; ref chặn đồng bộ Enter lặp/double tap.
+    if (inFlight.current) return false
+    inFlight.current = true
     setBusy(true)
     try {
       await fn()
@@ -38,6 +42,7 @@ export function LobbyScreen() {
       fb.error(e)
       return false
     } finally {
+      inFlight.current = false
       setBusy(false)
     }
   }
@@ -217,6 +222,7 @@ export function LobbyScreen() {
                   className="input"
                   value={manualName}
                   maxLength={40}
+                  disabled={busy}
                   onChange={(e) => setManualName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && add()}
                   placeholder="Tên người chơi"

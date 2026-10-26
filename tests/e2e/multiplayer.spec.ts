@@ -66,11 +66,24 @@ test('quản trò và hai người chơi trên ba thiết bị', async ({ browse
   // — Lobby realtime + người không có điện thoại —
   await expect(host.page.getByText('An', { exact: true })).toBeVisible()
   await expect(host.page.getByText('Bình', { exact: true })).toBeVisible()
-  for (const name of ['Bà Tư', 'Ông Năm']) {
-    await host.page.getByLabel('Thêm người không dùng điện thoại').fill(name)
-    await host.page.getByRole('button', { name: 'Thêm', exact: true }).click()
+  let addMemberRequests = 0
+  host.page.on('request', (request) => {
+    if (request.url().includes('/rpc/host_add_member')) addMemberRequests++
+  })
+  for (const [index, name] of ['Bà Tư', 'Ông Năm'].entries()) {
+    const manualName = host.page.getByLabel('Thêm người không dùng điện thoại')
+    await manualName.fill(name)
+    if (index === 0) {
+      // Enter lặp khi request đầu còn chạy không được gửi RPC lần hai.
+      await manualName.press('Enter')
+      await manualName.press('Enter')
+    } else {
+      await host.page.getByRole('button', { name: 'Thêm', exact: true }).click()
+    }
     await expect(host.page.getByText(name, { exact: true })).toBeVisible()
+    await expect(host.page.getByRole('alert')).toHaveCount(0)
   }
+  expect(addMemberRequests).toBe(2)
   await expect(host.page.getByText('4 người trong phòng')).toBeVisible()
   await host.page.getByRole('button', { name: /Chốt phòng/ }).click()
   await expect(p1.page.getByRole('heading', { name: 'Phòng đã chốt' })).toBeVisible()
