@@ -80,3 +80,19 @@ Kiểm thử đã chạy (Supabase local + Edge Function chạy bằng Deno):
 - [x] typecheck, lint, test, build.
 - [x] `.env.example`, README (Supabase, anonymous auth, realtime, deploy).
 - [ ] Deploy thật (Supabase hosted + host static): cần thông tin dự án của bạn — các bước ở README.
+
+## 7. Audit bảo mật / luật (2026-10-25)
+
+- [x] RT-01 `create_game` khóa phòng vô điều kiện; nhiều `game.ensure`/`game.replay` đồng thời chỉ tạo một ván (integration, 4 vòng × 8 request).
+- [x] SEC-01 Giới hạn số thẻ/vai, tổng thẻ, số loại vai, số phiếu, số người trước khi tạo mảng (unit + integration qua Edge Function).
+- [x] RULE-01 Người thổi sáo sống một mình thắng (unit).
+- [x] SEC-02 Người bị mời ra không tự vào lại (`KICKED`); người tự rời vẫn vào lại được (integration).
+- [x] FE-01 Thẻ vừa lật úp lại khi blur / chuyển tab / pagehide (E2E).
+- [x] RT-02 Room store bỏ kết quả của ván cũ về muộn; lỗi query giữ dữ liệu và thử lại (unit, mock Supabase).
+- [x] RULE-02 Ngày không quay lại bước trước (unit; tab đã qua bị khóa trên UI).
+- [x] DB-01 Trigger `current_game_id` cùng phòng, vai cùng phòng; CHECK seat/number/revision (integration).
+- [x] OPS-01 30 người/phòng, 10 phòng mở/quản trò, 60 lệnh/10 giây/ván, `gw_cleanup` (integration). Lịch chạy: `docs/production-hardening.md`.
+- [x] P2 Key toast/màn chuyển cảnh, E2E không sleep cố định, vùng chạm 44px, server E2E mới khi CI, log JSON có request ID.
+- [~] RT-03 Presence key do client đặt: thành viên giả được key `host`/id người khác (đã tái hiện local). Chỉ dùng hiển thị; đã lọc key lạ. Chưa có heartbeat tin cậy.
+- [ ] FE-02 Khôi phục quyền quản trò khi đổi thiết bị: mới có đề xuất thiết kế.
+- [ ] Luật cho nhiều Cupid/Phù thủy/Tiên tri…: chưa định nghĩa (ghi chú trong `docs/ruleset.md`).

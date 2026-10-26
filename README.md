@@ -4,6 +4,7 @@ Web chơi Ma Sói trực tiếp: quản trò điều hành trên một máy, m�
 
 - Luật chơi: [`docs/ruleset.md`](docs/ruleset.md)
 - Tiến độ và phạm vi: [`docs/implementation-checklist.md`](docs/implementation-checklist.md)
+- Vận hành production (header bảo mật, rate limit, monitoring, dọn dữ liệu, rollback): [`docs/production-hardening.md`](docs/production-hardening.md)
 
 ## Kiến trúc
 

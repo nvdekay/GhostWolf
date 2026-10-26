@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNav } from '@/app/App'
 import { useFeedback } from '@/app/feedback'
 import { useSession } from '@/app/session'
@@ -14,19 +14,29 @@ import { ResultView } from '@/features/result/ResultScreen'
 import { roleView, type RoleView } from '@/features/roles/roles'
 import './join.css'
 
-/** Nhấn giữ để xem vai: thả tay, hủy, rời cửa sổ hoặc chuyển tab là ẩn ngay. Bàn phím: giữ Space/Enter. */
-function HoldToReveal({ role }: { role: RoleView }) {
-  const [hold, setHold] = useState(false)
+/** Gọi `hide` khi người dùng rời màn hình: mất focus cửa sổ, chuyển tab/ẩn app, rời trang. */
+function useHideWhenAway(active: boolean, hide: () => void) {
   useEffect(() => {
-    const hide = () => setHold(false)
+    if (!active) return
     const onVis = () => document.visibilityState !== 'visible' && hide()
     window.addEventListener('blur', hide)
+    window.addEventListener('pagehide', hide)
     document.addEventListener('visibilitychange', onVis)
     return () => {
       window.removeEventListener('blur', hide)
+      window.removeEventListener('pagehide', hide)
       document.removeEventListener('visibilitychange', onVis)
     }
-  }, [])
+  }, [active, hide])
+}
+
+/** Nhấn giữ để xem vai: thả tay, hủy, rời cửa sổ hoặc chuyển tab là ẩn ngay. Bàn phím: giữ Space/Enter. */
+function HoldToReveal({ role }: { role: RoleView }) {
+  const [hold, setHold] = useState(false)
+  useHideWhenAway(
+    hold,
+    useCallback(() => setHold(false), []),
+  )
   const on = () => setHold(true)
   const off = () => setHold(false)
   return (
@@ -78,6 +88,11 @@ export function PlayerRoom({ roomId }: { roomId: string }) {
   const { userId } = useSession()
   const snap = useRoom(roomId, userId!)
   const [flipped, setFlipped] = useState(false)
+  // Thẻ vừa lật lần đầu cũng úp lại khi rời màn hình, giống nhấn giữ.
+  useHideWhenAway(
+    flipped,
+    useCallback(() => setFlipped(false), []),
+  )
   const [busy, setBusy] = useState(false)
   const [confirmLeave, setConfirmLeave] = useState(false)
 

@@ -4,7 +4,7 @@
  */
 import { roleDef, seerSeesWolf } from './abilities.ts'
 import { DEFAULT_OPTIONS, RULESET_VERSION } from './catalog.ts'
-import { dealPlayers, type RandomInt } from './deal.ts'
+import { countsProblem, dealPlayers, type RandomInt } from './deal.ts'
 import { assert, EngineError } from './errors.ts'
 import {
   availableTargets,
@@ -273,10 +273,9 @@ export function applyCommand(prev: GameState, cmd: Command, ctx: EngineContext):
   switch (cmd.type) {
     case 'deck.set': {
       requireStatus(s, 'setup', 'dealt')
-      for (const [id, c] of Object.entries(cmd.counts)) {
-        assert(Number.isInteger(c) && c >= 0, 'DECK_INVALID', 'Số lượng vai không hợp lệ.')
-        if (c > 0) roleDef(s, id)
-      }
+      const bad = countsProblem(cmd.counts)
+      assert(!bad, 'DECK_INVALID', bad ?? '')
+      for (const [id, c] of Object.entries(cmd.counts)) if (c > 0) roleDef(s, id)
       s.counts = Object.fromEntries(Object.entries(cmd.counts).filter(([, c]) => c > 0))
       // Đổi bộ vai sau khi chia thì phải chia lại.
       if (s.status === 'dealt') {
@@ -347,9 +346,11 @@ export function applyCommand(prev: GameState, cmd: Command, ctx: EngineContext):
       const order: DayStep[] = ['announce', 'discuss', 'vote']
       const from = order.indexOf(d.step)
       const to = order.indexOf(cmd.step)
-      assert(to >= 0 && to <= from + 1, 'DAY_SKIP', 'Không thể bỏ qua bước trong ngày.')
-      if (to > from) requireNoEffects(s)
-      if (to < order.indexOf('vote')) d.result = null
+      // docs/ruleset.md: ngày chỉ đi tới bước kế tiếp — không quay lại, không bỏ qua.
+      assert(to >= from, 'DAY_BACK', 'Không quay lại bước trước trong ngày.')
+      assert(to <= from + 1, 'DAY_SKIP', 'Không thể bỏ qua bước trong ngày.')
+      if (to === from) return s
+      requireNoEffects(s)
       d.step = cmd.step
       return s
     }

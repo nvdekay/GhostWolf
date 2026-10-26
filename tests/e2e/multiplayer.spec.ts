@@ -87,6 +87,22 @@ test('quản trò và hai người chơi trên ba thiết bị', async ({ browse
   await expect(host.page.getByRole('heading', { name: 'Đã gửi vai' })).toBeVisible()
 
   // — Mỗi người chơi xem đúng vai của mình —
+  // Thẻ vừa lật úp lại khi rời cửa sổ hoặc chuyển tab.
+  await expect(p1.page.getByText('Quản trò đã gửi vai')).toBeVisible()
+  const flip = p1.page.getByRole('button', { name: /Chạm để lật thẻ/ })
+  await flip.click()
+  await expect(p1.page.getByRole('button', { name: /Tôi đã nhớ vai/ })).toBeVisible()
+  await p1.page.evaluate(() => window.dispatchEvent(new Event('blur')))
+  await expect(flip).toBeVisible()
+  await expect(p1.page.getByRole('button', { name: /Tôi đã nhớ vai/ })).toHaveCount(0)
+  await flip.click()
+  await p1.page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true })
+    document.dispatchEvent(new Event('visibilitychange'))
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
+  })
+  await expect(flip).toBeVisible()
+
   const roles: string[] = []
   for (const p of [p1.page, p2.page]) {
     await expect(p.getByText('Quản trò đã gửi vai')).toBeVisible()
@@ -142,8 +158,12 @@ test('quản trò và hai người chơi trên ba thiết bị', async ({ browse
       for (let k = 0; k < need; k++)
         await host.page.locator('.seat[data-dimmed="false"][data-picked="false"]').first().click()
     }
+    // Chờ bước đêm đổi (nhãn nút hoặc "bước x/y") thay cho sleep cố định.
+    const state = async () =>
+      `${await host.page.locator('.board-top__sub').textContent()}|${await primary.textContent()}`
+    const before = await state()
     await primary.click()
-    await host.page.waitForTimeout(400)
+    await expect.poll(state).not.toBe(before)
   }
   await host.page.locator('.panel-card__foot .btn-ink', { hasText: 'Trời sáng' }).click()
   await expect(p1.page.getByRole('heading', { name: 'Ngày 1' })).toBeVisible()

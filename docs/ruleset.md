@@ -10,6 +10,12 @@ Chia vai → Gửi vai → Đêm 1 → Công bố → Thảo luận → Bỏ phi
 - Không sửa bộ vai/xáo lại sau khi gửi; không thao tác sau khi ván kết thúc.
 - Còn hiệu ứng chờ (Thợ săn, kế nhiệm Trưởng làng) thì không chuyển bước và không chốt thắng.
 
+## Giới hạn
+
+- Một phòng: 4–30 người. Một bộ vai: tối đa 30 thẻ, mỗi vai tối đa 30, tối đa 64 loại vai.
+- Người bị quản trò mời ra không tự vào lại được phòng đó (người tự rời thì được).
+- Chưa định nghĩa luật cho nhiều Cupid / Phù thủy / Tiên tri / Bảo vệ / Người thổi sáo / Sói trắng trong cùng ván: engine hiện gọi mỗi vai **một lượt** và Phù thủy dùng **chung một bộ bình**. Nên dùng tối đa 1 cho các vai này.
+
 ## Ban đêm
 
 Thứ tự gọi: Cupid (chỉ đêm 1) → Bảo vệ → Bầy sói → Sói trắng (đêm chẵn) → Phù thủy → Tiên tri → Người thổi sáo → vai tùy chỉnh có "thức dậy ban đêm". Chỉ tạo bước cho vai có trong ván.

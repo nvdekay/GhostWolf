@@ -4,6 +4,8 @@
  * - Mỗi khi kênh (re)subscribe → lấy lại snapshot (khôi phục sau mất mạng).
  * - Một store cho mỗi phòng, đếm số người dùng (refcount) → remount không tạo subscription trùng.
  * - Presence trên kênh private "room:<id>": chỉ biểu thị online/offline, không loại ai khỏi ván.
+ *   Key presence do client tự đặt (thành viên có thể tự xưng 'host' hoặc id người khác), nên chỉ là
+ *   gợi ý hiển thị — không bao giờ dùng để phân quyền.
  */
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { useEffect, useSyncExternalStore } from 'react'
@@ -31,6 +33,8 @@ export interface RoomSnapshot {
   me: MemberRow | null
 }
 
+const RETRY_MS = 1500
+
 const EMPTY: RoomSnapshot = {
   loading: true,
   error: null,
@@ -44,13 +48,16 @@ const EMPTY: RoomSnapshot = {
   me: null,
 }
 
-class RoomStore {
+/** Export để test; app dùng qua `useRoom`. */
+export class RoomStore {
   private snap: RoomSnapshot = EMPTY
   private listeners = new Set<() => void>()
   private refs = 0
   private db: RealtimeChannel | null = null
   private presence: RealtimeChannel | null = null
   private timers = new Map<string, ReturnType<typeof setTimeout>>()
+  /** Key presence thô; lọc theo danh sách thành viên mỗi khi một trong hai thay đổi. */
+  private presenceKeys: string[] = []
   private stopped = false
   private readonly roomId: string
   private readonly userId: string
@@ -139,8 +146,8 @@ class RoomStore {
     stores.delete(this.roomId)
   }
 
-  /** Gộp nhiều sự kiện liên tiếp thành một lần đọc lại. */
-  private later(what: 'room' | 'members' | 'game' | 'assignments') {
+  /** Gộp nhiều sự kiện liên tiếp thành một lần đọc lại (cũng dùng để thử lại sau lỗi). */
+  private later(what: 'room' | 'members' | 'game' | 'assignments', delay = 60) {
     clearTimeout(this.timers.get(what))
     this.timers.set(
       what,
@@ -150,7 +157,7 @@ class RoomStore {
         if (what === 'members') void this.loadMembers()
         if (what === 'game') void this.loadGame()
         if (what === 'assignments') void this.loadAssignments()
-      }, 60),
+      }, delay),
     )
   }
 
@@ -185,15 +192,18 @@ class RoomStore {
   }
 
   private async loadMembers() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('room_members')
       .select('*')
       .eq('room_id', this.roomId)
       .order('seat')
+    // Lỗi tạm thời: giữ danh sách đang có, đọc lại sau.
+    if (error) return this.later('members', RETRY_MS)
     const members = (data ?? []) as MemberRow[]
     const mine = members.filter((m) => m.user_id === this.userId)
     const me = mine.find((m) => m.status === 'active') ?? mine.at(-1) ?? null
     this.set({ members, me })
+    this.updateOnline()
     if (me && me.status !== 'active') {
       this.set({ room: null, game: null, secrets: null, assignments: [] })
       return
@@ -208,12 +218,15 @@ class RoomStore {
       return
     }
     const isHost = this.snap.room?.host_id === this.userId
-    const [{ data: game }, secrets] = await Promise.all([
+    const [{ data: game, error }, secrets] = await Promise.all([
       supabase.from('games').select('*').eq('id', gid).maybeSingle(),
       isHost
         ? supabase.from('game_secrets').select('state').eq('game_id', gid).maybeSingle()
-        : Promise.resolve({ data: null }),
+        : Promise.resolve({ data: null, error: null }),
     ])
+    // Trong lúc chờ, ván hiện hành có thể đã đổi (chơi lại): bỏ kết quả của ván cũ.
+    if (this.snap.room?.current_game_id !== gid) return
+    if (error || secrets.error) return this.later('game', RETRY_MS)
     const g = game as GameRow | null
     // Bỏ bản cũ hơn nếu sự kiện về không theo thứ tự.
     if (g && this.snap.game?.id === g.id && this.snap.game.revision > g.revision) return
@@ -224,8 +237,17 @@ class RoomStore {
   private async loadAssignments() {
     const gid = this.snap.room?.current_game_id
     if (!gid) return
-    const { data } = await supabase.from('assignments').select('*').eq('game_id', gid)
+    const { data, error } = await supabase.from('assignments').select('*').eq('game_id', gid)
+    if (this.snap.room?.current_game_id !== gid) return
+    if (error) return this.later('assignments', RETRY_MS)
     this.set({ assignments: (data ?? []) as AssignmentRow[] })
+  }
+
+  /** Bỏ key không khớp thành viên nào (key do client tự đặt, xem đầu file). */
+  private updateOnline() {
+    const known = new Set(['host'])
+    for (const m of this.snap.members) if (m.status === 'active') known.add(m.id)
+    this.set({ online: new Set(this.presenceKeys.filter((k) => known.has(k))) })
   }
 
   private trackPresence() {
@@ -237,7 +259,8 @@ class RoomStore {
       config: { private: true, presence: { key } },
     })
     ch.on('presence', { event: 'sync' }, () => {
-      this.set({ online: new Set(Object.keys(ch.presenceState())) })
+      this.presenceKeys = Object.keys(ch.presenceState())
+      this.updateOnline()
     }).subscribe((status) => {
       if (status === 'SUBSCRIBED') void ch.track({ at: Date.now() })
     })

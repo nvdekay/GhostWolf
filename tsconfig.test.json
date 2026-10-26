@@ -5,13 +5,15 @@
     "lib": ["ES2023", "DOM"],
     "module": "esnext",
     "moduleResolution": "bundler",
-    "types": ["node"],
+    "types": ["node", "vite/client"],
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
+    "jsx": "react-jsx",
     "noEmit": true,
     "paths": {
+      "@/*": ["./src/*"],
       "@engine": ["./supabase/functions/_shared/engine/index.ts"],
       "@shared/*": ["./supabase/functions/_shared/*"]
     },

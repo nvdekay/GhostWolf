@@ -322,7 +322,7 @@ export function DayPanel({
             aria-selected={d.step === k}
             data-past={i < ci}
             className="day-tab"
-            disabled={d.resolved || i > ci + 1 || s.effects.length > 0}
+            disabled={d.resolved || i < ci || i > ci + 1 || s.effects.length > 0}
             onClick={() => d.step !== k && void run({ type: 'day.goto', step: k })}
           >
             {i + 1}. {label}
