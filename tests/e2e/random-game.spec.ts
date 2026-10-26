@@ -1,8 +1,41 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
+import { curtainGone } from './helpers'
 
 // Chơi ngẫu nhiên trọn ván 10 người (đủ vai đặc biệt + Trưởng làng) để bắt chỗ kẹt luồng / lỗi UI.
 const NAMES = ['Một', 'Hai', 'Ba', 'Bốn', 'Năm', 'Sáu', 'Bảy', 'Tám', 'Chín', 'Mười']
 const pick = <T>(a: T[]) => a[Math.floor(Math.random() * a.length)]!
+
+/** Ảnh chụp trạng thái nhìn thấy được của bàn quản trò. */
+const signature = (page: Page) =>
+  page.evaluate(() => {
+    const text = (s: string) => document.querySelector(s)?.textContent?.trim() ?? ''
+    const count = (s: string) => document.querySelectorAll(s).length
+    return [
+      text('.board-top__label'),
+      text('.board-top__sub'),
+      text('.panel-card__foot .btn-ink'),
+      count('.seat[data-dead="true"]'),
+      count('.seat[data-picked="true"]'),
+      text('[role="dialog"], [role="alertdialog"]'),
+      text('.votes__foot'),
+      text('.vote-result'),
+      count('.result'),
+      count('.sheet'),
+    ].join('|')
+  })
+
+/** Bấm rồi chờ tới khi bàn thật sự đổi (thay cho sleep cố định); không đổi = kẹt luồng. */
+async function step(page: Page, target: Locator, log: string[]) {
+  const before = await signature(page)
+  await target.click()
+  await expect
+    .poll(() => signature(page), {
+      timeout: 10_000,
+      message: `Kẹt ở "${before}"\n${log.join('\n')}`,
+    })
+    .not.toBe(before)
+  await curtainGone(page)
+}
 
 async function dialogStep(page: Page, log: string[]) {
   const dlg = page.locator('[role="dialog"], [role="alertdialog"]').first()
@@ -11,7 +44,7 @@ async function dialogStep(page: Page, log: string[]) {
   const publish = dlg.getByRole('button', { name: 'Công bố kết quả' })
   if (await publish.count()) {
     log.push('THẮNG: ' + title)
-    await publish.click()
+    await step(page, publish, log)
     return true
   }
   const buttons = await dlg
@@ -22,7 +55,7 @@ async function dialogStep(page: Page, log: string[]) {
   for (const b of buttons) if (await b.isEnabled()) enabled.push(b)
   const b = pick(enabled)
   log.push(`hộp thoại "${title}" → ${(await b.textContent())?.trim()}`)
-  await b.click()
+  await step(page, b, log)
   return true
 }
 
@@ -51,35 +84,25 @@ test('chơi ngẫu nhiên trọn ván 10 người', async ({ page }) => {
   await page.getByRole('button', { name: /Bắt đầu Đêm 1/ }).click()
   await page.getByRole('button', { name: 'Vẫn bắt đầu' }).click()
   await expect(page.locator('.board-top__label')).toHaveText('Đêm 1')
-  await page.waitForTimeout(1800)
+  await curtainGone(page)
 
-  let stuck = 0
-  let lastSig = ''
   let chiefSet = false
-  for (let i = 0; i < 200; i++) {
+  for (let i = 0; i < 300; i++) {
     if (await page.locator('.result').count()) break
-    await page.waitForTimeout(250)
-    if (await dialogStep(page, log)) {
-      await page.waitForTimeout(500)
-      continue
-    }
+    if (await dialogStep(page, log)) continue
     const phase = (await page.locator('.board-top__label').textContent()) ?? ''
     const primary = page.locator('.panel-card__foot .btn-ink').first()
     const label = (await primary.count()) ? ((await primary.textContent()) ?? '').trim() : ''
-    const sig = phase + '|' + label + '|' + (await page.locator('.seat[data-dead="true"]').count())
-    stuck = sig === lastSig ? stuck + 1 : 0
-    lastSig = sig
-    if (stuck > 6) throw new Error(`Kẹt ở "${sig}"\n${log.join('\n')}`)
 
     if (phase.startsWith('Đêm')) {
       if (await primary.isDisabled()) {
         const free = await page.locator('.seat[data-dimmed="false"][data-picked="false"]').all()
-        if (free.length) await pick(free).click()
+        expect(free.length, `Không còn ai để chọn ở "${label}"`).toBeGreaterThan(0)
+        await step(page, pick(free), log)
         continue
       }
       log.push(`${phase}: ${label}`)
-      await primary.click()
-      if (label.startsWith('Trời sáng')) await page.waitForTimeout(1800)
+      await step(page, primary, log)
       continue
     }
 
@@ -87,44 +110,40 @@ test('chơi ngẫu nhiên trọn ván 10 người', async ({ page }) => {
     if (phase === 'Ngày 1' && !chiefSet && label === 'Bắt đầu thảo luận') {
       chiefSet = true
       const alive = await page.locator('.seat[data-dead="false"]').all()
-      await pick(alive).click()
+      await step(page, pick(alive), log)
       const set = page.getByRole('button', { name: /Đặt làm Trưởng làng/ })
       if (await set.count()) {
         await set.click()
         log.push('đặt Trưởng làng')
       } else await page.keyboard.press('Escape')
-      await page.waitForTimeout(400)
+      await expect(page.locator('.sheet')).toHaveCount(0)
       continue
     }
     if (label === 'Xem kết quả' || label === 'Chưa có phiếu') {
       const plus = await page.getByRole('button', { name: /^Thêm phiếu cho / }).all()
       const target = pick(plus)
-      await target.click()
-      await target.click().catch(() => {})
+      await step(page, target, log)
+      await step(page, target, log)
       const sum = (await page.locator('.votes__foot .tabular').textContent()) ?? ''
       if (/vượt/.test(sum))
-        await page
-          .getByRole('button', { name: /^Bớt phiếu cho / })
-          .first()
-          .click()
-      await page.locator('.panel-card__foot .btn-ink', { hasText: 'Xem kết quả' }).click()
+        await step(page, page.getByRole('button', { name: /^Bớt phiếu cho / }).first(), log)
+      await step(page, page.locator('.panel-card__foot .btn-ink', { hasText: 'Xem kết quả' }), log)
       continue
     }
     const elim = page.locator('.panel-card__foot .btn-ink', { hasText: /^Loại / })
     if (await elim.count()) {
       log.push(`${phase}: ${(await elim.textContent())?.trim()}`)
-      await elim.click()
+      await step(page, elim, log)
       continue
     }
     const tie = page.getByRole('button', { name: 'Bỏ phiếu lại giữa những người hòa' })
     if (await tie.count()) {
-      await page.getByRole('button', { name: 'Hôm nay không ai bị loại' }).first().click()
+      await step(page, page.getByRole('button', { name: 'Hôm nay không ai bị loại' }).first(), log)
       continue
     }
     if (label) {
       log.push(`${phase}: ${label}`)
-      await primary.click()
-      if (label.startsWith('Đi ngủ')) await page.waitForTimeout(1800)
+      await step(page, primary, log)
     }
   }
   await expect(page.locator('.result')).toBeVisible()
