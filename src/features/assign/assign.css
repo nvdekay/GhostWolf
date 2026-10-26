@@ -36,6 +36,209 @@
   font-size: 15px;
 }
 
+.assign__shuffle {
+  position: relative;
+  min-height: 290px;
+  padding: 22px clamp(16px, 4vw, 36px);
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(220px, 0.85fr) minmax(220px, 1.15fr);
+  align-items: center;
+  gap: clamp(18px, 5vw, 56px);
+  border: 1px solid var(--gold-line);
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(circle at 24% 50%, rgba(138, 98, 40, 0.18), transparent 34%),
+    linear-gradient(115deg, var(--surface), var(--paper));
+  box-shadow: inset 0 0 45px rgba(90, 59, 10, 0.08);
+  animation: rise 0.28s ease;
+}
+
+.assign__shuffle::after {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  pointer-events: none;
+  border: 1px dashed var(--gold-line-soft);
+  border-radius: calc(var(--radius-xl) - 2px);
+}
+
+.assign__wheel-wrap {
+  position: relative;
+  width: min(240px, 70vw);
+  aspect-ratio: 1;
+  justify-self: center;
+  filter: drop-shadow(0 12px 18px rgba(58, 40, 22, 0.2));
+}
+
+.assign__pointer {
+  position: absolute;
+  z-index: 3;
+  top: -7px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  transform: translateX(-50%);
+  border-left: 13px solid transparent;
+  border-right: 13px solid transparent;
+  border-top: 28px solid var(--gold-deep);
+  filter: drop-shadow(0 2px 1px rgba(255, 246, 222, 0.4));
+}
+
+.assign__wheel {
+  position: absolute;
+  inset: 8px;
+  border: 3px solid var(--gold-deep);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, var(--surface) 0 23%, transparent 24%),
+    repeating-conic-gradient(
+      from -12deg,
+      rgba(138, 98, 40, 0.22) 0deg 22deg,
+      rgba(255, 246, 222, 0.35) 22deg 44deg
+    );
+  box-shadow:
+    inset 0 0 0 5px var(--paper),
+    inset 0 0 0 7px var(--gold-line),
+    0 0 0 2px rgba(255, 246, 222, 0.5);
+  transform: rotate(var(--shuffle-turn));
+  transition: transform 0.2s cubic-bezier(0.18, 0.7, 0.28, 1);
+}
+
+.assign__wheel-role {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 88px;
+  min-height: 30px;
+  padding: 4px 6px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid var(--team-line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--paper) 88%, var(--team-color));
+  color: var(--team-ink);
+  font-size: 10px;
+  line-height: 1.05;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transform: translate(-50%, -50%) rotate(calc(var(--slot) * 1turn / var(--slots)))
+    translateY(-82px) rotate(90deg);
+}
+
+.assign__wheel-role .icon {
+  flex: none;
+}
+
+.assign__wheel-hub {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--gold-deep);
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--ink-text);
+  transform: translate(-50%, -50%);
+}
+
+.assign__shuffle-readout {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.assign__shuffle-readout > strong {
+  max-width: 100%;
+  overflow: hidden;
+  font-family: var(--font-heading);
+  font-size: clamp(34px, 7vw, 54px);
+  font-weight: 400;
+  line-height: 1.08;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assign__rolling-role {
+  max-width: 100%;
+  min-height: 40px;
+  padding: 7px 13px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--team-line);
+  border-radius: 999px;
+  background: var(--gold-tint);
+  color: var(--team-ink);
+  font-size: 17px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assign__shuffle-dots {
+  display: flex;
+  gap: 6px;
+  padding-top: 6px;
+}
+
+.assign__shuffle-dots i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--gold);
+  animation: shuffleDot 0.72s ease-in-out infinite alternate;
+}
+
+.assign__shuffle-dots i:nth-child(2) {
+  animation-delay: 0.16s;
+}
+
+.assign__shuffle-dots i:nth-child(3) {
+  animation-delay: 0.32s;
+}
+
+@keyframes shuffleDot {
+  to {
+    opacity: 0.25;
+    transform: translateY(-5px);
+  }
+}
+
+@media (max-width: 620px) {
+  .assign__shuffle {
+    grid-template-columns: 1fr;
+    min-height: 0;
+    gap: 12px;
+  }
+
+  .assign__wheel-wrap {
+    width: min(210px, 66vw);
+  }
+
+  .assign__wheel-role {
+    width: 78px;
+    transform: translate(-50%, -50%) rotate(calc(var(--slot) * 1turn / var(--slots)))
+      translateY(-70px) rotate(90deg);
+  }
+
+  .assign__shuffle-readout {
+    align-items: center;
+    text-align: center;
+  }
+}
+
 .assign__list {
   list-style: none;
   margin: 0;

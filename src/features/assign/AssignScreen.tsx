@@ -39,9 +39,10 @@ export function AssignScreen() {
 
   useEffect(() => {
     if (!animating) return
-    const id = setInterval(() => setTick((t) => t + 1), 85)
-    return () => clearInterval(id)
-  }, [animating])
+    // Quay nhanh lúc đầu rồi chậm dần như một vòng quay đang mất đà.
+    const id = setTimeout(() => setTick((t) => t + 1), Math.min(210, 55 + tick * 6))
+    return () => clearTimeout(id)
+  }, [animating, tick])
 
   if (!state) return null
   const stage = animating
@@ -73,15 +74,28 @@ export function AssignScreen() {
   const n = rows.length
   const viewed = rows.filter((r) => viewedAt.get(r.id)).length
   const offline = rows.filter((r) => !r.device).length
+  const uniqueDeck = [...new Set(deck)]
+  const wheelItems = uniqueDeck.length
+    ? Array.from({ length: Math.min(8, Math.max(4, uniqueDeck.length)) }, (_, i) =>
+        viewOf(uniqueDeck[i % uniqueDeck.length]!, state.customRoles),
+      )
+    : []
+  const rollingRole = deck.length
+    ? viewOf(deck[(tick * 5 + 3) % deck.length]!, state.customRoles)
+    : null
+  const rollingPlayer = rows.length ? rows[tick % rows.length] : null
 
   const deal = async () => {
     setBusy(true)
     const reduce = prefersReducedMotion()
-    if (!reduce) setAnimating(true)
+    if (!reduce) {
+      setTick(0)
+      setAnimating(true)
+    }
     const started = Date.now()
     const ok = await run({ type: 'deal' }, { silent: true })
     // Animation chỉ biểu diễn: kết quả là bản chia của máy chủ, hiện ra khi animation dừng.
-    const wait = reduce ? 0 : Math.max(0, 1200 - (Date.now() - started))
+    const wait = reduce ? 0 : Math.max(0, 2300 - (Date.now() - started))
     setTimeout(() => {
       setAnimating(false)
       setBusy(false)
@@ -144,6 +158,50 @@ export function AssignScreen() {
             <Icon name="alert" size={15} />
             {offline} người không có điện thoại sẽ xem vai trên máy quản trò.
           </p>
+        )}
+
+        {stage === 'shuffling' && rollingRole && rollingPlayer && (
+          <section
+            className="assign__shuffle"
+            role="status"
+            aria-label="Đang xáo và chia vai ngẫu nhiên"
+          >
+            <div className="assign__wheel-wrap" aria-hidden="true">
+              <span className="assign__pointer" />
+              <div
+                className="assign__wheel"
+                style={cssVars({ '--shuffle-turn': `${tick * 137}deg` })}
+              >
+                {wheelItems.map((role, i) => (
+                  <span
+                    className="assign__wheel-role"
+                    data-team={role.team}
+                    key={`${role.id}-${i}`}
+                    style={cssVars({ '--slot': i, '--slots': wheelItems.length })}
+                  >
+                    <Icon name={role.icon} size={14} />
+                    {role.name}
+                  </span>
+                ))}
+                <span className="assign__wheel-hub">
+                  <Icon name="sparkles" size={26} />
+                </span>
+              </div>
+            </div>
+            <div className="assign__shuffle-readout" aria-hidden="true">
+              <span className="eyebrow eyebrow--muted">Đang chọn vai cho</span>
+              <strong>{rollingPlayer.name}</strong>
+              <span className="assign__rolling-role" data-team={rollingRole.team}>
+                <Icon name={rollingRole.icon} size={18} />
+                {rollingRole.name}
+              </span>
+              <span className="assign__shuffle-dots">
+                <i />
+                <i />
+                <i />
+              </span>
+            </div>
+          </section>
         )}
 
         <ol className="assign__list">

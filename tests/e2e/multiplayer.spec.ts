@@ -93,6 +93,10 @@ test('quản trò và hai người chơi trên ba thiết bị', async ({ browse
   await expect(host.page.getByText('Khớp 4/4 người')).toBeVisible()
   await host.page.getByRole('button', { name: /Tiếp tục: chia vai/ }).click()
   await host.page.getByRole('button', { name: /Chia vai ngẫu nhiên/ }).click()
+  await expect(
+    host.page.getByRole('status', { name: 'Đang xáo và chia vai ngẫu nhiên' }),
+  ).toBeVisible()
+  await expect(host.page.getByText('Đang chọn vai cho')).toBeVisible()
   await expect(host.page.getByRole('heading', { name: 'Kiểm tra trước khi gửi' })).toBeVisible()
   // Trước khi gửi, máy người chơi chưa nhận được vai.
   await expect(p1.page.getByText('Quản trò đã gửi vai')).toHaveCount(0)
