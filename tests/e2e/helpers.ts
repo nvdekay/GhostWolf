@@ -7,3 +7,9 @@ export const nextFrame = (page: Page) =>
 /** Chờ màn chuyển cảnh ngày/đêm biến mất. */
 export const curtainGone = (page: Page) =>
   expect(page.locator('.curtain')).toHaveCount(0, { timeout: 10_000 })
+
+/** Bàn quản trò đã xử lý xong lệnh trước: nút Hoàn tác chỉ tắt khi đang bận (độ trễ mạng thật). */
+export const boardIdle = (page: Page) =>
+  expect(page.getByRole('button', { name: 'Hoàn tác thao tác vừa rồi' })).toBeEnabled({
+    timeout: 15_000,
+  })

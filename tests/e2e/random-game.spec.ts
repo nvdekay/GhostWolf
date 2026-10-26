@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
-import { curtainGone } from './helpers'
+import { boardIdle, curtainGone } from './helpers'
 
 // Chơi ngẫu nhiên trọn ván 10 người (đủ vai đặc biệt + Trưởng làng) để bắt chỗ kẹt luồng / lỗi UI.
 const NAMES = ['Một', 'Hai', 'Ba', 'Bốn', 'Năm', 'Sáu', 'Bảy', 'Tám', 'Chín', 'Mười']
@@ -26,11 +26,7 @@ const signature = (page: Page) =>
     ].join('|')
   })
 
-/** Chờ lệnh trước xử lý xong: nút Hoàn tác chỉ tắt khi bàn đang bận (độ trễ mạng thật). */
-const idle = (page: Page) =>
-  expect(page.getByRole('button', { name: 'Hoàn tác thao tác vừa rồi' })).toBeEnabled({
-    timeout: 15_000,
-  })
+const idle = boardIdle
 
 /** Bấm rồi chờ tới khi bàn thật sự đổi (thay cho sleep cố định); không đổi = kẹt luồng. */
 async function step(page: Page, target: Locator, log: string[]) {
