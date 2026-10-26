@@ -16,6 +16,9 @@ export function noteRevision(gameId: string, revision: number) {
   if ((known.get(gameId) ?? -1) < revision) known.set(gameId, revision)
 }
 
+/** Thời hạn mỗi lần gửi lệnh. Hết hạn thì gửi lại cùng commandId (server chống xử lý trùng). */
+export const COMMAND_TIMEOUT_MS = 15_000
+
 async function post(body: CommandRequest): Promise<CommandResponse> {
   const { data: s } = await supabase.auth.getSession()
   const token = s.session?.access_token
@@ -26,6 +29,8 @@ async function post(body: CommandRequest): Promise<CommandResponse> {
   const url = `${base}/game-command`
   for (let attempt = 0; ; attempt++) {
     let res: Response
+    const abort = new AbortController()
+    const timer = setTimeout(() => abort.abort(), COMMAND_TIMEOUT_MS)
     try {
       res = await fetch(url, {
         method: 'POST',
@@ -35,14 +40,17 @@ async function post(body: CommandRequest): Promise<CommandResponse> {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(body),
+        signal: abort.signal,
       })
     } catch {
+      clearTimeout(timer)
       if (attempt < 2) {
         await new Promise((r) => setTimeout(r, 600 * (attempt + 1)))
         continue
       }
       throw networkError()
     }
+    clearTimeout(timer)
     const json = (await res.json().catch(() => ({}))) as CommandResponse & {
       error?: { code: string; message: string }
     }
