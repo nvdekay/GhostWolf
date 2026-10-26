@@ -1,107 +1,84 @@
 # Ghostwolf
 
-Web chơi Ma Sói trực tiếp: quản trò điều hành trên một máy, mỗi người chơi xem vai bí mật trên điện thoại của mình. React + TypeScript + Vite (static `dist/`), Supabase (Postgres + RLS, đăng nhập ẩn danh, Realtime, Edge Function).
+Web hỗ trợ chơi Ma Sói trực tiếp: quản trò điều hành ván trên một máy, còn mỗi người chơi xem vai bí mật trên điện thoại của mình.
 
-- Luật chơi: [`docs/ruleset.md`](docs/ruleset.md)
-- Tiến độ và phạm vi: [`docs/implementation-checklist.md`](docs/implementation-checklist.md)
-- Vận hành production (header bảo mật, rate limit, monitoring, dọn dữ liệu, rollback): [`docs/production-hardening.md`](docs/production-hardening.md)
+**Production:** [ghostwolf.visual-lab-dm4.workers.dev](https://ghostwolf.visual-lab-dm4.workers.dev)
 
-## Kiến trúc
+## Tổng quan
 
-| Phần                                             | Vị trí                                                                                               |
-| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| Giao diện                                        | `src/features/*`, `src/components/*`                                                                 |
-| Game engine (TS thuần, dùng chung client/server) | `supabase/functions/_shared/engine` (alias `@engine`)                                                |
-| Lệnh ván (có thẩm quyền)                         | Edge Function `supabase/functions/game-command` → `commit_game` (transaction, revision, idempotency) |
-| Lệnh phòng, RLS, schema                          | `supabase/migrations/*.sql` (RPC `security definer`)                                                 |
-| Gọi backend                                      | `src/services/*`                                                                                     |
-| Realtime + khôi phục                             | `src/realtime/roomStore.ts`                                                                          |
-| Phiên ẩn danh, điều hướng                        | `src/app/session.tsx`, `src/app/nav.ts`                                                              |
+- React 19, TypeScript và Vite; frontend build thành static assets trong `dist/`.
+- Supabase cung cấp Postgres, đăng nhập ẩn danh, RLS, Realtime và Edge Function chạy Deno.
+- Game engine thuần TypeScript nằm tại `supabase/functions/_shared/engine` và là nguồn luật dùng chung.
+- Mọi lệnh có thẩm quyền đi qua `game-command` → engine → RPC `commit_game` có transaction, revision và idempotency.
 
-Bảo mật: người chơi chỉ đọc được vai của chính mình sau khi quản trò gửi (RLS trên `assignments`); toàn bộ trạng thái bí mật nằm trong `game_secrets` chỉ quản trò đọc; `games.public_state` chỉ chứa dữ liệu công khai. Realtime `postgres_changes` áp RLS theo từng người nhận. Frontend chỉ dùng anon key; service-role key chỉ có trong Edge Function.
+Người chơi chỉ đọc assignment của chính mình sau khi quản trò gửi vai. Trạng thái bí mật nằm trong `game_secrets`; `games.public_state` chỉ chứa dữ liệu công khai. Frontend chỉ sử dụng anon/publishable key, không chứa service-role key.
 
-## Yêu cầu
-
-- Node.js 20.19+ (khuyến nghị 22+), npm
-- Chạy local: [Supabase CLI](https://supabase.com/docs/guides/cli) + Docker, [Deno](https://deno.com) 2.x
+| Thành phần              | Vị trí                                         |
+| ----------------------- | ---------------------------------------------- |
+| Màn hình và UI          | `src/features`, `src/components`, `src/app`    |
+| API client và Realtime  | `src/services`, `src/realtime/roomStore.ts`    |
+| Engine và Edge Function | `supabase/functions`                           |
+| Schema, RPC và RLS      | `supabase/migrations`                          |
+| Kiểm thử                | `tests/unit`, `tests/integration`, `tests/e2e` |
 
 ## Chạy local
 
-```bash
-npm install
-npm run db:start          # Supabase local (Postgres, Auth, Realtime), áp migrations
-npm run functions:serve   # Edge Function game-command bằng Deno, cổng 54329 (để terminal này chạy)
-```
-
-Tạo `.env.local` (không commit) từ `supabase status`:
+Yêu cầu Node.js 20.19+ (khuyến nghị 22+), npm, Docker, Supabase CLI và Deno 2.x.
 
 ```bash
-VITE_SUPABASE_URL=http://127.0.0.1:54321
-VITE_SUPABASE_ANON_KEY=<anon key trong `supabase status`>
-VITE_FUNCTIONS_URL=http://127.0.0.1:54329
+npm ci
+npm run db:start
+cp .env.example .env.local
+supabase status
 ```
+
+Điền anon key từ `supabase status` vào `.env.local`, sau đó chạy hai terminal:
 
 ```bash
-npm run dev               # http://localhost:5173
+npm run functions:serve   # game-command tại http://127.0.0.1:54329
+npm run dev               # frontend tại http://localhost:5173
 ```
 
-Mở thêm cửa sổ ẩn danh/thiết bị khác để làm người chơi (mỗi trình duyệt là một danh tính ẩn danh riêng). Điện thoại trong cùng mạng: `npm run dev -- --host` rồi mở `http://<IP máy>:5173`. Khi `.env.local` trỏ tới `127.0.0.1`, app tự gọi backend ở cùng máy với trang nên không cần sửa `.env.local` khi đổi mạng.
-
-> `npm run db:start` bỏ container edge-runtime của CLI (`-x edge-runtime`) vì runtime đó cần tải từ jsr.io; `functions:serve` chạy đúng mã Edge Function bằng Deno. Nếu mạng của bạn tải được jsr.io, có thể dùng `supabase start` + `supabase functions serve` và bỏ `VITE_FUNCTIONS_URL`.
+Mỗi trình duyệt hoặc cửa sổ ẩn danh là một người chơi khác. Để thử trên điện thoại cùng Wi-Fi, chạy `npm run dev -- --host` rồi mở `http://<IP-máy>:5173`; app tự ánh xạ backend local sang cùng hostname.
 
 ## Kiểm thử
 
 ```bash
 npm run typecheck
 npm run lint
-npm test                    # Vitest: engine (chia bài, đêm, dây chuyền, phiếu, thắng, public view)
-npm run test:integration    # Cần db:start + functions:serve: RLS, lobby, idempotency, revision, realtime, undo/replay
-npm run test:e2e            # Cần thêm dev server (tự khởi động): quản trò + 2 người chơi, responsive 360–1440px
-                            # Dùng trình duyệt cài sẵn: PW_CHANNEL=msedge npm run test:e2e
-                            # hoặc cài Chromium của Playwright: npx playwright install chromium
+npm test
 deno check supabase/functions/game-command/index.ts
+npm run build
 ```
 
-## Triển khai (gói miễn phí: Cloudflare + Supabase Free)
-
-Bản đang chạy: https://ghostwolf.visual-lab-dm4.workers.dev (frontend tĩnh trên Cloudflare Workers static assets, backend ở Supabase project `ztyefvgplgafhfukmkxh`, Singapore). Cấu hình header bảo mật, giới hạn, monitoring và rollback: [`docs/production-hardening.md`](docs/production-hardening.md).
-
-Cần: `supabase login` và `npx wrangler@4 login` (một lần trên máy deploy).
-
-### 1. Backend (Supabase)
+Sau khi `db:start` và `functions:serve` đang chạy:
 
 ```bash
-supabase link --project-ref ztyefvgplgafhfukmkxh                # mật khẩu DB: .env.deploy.local (không commit)
-supabase db push                                                 # migrations: bảng, RLS, RPC, realtime
-supabase functions deploy game-command --use-api                 # Edge Function (verify_jwt=false: function tự xác thực)
-supabase config push --project-ref ztyefvgplgafhfukmkxh          # auth: bật ẩn danh, Site URL — xem [remotes.production] trong config.toml
+npm run test:integration
+npm run test:e2e
+# Hoặc dùng trình duyệt đã cài: PW_CHANNEL=msedge npm run test:e2e
 ```
 
-`config push` đẩy cả `config.toml`; mục `[remotes.production]` ghi đè các giá trị local (Site URL, rate limit, xác nhận email, MFA). Luôn chạy thử không `--yes` để xem diff trước.
+## Triển khai
 
-### 2. Frontend (Cloudflare)
-
-Tạo `.env.production.local` (không commit):
+Production dùng Supabase Free cho backend và Cloudflare Workers Static Assets cho frontend. Cấu hình hosted nằm trong `[remotes.production]` của `supabase/config.toml`.
 
 ```bash
-VITE_SUPABASE_URL=https://ztyefvgplgafhfukmkxh.supabase.co
-VITE_SUPABASE_ANON_KEY=<publishable key: supabase projects api-keys --project-ref ztyefvgplgafhfukmkxh>
-VITE_FUNCTIONS_URL=                                             # rỗng: ghi đè giá trị local trong .env.local
+supabase link --project-ref ztyefvgplgafhfukmkxh
+supabase db push
+supabase functions deploy game-command --use-api
+supabase config push --project-ref ztyefvgplgafhfukmkxh
 ```
+
+Tạo `.env.production.local` với `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` và `VITE_FUNCTIONS_URL=` rồi chạy:
 
 ```bash
-npm run deploy:cf     # build → dist/_headers (CSP theo URL Supabase) → wrangler deploy
+npm run deploy:cf
 ```
 
-Đổi domain (domain riêng hoặc tên Worker khác): sửa `site_url` / `additional_redirect_urls` trong `[remotes.production.auth]` rồi `supabase config push`.
+## Tài liệu
 
-## Scripts
-
-| Lệnh                                     | Việc                                               |
-| ---------------------------------------- | -------------------------------------------------- |
-| `dev` / `build` / `preview`              | Vite                                               |
-| `typecheck` / `lint` / `format`          | TypeScript, ESLint, Prettier                       |
-| `test` / `test:integration` / `test:e2e` | Vitest unit / Vitest + Supabase local / Playwright |
-| `db:start` / `db:reset`                  | Supabase local / áp lại migrations từ đầu          |
-| `functions:serve`                        | Chạy Edge Function local bằng Deno                 |
-| `build:cf` / `deploy:cf`                 | Build kèm `_headers` / deploy lên Cloudflare       |
+- [Luật game](docs/ruleset.md)
+- [Checklist triển khai](docs/implementation-checklist.md)
+- [Bảo mật, monitoring, cleanup và rollback production](docs/production-hardening.md)
+- [Hướng dẫn đóng góp](AGENTS.md)
