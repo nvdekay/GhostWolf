@@ -417,14 +417,18 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 [functions.game-command]
 verify_jwt = false
 
-# Bản hosted (Cloudflare + Supabase Free). `supabase config push` áp các giá trị dưới đây thay cho
+# Bản hosted (Vercel + Supabase Free). `supabase config push` áp các giá trị dưới đây thay cho
 # giá trị local ở trên. Đổi domain ở đây nếu gắn domain riêng.
 [remotes.production]
 project_id = "ztyefvgplgafhfukmkxh"
 
 [remotes.production.auth]
-site_url = "https://ghostwolf.visual-lab-dm4.workers.dev"
-additional_redirect_urls = ["https://ghostwolf.visual-lab-dm4.workers.dev"]
+site_url = "https://ghostwolf.khanhnvd.click"
+additional_redirect_urls = [
+  "https://ghostwolf.khanhnvd.click",
+  "https://ghostwolf.vercel.app",
+  "https://ghostwolf.visual-lab-dm4.workers.dev",
+]
 
 [remotes.production.auth.rate_limit]
 # Production chặt hơn local (300): số lần đăng nhập ẩn danh mỗi giờ mỗi IP.

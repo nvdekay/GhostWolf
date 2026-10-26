@@ -1,0 +1,11 @@
+# Không tải lên Vercel khi deploy bằng CLI (bí mật, file local, kết quả build/test).
+.env*
+!.env.example
+node_modules
+dist
+test-results
+playwright-report
+supabase/.temp
+supabase/.branches
+.vercel
+GhostWolf.html
