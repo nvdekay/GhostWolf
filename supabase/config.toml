@@ -424,11 +424,7 @@ project_id = "ztyefvgplgafhfukmkxh"
 
 [remotes.production.auth]
 site_url = "https://ghostwolf.khanhnvd.click"
-additional_redirect_urls = [
-  "https://ghostwolf.khanhnvd.click",
-  "https://ghostwolf.vercel.app",
-  "https://ghostwolf.visual-lab-dm4.workers.dev",
-]
+additional_redirect_urls = ["https://ghostwolf.khanhnvd.click", "https://ghostwolf.vercel.app"]
 
 [remotes.production.auth.rate_limit]
 # Production chặt hơn local (300): số lần đăng nhập ẩn danh mỗi giờ mỗi IP.

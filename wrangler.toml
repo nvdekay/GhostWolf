@@ -1,9 +1,0 @@
-# Cloudflare Workers static assets (gói Free): chỉ host frontend tĩnh trong dist/, không có code server.
-# Backend (Postgres, Auth, Realtime, Edge Function) ở Supabase. Deploy: npm run deploy:cf (xem README).
-name = "ghostwolf"
-compatibility_date = "2026-10-01"
-
-[assets]
-directory = "./dist"
-# Mọi đường dẫn lạ trả về index.html (app chỉ dùng "/" và ?join=MÃ).
-not_found_handling = "single-page-application"
