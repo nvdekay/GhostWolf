@@ -4,6 +4,7 @@ import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2'
 import {
   COMMAND_LABELS,
   parseGameCommand,
+  type CommandErrorBody,
   type CommandRequest,
   type CommandResponse,
 } from '../_shared/commands.ts'
@@ -22,9 +23,31 @@ import {
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, apikey, content-type, x-request-id',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Expose-Headers': 'x-request-id',
 }
+
+/**
+ * Một dòng JSON cho mỗi request. Chỉ ghi định danh và kết quả: không bao giờ ghi JWT, key,
+ * thân lệnh (vai, mục tiêu, phiếu) hay trạng thái ván.
+ */
+interface RequestLog {
+  requestId: string
+  scope?: string
+  command?: string
+  commandId?: string
+  roomId?: string
+  gameId?: string
+  status?: number
+  code?: string
+  ms?: number
+  /** Chỉ cho lỗi 5xx: thông báo DB / tên lỗi, đã cắt ngắn. */
+  detail?: string
+}
+const logLine = (level: 'info' | 'warn' | 'error', entry: RequestLog) =>
+  console[level](JSON.stringify({ level, fn: 'game-command', ...entry }))
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
@@ -263,8 +286,29 @@ async function gameCommand(
 
 const port = Number(Deno.env.get('PORT') ?? 0)
 
+const SAFE_ID = /^[0-9a-zA-Z-]{8,64}$/
+
 Deno.serve(port ? { port } : {}, async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
+  const started = performance.now()
+  const incoming = req.headers.get('x-request-id') ?? ''
+  const entry: RequestLog = { requestId: SAFE_ID.test(incoming) ? incoming : crypto.randomUUID() }
+  const res = await handle(req, entry)
+  entry.status = res.status
+  entry.ms = Math.round(performance.now() - started)
+  if (!res.ok)
+    entry.code = (
+      (await res
+        .clone()
+        .json()
+        .catch(() => null)) as CommandErrorBody | null
+    )?.error.code
+  logLine(res.status >= 500 ? 'error' : res.ok ? 'info' : 'warn', entry)
+  res.headers.set('x-request-id', entry.requestId)
+  return res
+})
+
+async function handle(req: Request, entry: RequestLog): Promise<Response> {
   if (req.method !== 'POST') return fail(405, 'METHOD', 'Chỉ nhận POST.')
   try {
     const url = Deno.env.get('SUPABASE_URL')!
@@ -280,6 +324,14 @@ Deno.serve(port ? { port } : {}, async (req) => {
       return fail(401, 'AUTH_REQUIRED', 'Phiên đăng nhập không hợp lệ.')
 
     const body = (await req.json().catch(() => null)) as CommandRequest | null
+    // Chỉ định danh: không ghi thân lệnh (vai, mục tiêu, phiếu).
+    if (body) {
+      entry.scope = String(body.scope).slice(0, 16)
+      entry.command = String(body.command?.type).slice(0, 32)
+      if (UUID.test(body.commandId ?? '')) entry.commandId = body.commandId
+      if (body.scope === 'room' && UUID.test(body.roomId)) entry.roomId = body.roomId
+      if (body.scope === 'game' && UUID.test(body.gameId)) entry.gameId = body.gameId
+    }
     if (!body || !UUID.test(body.commandId ?? ''))
       return fail(400, 'BAD_REQUEST', 'Thiếu commandId.')
     const db = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
@@ -303,8 +355,21 @@ Deno.serve(port ? { port } : {}, async (req) => {
     return fail(400, 'BAD_REQUEST', 'Yêu cầu không hợp lệ.')
   } catch (e) {
     if (e instanceof EngineError) return fail(422, e.code, e.message)
-    if (e instanceof HttpError) return fail(e.status, e.code, e.message)
-    console.error(e)
+    if (e instanceof HttpError) {
+      // Lỗi DB: ghi thông báo để điều tra (không chứa dữ liệu bí mật của ván).
+      if (e.status >= 500)
+        logLine('error', {
+          requestId: entry.requestId,
+          code: e.code,
+          detail: e.message.slice(0, 200),
+        })
+      return fail(e.status, e.code, e.message)
+    }
+    logLine('error', {
+      requestId: entry.requestId,
+      code: 'INTERNAL',
+      detail: e instanceof Error ? e.name : typeof e,
+    })
     return fail(500, 'INTERNAL', 'Lỗi máy chủ. Thử lại.')
   }
-})
+}
