@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { fromPostgrest } from './errors'
 import type { CustomRoleRow, PresetRow } from './types'
 
-export const customRoleId = (rowId: string) => 'custom:' + rowId
+const customRoleId = (rowId: string) => 'custom:' + rowId
 
 /** Định nghĩa vai giống hệt cách Edge Function dựng (game-command/index.ts). */
 export function customRoleDef(r: CustomRoleRow): RoleDef {

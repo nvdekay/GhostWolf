@@ -6,7 +6,7 @@ export interface FeedbackState {
   curtain: { title: string; sub: string; icon: IconName; key: number } | null
 }
 
-export type FeedbackAction =
+type FeedbackAction =
   | { type: 'toast'; text: string; tone: 'info' | 'error'; key: number }
   | { type: 'curtain'; title: string; sub: string; icon: IconName; key: number }
   | { type: 'clearToast'; key: number }

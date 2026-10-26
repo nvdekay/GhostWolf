@@ -114,17 +114,6 @@
   color: var(--danger);
 }
 
-.join__demo {
-  align-self: flex-start;
-  min-height: 44px;
-  padding: 0 14px;
-  font-size: 15px;
-  color: var(--gold-ink);
-  background: none;
-  border: 1px dashed rgba(138, 98, 40, 0.5);
-  border-radius: 22px;
-}
-
 .join__bottom {
   margin-top: auto;
 }

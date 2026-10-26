@@ -37,7 +37,7 @@ export function ResultView({
   const lovers = new Set(r.lovers)
   const winners = new Set(r.winners)
   return (
-    <Paper size="result" label="Kết quả ván" as="main" className="result">
+    <Paper label="Kết quả ván" as="main" className="result">
       <div className="result__hero">
         <span className="result__medal">
           <Icon name={TEAM_ICON[r.team]} size={48} />

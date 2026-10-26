@@ -266,11 +266,7 @@ export function BoardScreen() {
   const killTarget = dialog?.type === 'kill' ? s.players.find((p) => p.id === dialog.id) : null
 
   return (
-    <Paper
-      size="board"
-      label="Bàn quản trò"
-      className={cx('board-paper', night && 'board-paper--night')}
-    >
+    <Paper label="Bàn quản trò" className={cx('board-paper', night && 'board-paper--night')}>
       <header className="board-top">
         <div className="board-top__inner">
           <span className="gold-text">

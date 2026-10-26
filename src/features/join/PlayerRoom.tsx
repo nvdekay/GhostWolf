@@ -300,7 +300,7 @@ export function PlayerRoom({ roomId }: { roomId: string }) {
   }
 
   return (
-    <Paper size="narrow" label="Người chơi">
+    <Paper narrow label="Người chơi">
       {!snap.live && (
         <div className="offline-banner" role="status">
           Đang kết nối lại…

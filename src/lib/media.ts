@@ -4,7 +4,7 @@ function matches(query: string): boolean {
   return typeof window !== 'undefined' && window.matchMedia(query).matches
 }
 
-export function useMediaQuery(query: string): boolean {
+function useMediaQuery(query: string): boolean {
   return useSyncExternalStore(
     (onChange) => {
       const mq = window.matchMedia(query)

@@ -24,7 +24,7 @@ function localEnv(): { url: string; anon: string; service?: string } {
   return { url, anon, service: get('SERVICE_ROLE_KEY') }
 }
 
-export const env = localEnv()
+const env = localEnv()
 
 export async function anonClient(): Promise<{ db: SupabaseClient; uid: string }> {
   const db = createClient(env.url, env.anon, {

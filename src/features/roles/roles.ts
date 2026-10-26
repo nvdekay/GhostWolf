@@ -74,7 +74,7 @@ export function roleView(r: RoleDef | StatusDef): RoleView {
   }
 }
 
-export function findAny(id: string, custom: RoleDef[]): RoleDef | StatusDef | undefined {
+function findAny(id: string, custom: RoleDef[]): RoleDef | StatusDef | undefined {
   return findRoleDef(id, custom) ?? STATUSES.find((s) => s.id === id)
 }
 
@@ -97,7 +97,7 @@ export function viewOf(id: string, custom: RoleDef[] = []): RoleView {
 
 export const allRoles = (custom: RoleDef[]) => [...ROLES, ...custom]
 
-export function totalCards(counts: Counts): number {
+function totalCards(counts: Counts): number {
   return Object.values(counts).reduce((a, b) => a + b, 0)
 }
 

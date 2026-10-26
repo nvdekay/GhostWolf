@@ -3,24 +3,23 @@ import { cssVars, cx } from '@/lib/css'
 import type { TeamKey, RoleView } from '@/features/roles/roles'
 import { Icon, type IconName } from './Icon'
 
-type PaperSize = 'wide' | 'narrow' | 'board' | 'result'
-
 /** Tờ giấy da chứa một màn hình. */
 export function Paper({
-  size = 'wide',
+  narrow = false,
   label,
   className,
   children,
   as: Tag = 'div',
 }: {
-  size?: PaperSize
+  /** Cột hẹp cho màn người chơi / chuyền máy. */
+  narrow?: boolean
   label: string
   className?: string
   children: ReactNode
   as?: 'div' | 'main'
 }) {
   return (
-    <Tag className={cx('paper', `paper--${size}`, className)} data-screen-label={label}>
+    <Tag className={cx('paper', narrow && 'paper--narrow', className)} data-screen-label={label}>
       {children}
     </Tag>
   )

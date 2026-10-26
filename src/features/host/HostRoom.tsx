@@ -18,7 +18,7 @@ import { HostContext, type HostApi, type HostView } from './context'
 export function RoomMessage({ title, sub }: { title: string; sub: string }) {
   const nav = useNav()
   return (
-    <Paper size="narrow" label="Thông báo">
+    <Paper narrow label="Thông báo">
       <main className="join">
         <div className="join__waiting">
           <div className="moon-ring">

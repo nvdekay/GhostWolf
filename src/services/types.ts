@@ -1,4 +1,4 @@
-import type { GameState, GameStatus, PublicState, RoleDef, RuleOptions } from '@engine'
+import type { GameStatus, PublicState, RoleDef, RuleOptions } from '@engine'
 
 export type RoomStatus = 'open' | 'locked' | 'closed'
 export type MemberStatus = 'active' | 'left' | 'kicked' | 'closed'
@@ -42,11 +42,6 @@ export interface AssignmentRow {
   role_id: string
   role: RoleDef & { teamLabel: string }
   viewed_at: string | null
-}
-
-export interface SecretsRow {
-  game_id: string
-  state: GameState
 }
 
 export interface CustomRoleRow {

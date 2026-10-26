@@ -70,7 +70,7 @@ export function JoinScreen({ initialCode }: { initialCode?: string }) {
   }
 
   return (
-    <Paper size="narrow" label="Người chơi">
+    <Paper narrow label="Người chơi">
       {stage === 'code' ? (
         <main className="join">
           <div className="join__bar">

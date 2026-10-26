@@ -63,7 +63,7 @@ export function DealScreen({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <Paper size="narrow" label="Xem vai trên máy quản trò">
+    <Paper narrow label="Xem vai trên máy quản trò">
       <header className="deal__head">
         <div className="deal__bar">
           <button
