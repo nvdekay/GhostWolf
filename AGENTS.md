@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-Ghostwolf is a React 19 and TypeScript application built with Vite. Feature screens and their styles live in `src/features/<feature>/`; reusable UI, application providers, utilities, backend clients, and shared types live under `src/components`, `src/app`, `src/lib`, `src/services`, and `src/types`. Static assets belong in `public/`, while bundled fonts are under `src/app/fonts/`.
+Ghostwolf is a React 19 and TypeScript application built with Vite. Feature screens and their styles live in `src/features/<feature>/`; reusable UI, application providers, utilities, backend clients, and shared row types live under `src/components`, `src/app`, `src/lib`, and `src/services` (row types in `src/services/types.ts`; game types come from the engine). Static assets belong in `public/`, while bundled fonts are under `src/app/fonts/`.
 
 Supabase schema and RLS changes belong in `supabase/migrations/`. Edge Functions live in `supabase/functions/`; the framework-independent game engine is in `supabase/functions/_shared/engine` and is shared through the `@engine` alias. Tests are separated into `tests/unit`, `tests/integration`, and `tests/e2e`. Consult `docs/ruleset.md` before changing game behavior.
 

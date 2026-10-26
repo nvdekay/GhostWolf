@@ -4,7 +4,7 @@ Nguồn tham chiếu: `GhostWolf.html` (bundle: `__bundler/template` + manifest 
 Trạng thái: `[x]` xong và đã kiểm · `[~]` xong nhưng chưa xác minh đầy đủ (ghi lý do) · `[ ]` chưa làm.
 
 Kiểm thử đã chạy (Supabase local + Edge Function chạy bằng Deno):
-`npm test` 38 test engine · `npm run test:integration` 22 test (RLS, lobby, idempotency, revision, realtime, undo/reset/replay, thư viện) · `npm run test:e2e` 4 kịch bản (quản trò + 2 người chơi, kick/mất mạng/đóng phòng, ván 10 người chơi ngẫu nhiên tới kết quả, responsive 360–1920px).
+`npm test` 54 test (engine, giới hạn, room store, feedback, timeout lệnh) · `npm run test:integration` 33 test (RLS, lobby, idempotency, revision, realtime, undo/reset/replay, thư viện, audit) · `npm run test:e2e` 4 kịch bản (quản trò + 2 người chơi, kick/mất mạng/đóng phòng, ván 10 người chơi ngẫu nhiên tới kết quả, responsive 360–1920px).
 
 ## 0. Kiến trúc
 
