@@ -15,7 +15,9 @@ const signature = (page: Page) =>
       text('.board-top__sub'),
       text('.panel-card__foot .btn-ink'),
       count('.seat[data-dead="true"]'),
-      count('.seat[data-picked="true"]'),
+      [...document.querySelectorAll('.seat[data-picked="true"]')]
+        .map((e) => e.getAttribute('aria-label'))
+        .join(','),
       text('[role="dialog"], [role="alertdialog"]'),
       text('.votes__foot'),
       text('.vote-result'),
@@ -24,8 +26,15 @@ const signature = (page: Page) =>
     ].join('|')
   })
 
+/** Chờ lệnh trước xử lý xong: nút Hoàn tác chỉ tắt khi bàn đang bận (độ trễ mạng thật). */
+const idle = (page: Page) =>
+  expect(page.getByRole('button', { name: 'Hoàn tác thao tác vừa rồi' })).toBeEnabled({
+    timeout: 15_000,
+  })
+
 /** Bấm rồi chờ tới khi bàn thật sự đổi (thay cho sleep cố định); không đổi = kẹt luồng. */
 async function step(page: Page, target: Locator, log: string[]) {
+  await idle(page)
   const before = await signature(page)
   await target.click()
   await expect
@@ -38,6 +47,8 @@ async function step(page: Page, target: Locator, log: string[]) {
 }
 
 async function dialogStep(page: Page, log: string[]) {
+  // Hộp thoại xác nhận tự đóng khi lệnh xong: chờ hết bận rồi mới xem còn hộp thoại không.
+  await idle(page)
   const dlg = page.locator('[role="dialog"], [role="alertdialog"]').first()
   if (!(await dlg.count())) return false
   const title = (await dlg.innerText()).split('\n')[0]
@@ -47,12 +58,11 @@ async function dialogStep(page: Page, log: string[]) {
     await step(page, publish, log)
     return true
   }
-  const buttons = await dlg
-    .getByRole('button')
-    .filter({ hasNotText: /Hoàn tác|Hủy|Đóng/ })
-    .all()
+  const choices = dlg.getByRole('button').filter({ hasNotText: /Hoàn tác|Hủy|Đóng/ })
+  // Nút trong hộp thoại tắt khi đang gửi lệnh: chờ bật lại rồi mới chọn.
+  await expect(choices.first()).toBeEnabled({ timeout: 15_000 })
   const enabled = []
-  for (const b of buttons) if (await b.isEnabled()) enabled.push(b)
+  for (const b of await choices.all()) if (await b.isEnabled()) enabled.push(b)
   const b = pick(enabled)
   log.push(`hộp thoại "${title}" → ${(await b.textContent())?.trim()}`)
   await step(page, b, log)
@@ -90,6 +100,7 @@ test('chơi ngẫu nhiên trọn ván 10 người', async ({ page }) => {
   for (let i = 0; i < 300; i++) {
     if (await page.locator('.result').count()) break
     if (await dialogStep(page, log)) continue
+    await idle(page)
     const phase = (await page.locator('.board-top__label').textContent()) ?? ''
     const primary = page.locator('.panel-card__foot .btn-ink').first()
     const label = (await primary.count()) ? ((await primary.textContent()) ?? '').trim() : ''
