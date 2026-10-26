@@ -62,33 +62,38 @@ npm run test:e2e            # Cần thêm dev server (tự khởi động): qu�
 deno check supabase/functions/game-command/index.ts
 ```
 
-## Triển khai
+## Triển khai (gói miễn phí: Cloudflare + Supabase Free)
 
-### 1. Supabase (hosted)
+Bản đang chạy: https://ghostwolf.visual-lab-dm4.workers.dev (frontend tĩnh trên Cloudflare Workers static assets, backend ở Supabase project `ztyefvgplgafhfukmkxh`, Singapore). Cấu hình header bảo mật, giới hạn, monitoring và rollback: [`docs/production-hardening.md`](docs/production-hardening.md).
 
-```bash
-supabase login
-supabase link --project-ref <project-ref>
-supabase db push                              # áp migrations: bảng, RLS, RPC, realtime publication
-supabase functions deploy game-command        # Edge Function (SUPABASE_URL, ANON_KEY, SERVICE_ROLE_KEY có sẵn)
-```
+Cần: `supabase login` và `npx wrangler@4 login` (một lần trên máy deploy).
 
-Trong Dashboard của dự án:
-
-- **Authentication → Sign In / Providers → Anonymous sign-ins**: bật.
-- **Realtime → Settings**: giữ bật Realtime; kênh presence `room:<id>` là kênh private, quyền nằm trong policy trên `realtime.messages` (migration đã tạo). Không cần bật "public access".
-- **Authentication → URL Configuration**: đặt Site URL là domain frontend.
-- (Khuyến nghị) bật CAPTCHA/giới hạn tốc độ cho anonymous sign-in để chống lạm dụng.
-
-### 2. Frontend (static)
+### 1. Backend (Supabase)
 
 ```bash
-VITE_SUPABASE_URL=https://<project-ref>.supabase.co \
-VITE_SUPABASE_ANON_KEY=<anon/publishable key> \
-npm run build                                 # → dist/
+supabase link --project-ref ztyefvgplgafhfukmkxh                # mật khẩu DB: .env.deploy.local (không commit)
+supabase db push                                                 # migrations: bảng, RLS, RPC, realtime
+supabase functions deploy game-command --use-api                 # Edge Function (verify_jwt=false: function tự xác thực)
+supabase config push --project-ref ztyefvgplgafhfukmkxh          # auth: bật ẩn danh, Site URL — xem [remotes.production] trong config.toml
 ```
 
-Upload `dist/` lên bất kỳ host static nào (Netlify, Vercel, Cloudflare Pages, GitHub Pages, S3…). Không cần rewrite: link mời dạng `/?join=MÃPHÒNG`.
+`config push` đẩy cả `config.toml`; mục `[remotes.production]` ghi đè các giá trị local (Site URL, rate limit, xác nhận email, MFA). Luôn chạy thử không `--yes` để xem diff trước.
+
+### 2. Frontend (Cloudflare)
+
+Tạo `.env.production.local` (không commit):
+
+```bash
+VITE_SUPABASE_URL=https://ztyefvgplgafhfukmkxh.supabase.co
+VITE_SUPABASE_ANON_KEY=<publishable key: supabase projects api-keys --project-ref ztyefvgplgafhfukmkxh>
+VITE_FUNCTIONS_URL=                                             # rỗng: ghi đè giá trị local trong .env.local
+```
+
+```bash
+npm run deploy:cf     # build → dist/_headers (CSP theo URL Supabase) → wrangler deploy
+```
+
+Đổi domain (domain riêng hoặc tên Worker khác): sửa `site_url` / `additional_redirect_urls` trong `[remotes.production.auth]` rồi `supabase config push`.
 
 ## Scripts
 
@@ -99,3 +104,4 @@ Upload `dist/` lên bất kỳ host static nào (Netlify, Vercel, Cloudflare Pag
 | `test` / `test:integration` / `test:e2e` | Vitest unit / Vitest + Supabase local / Playwright |
 | `db:start` / `db:reset`                  | Supabase local / áp lại migrations từ đầu          |
 | `functions:serve`                        | Chạy Edge Function local bằng Deno                 |
+| `build:cf` / `deploy:cf`                 | Build kèm `_headers` / deploy lên Cloudflare       |
