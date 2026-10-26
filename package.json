@@ -16,9 +16,7 @@
     "test:e2e": "playwright test",
     "db:start": "supabase start -x edge-runtime",
     "db:reset": "supabase db reset",
-    "functions:serve": "node scripts/functions-dev.mjs",
-    "build:cf": "npm run build && node scripts/cf-headers.mjs",
-    "deploy:cf": "npm run build:cf && npx wrangler@4 deploy"
+    "functions:serve": "node scripts/functions-dev.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",

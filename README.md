@@ -2,7 +2,7 @@
 
 Web hỗ trợ chơi Ma Sói trực tiếp: quản trò điều hành ván trên một máy, còn mỗi người chơi xem vai bí mật trên điện thoại của mình.
 
-**Production:** [ghostwolf.visual-lab-dm4.workers.dev](https://ghostwolf.visual-lab-dm4.workers.dev)
+**Production:** [ghostwolf.khanhnvd.click](https://ghostwolf.khanhnvd.click)
 
 ## Tổng quan
 
@@ -61,20 +61,18 @@ npm run test:e2e
 
 ## Triển khai
 
-Production dùng Supabase Free cho backend và Cloudflare Workers Static Assets cho frontend. Cấu hình hosted nằm trong `[remotes.production]` của `supabase/config.toml`.
+Production dùng Supabase Free cho backend và Vercel (Hobby) cho frontend tại `ghostwolf.khanhnvd.click` (CNAME ở DNS Tenten trỏ về Vercel). Cấu hình Supabase hosted nằm trong `[remotes.production]` của `supabase/config.toml`; header bảo mật và rewrite nằm trong `vercel.json`.
+
+Backend (khi đổi migration, Edge Function hoặc cấu hình auth):
 
 ```bash
 supabase link --project-ref ztyefvgplgafhfukmkxh
 supabase db push
 supabase functions deploy game-command --use-api
-supabase config push --project-ref ztyefvgplgafhfukmkxh
+supabase config push --project-ref ztyefvgplgafhfukmkxh   # chạy không --yes trước để xem diff
 ```
 
-Tạo `.env.production.local` với `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` và `VITE_FUNCTIONS_URL=` rồi chạy:
-
-```bash
-npm run deploy:cf
-```
+Frontend: project Vercel `ghostwolf` nối với repo GitHub, mỗi lần push lên `main` tự build và deploy. Biến `VITE_SUPABASE_URL` và `VITE_SUPABASE_ANON_KEY` (publishable key) khai trong Vercel, không nằm trong repo. Deploy tay: `npx vercel@latest deploy --prod`.
 
 ## Tài liệu
 

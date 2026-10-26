@@ -1,4 +1,5 @@
 import { expect, test, type Browser, type Page } from '@playwright/test'
+import { boardIdle } from './helpers'
 
 const DESKTOP = { width: 1280, height: 860 }
 const PHONE = { width: 390, height: 844 }
@@ -164,6 +165,8 @@ test('quản trò và hai người chơi trên ba thiết bị', async ({ browse
 
   // — Gọi hết các vai trong đêm (chọn người hợp lệ đầu tiên) rồi trời sáng —
   for (let i = 0; i < 8; i++) {
+    // Chọn người khi bàn còn bận thì lựa chọn bị xóa lúc dữ liệu mới về: chờ hết bận trước.
+    await boardIdle(host.page)
     const primary = host.page.locator('.panel-card__foot .btn-ink')
     const label = (await primary.textContent()) ?? ''
     if (label.includes('Trời sáng')) break

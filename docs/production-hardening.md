@@ -4,7 +4,7 @@ Bổ sung cho phần "Triển khai" trong README. Không thay đổi được t�
 
 ## 1. Header bảo mật (host static)
 
-Đặt cho mọi response của frontend (Netlify `_headers`, Vercel `vercel.json`, Cloudflare Pages `_headers`…). Thay `<ref>` bằng project ref Supabase.
+Production (Vercel) đã đặt các header dưới đây trong `vercel.json`. Nếu đổi host static khác (Netlify `_headers`, Cloudflare `_headers`…), đặt lại cho mọi response và thay `<ref>` bằng project ref Supabase.
 
 ```
 Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://<ref>.supabase.co wss://<ref>.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
