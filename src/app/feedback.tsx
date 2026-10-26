@@ -10,30 +10,7 @@ import {
 } from 'react'
 import { Curtain, Toast } from '@/components/overlay'
 import type { IconName } from '@/components/Icon'
-
-interface State {
-  toast: { text: string; key: number; tone: 'info' | 'error' } | null
-  curtain: { title: string; sub: string; icon: IconName; key: number } | null
-}
-
-type Action =
-  | { type: 'toast'; text: string; tone: 'info' | 'error' }
-  | { type: 'curtain'; title: string; sub: string; icon: IconName }
-  | { type: 'clearToast'; key: number }
-  | { type: 'clearCurtain'; key: number }
-
-function reducer(s: State, a: Action): State {
-  switch (a.type) {
-    case 'toast':
-      return { ...s, toast: { text: a.text, tone: a.tone, key: Date.now() } }
-    case 'curtain':
-      return { ...s, curtain: { title: a.title, sub: a.sub, icon: a.icon, key: Date.now() } }
-    case 'clearToast':
-      return s.toast?.key === a.key ? { ...s, toast: null } : s
-    case 'clearCurtain':
-      return s.curtain?.key === a.key ? { ...s, curtain: null } : s
-  }
-}
+import { feedbackReducer } from './feedbackState'
 
 interface Feedback {
   toast: (text: string) => void
@@ -44,26 +21,26 @@ interface Feedback {
 const Ctx = createContext<Feedback>({ toast: () => {}, error: () => {}, curtain: () => {} })
 
 export function FeedbackProvider({ children }: { children: ReactNode }) {
-  const [s, dispatch] = useReducer(reducer, { toast: null, curtain: null })
-  const last = useRef(0)
+  const [s, dispatch] = useReducer(feedbackReducer, { toast: null, curtain: null })
+  // Tăng dần: không trùng kể cả khi hai lần gọi trong cùng một mili-giây.
+  const seq = useRef(0)
 
   const api = useMemo<Feedback>(
     () => ({
       toast: (text) => {
-        dispatch({ type: 'toast', text, tone: 'info' })
-        const key = Date.now()
-        last.current = key
+        const key = ++seq.current
+        dispatch({ type: 'toast', text, tone: 'info', key })
         setTimeout(() => dispatch({ type: 'clearToast', key }), 2800)
       },
       error: (e) => {
         const text = e instanceof Error ? e.message : 'Đã có lỗi. Thử lại.'
-        dispatch({ type: 'toast', text, tone: 'error' })
-        const key = Date.now()
+        const key = ++seq.current
+        dispatch({ type: 'toast', text, tone: 'error', key })
         setTimeout(() => dispatch({ type: 'clearToast', key }), 4500)
       },
       curtain: (title, sub, icon) => {
-        dispatch({ type: 'curtain', title, sub, icon })
-        const key = Date.now()
+        const key = ++seq.current
+        dispatch({ type: 'curtain', title, sub, icon, key })
         setTimeout(() => dispatch({ type: 'clearCurtain', key }), 1700)
       },
     }),
