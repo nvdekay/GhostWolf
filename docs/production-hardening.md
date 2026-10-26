@@ -7,7 +7,7 @@ Bổ sung cho phần "Triển khai" trong README. Không thay đổi được t�
 Đặt cho mọi response của frontend (Netlify `_headers`, Vercel `vercel.json`, Cloudflare Pages `_headers`…). Thay `<ref>` bằng project ref Supabase.
 
 ```
-Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://<ref>.supabase.co wss://<ref>.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
+Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://<ref>.supabase.co wss://<ref>.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
 Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
 Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()
 Referrer-Policy: strict-origin-when-cross-origin
@@ -15,7 +15,7 @@ X-Content-Type-Options: nosniff
 ```
 
 - `style-src-attr 'unsafe-inline'`: app đặt biến CSS qua thuộc tính `style` (vòng ghế, thanh phiếu). Không cần `unsafe-inline` cho script.
-- Font tự host trong `dist/assets`, không gọi Google Fonts.
+- Font tự host trong `dist/assets`, không gọi Google Fonts; Vite nhúng font nhỏ dạng `data:` nên `font-src` cần `data:`.
 - Nếu Edge Function dùng domain riêng, thêm vào `connect-src`.
 - Chỉ bật HSTS `preload` khi chắc chắn mọi subdomain đều HTTPS.
 
