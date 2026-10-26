@@ -2,7 +2,7 @@
  * Hợp đồng giữa máy quản trò và Edge Function `game-command`.
  * Dùng chung cho cả client (src/services) và server.
  */
-import type { Command } from './engine/index.ts'
+import { MAX_PLAYERS, MAX_ROLE_KINDS, type Command } from './engine/index.ts'
 
 export type RoomCommand = { type: 'game.ensure' } | { type: 'game.replay' }
 
@@ -76,12 +76,16 @@ const KNOWN = new Set<string>([
 
 const isStr = (x: unknown): x is string => typeof x === 'string' && x.length > 0 && x.length <= 200
 const isStrOrNull = (x: unknown) => x === null || x === undefined || isStr(x)
-const isNumMap = (x: unknown) =>
+/** Bảng đếm (bộ vai, phiếu): giới hạn số khóa và từng giá trị trước khi engine dùng tới. */
+const isCountMap = (x: unknown, maxKeys: number) =>
   !!x &&
   typeof x === 'object' &&
   !Array.isArray(x) &&
-  Object.entries(x).length <= 200 &&
-  Object.entries(x).every(([k, v]) => isStr(k) && Number.isInteger(v))
+  Object.keys(x).length <= maxKeys &&
+  Object.entries(x).every(
+    ([k, v]) =>
+      isStr(k) && Number.isInteger(v) && (v as number) >= 0 && (v as number) <= MAX_PLAYERS,
+  )
 
 /** Kiểm tra hình dạng lệnh trước khi đưa vào engine (engine kiểm tra nghiệp vụ). */
 export function parseGameCommand(x: unknown): GameCommand | null {
@@ -90,7 +94,7 @@ export function parseGameCommand(x: unknown): GameCommand | null {
   if (!isStr(c.type) || !KNOWN.has(c.type)) return null
   switch (c.type) {
     case 'deck.set':
-      return isNumMap(c.counts) ? (c as GameCommand) : null
+      return isCountMap(c.counts, MAX_ROLE_KINDS) ? (c as GameCommand) : null
     case 'options.set':
       return !!c.options &&
         typeof c.options === 'object' &&
@@ -112,7 +116,9 @@ export function parseGameCommand(x: unknown): GameCommand | null {
     case 'day.goto':
       return ['announce', 'discuss', 'vote'].includes(c.step as string) ? (c as GameCommand) : null
     case 'vote.tally':
-      return isNumMap(c.votes) && isStrOrNull(c.chiefVote) ? (c as GameCommand) : null
+      return isCountMap(c.votes, MAX_PLAYERS) && isStrOrNull(c.chiefVote)
+        ? (c as GameCommand)
+        : null
     case 'vote.eliminate':
       return isStr(c.target) &&
         (c.reason === undefined || (typeof c.reason === 'string' && c.reason.length <= 200))

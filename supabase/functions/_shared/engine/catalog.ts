@@ -199,6 +199,10 @@ export const PRESETS: Record<number, Counts> = {
 }
 
 export const MIN_PLAYERS = 4
+/** Giới hạn số người một phòng; cũng chặn bộ vai/phiếu có số lượng phi lý trước khi tạo mảng. */
+export const MAX_PLAYERS = 30
+/** Số loại vai tối đa trong một bộ vai (11 vai gốc + vai tùy chỉnh). */
+export const MAX_ROLE_KINDS = 64
 
 export const TEAMS: Record<Team, { label: string; icon: 'house' | 'paw' | 'sparkles' }> = {
   village: { label: 'Phe Dân', icon: 'house' },

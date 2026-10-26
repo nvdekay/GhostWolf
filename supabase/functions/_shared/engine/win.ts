@@ -69,8 +69,9 @@ export function detectWinner(s: GameState): Winner | null {
 
   const piper = alive.find((p) => p.roleId === 'piper')
   if (piper) {
+    // Không còn ai khác cũng thỏa "mọi người còn sống khác đều bị mê hoặc".
     const others = alive.filter((p) => p.id !== piper.id)
-    if (others.length > 0 && others.every((p) => p.charmed)) {
+    if (others.every((p) => p.charmed)) {
       return make('piper', 'Mọi người còn sống đều đã bị Người thổi sáo mê hoặc.', [piper.id])
     }
   }

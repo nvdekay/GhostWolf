@@ -3,6 +3,7 @@ export * from './catalog.ts'
 export * from './errors.ts'
 export {
   buildDeck,
+  countsProblem,
   cryptoRandomInt,
   dealPlayers,
   deckProblem,

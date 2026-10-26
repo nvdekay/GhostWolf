@@ -1,6 +1,7 @@
 /* Dữ liệu hiển thị vai, dựa trên catalog của engine (một nguồn duy nhất cho mô tả và luật). */
 import {
   findRoleDef,
+  MAX_PLAYERS,
   ROLES,
   STATUSES,
   TEAMS,
@@ -101,7 +102,7 @@ export function totalCards(counts: Counts): number {
 }
 
 export function incCount(counts: Counts, id: string): Counts {
-  return { ...counts, [id]: (counts[id] ?? 0) + 1 }
+  return { ...counts, [id]: Math.min(MAX_PLAYERS, (counts[id] ?? 0) + 1) }
 }
 
 export function decCount(counts: Counts, id: string): Counts {
