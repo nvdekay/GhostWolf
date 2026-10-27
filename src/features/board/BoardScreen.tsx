@@ -49,7 +49,7 @@ export function BoardScreen() {
   const nav = useNav()
   const fb = useFeedback()
   const desk = useIsDesktop()
-  const { snap, game, run, setView, startDeal } = useHost()
+  const { snap, room, game, run, setView, startDeal } = useHost()
   const s = snap.secrets
   const [shared, setSharedState] = useState(() => (game ? readShared(game.id) : false))
   const [ui, setUiState] = useState<NightUi>({
@@ -100,6 +100,14 @@ export function BoardScreen() {
   const alive = s.players.filter((p) => p.alive)
   const effect = s.effects[0]
   const blocked = !!effect || !!s.winner
+  const remoteMissing =
+    room.options.mode === 'remote' && snap.remotePhase
+      ? snap.prompts.filter(
+          (prompt) =>
+            prompt.phase_sequence === snap.remotePhase!.sequence &&
+            !snap.submissions.some((submission) => submission.prompt_id === prompt.id),
+        )
+      : []
 
   const togglePick = (id: string) => {
     const max = nm?.pickMax ?? 0
@@ -358,6 +366,39 @@ export function BoardScreen() {
         </section>
 
         <section aria-label="Điều hành" className="board__panel">
+          {room.options.mode === 'remote' && snap.remotePhase && !shared && (
+            <div className="effect-note remote-progress" role="status">
+              <Icon name="users" size={18} />
+              <span>
+                Remote · {snap.remotePhase.submitted_count}/{snap.remotePhase.required_count} đã gửi
+              </span>
+              {remoteMissing[0] && (
+                <button
+                  className="btn btn-secondary"
+                  disabled={busy}
+                  onClick={() =>
+                    void exec({
+                      type: 'remote.timeout',
+                      promptId: remoteMissing[0]!.id,
+                      reason: 'Quản trò ghi nhận người chơi quá hạn hoặc mất kết nối.',
+                    })
+                  }
+                >
+                  Bỏ lượt hộ{' '}
+                  {snap.members.find((member) => member.id === remoteMissing[0]!.member_id)?.name}
+                </button>
+              )}
+              {['night_action', 'effect_resolution'].includes(snap.remotePhase.kind) && (
+                <button
+                  className="btn btn-ink"
+                  disabled={busy || remoteMissing.length > 0}
+                  onClick={() => void exec({ type: 'remote.lock' })}
+                >
+                  Khóa lượt và áp dụng
+                </button>
+              )}
+            </div>
+          )}
           {effect && !shared && (
             <div className="effect-note" role="status">
               <Icon name="alert" size={18} />

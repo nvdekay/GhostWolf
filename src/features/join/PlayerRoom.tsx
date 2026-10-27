@@ -13,6 +13,7 @@ import { RoomMessage } from '@/features/host/HostRoom'
 import { ResultView } from '@/features/result/ResultScreen'
 import { roleView, type RoleView } from '@/features/roles/roles'
 import { RemoteChat } from '@/features/remote/RemoteChat'
+import { RemotePlayerGame } from '@/features/remote/RemotePlayerGame'
 import { sendPlayerCommand } from '@/services/player'
 import './join.css'
 
@@ -272,6 +273,16 @@ export function PlayerRoom({ roomId }: { roomId: string }) {
           </button>
         )}
       </main>
+    )
+  } else if (remote && game?.status === 'playing') {
+    body = (
+      <RemotePlayerGame
+        room={room}
+        game={game}
+        me={me}
+        snap={snap}
+        onLeave={() => setConfirmLeave(true)}
+      />
     )
   } else {
     const night = pub?.phase === 'night'

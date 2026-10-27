@@ -6,7 +6,11 @@ import { MAX_PLAYERS, MAX_ROLE_KINDS, type Command } from './engine/index.ts'
 
 export type RoomCommand = { type: 'game.ensure' } | { type: 'game.replay' }
 
-export type GameCommand = Command | { type: 'undo' }
+export type GameCommand =
+  | Command
+  | { type: 'undo' }
+  | { type: 'remote.lock' }
+  | { type: 'remote.timeout'; promptId: string; reason: string }
 
 export type CommandRequest =
   | { scope: 'room'; roomId: string; commandId: string; command: RoomCommand }
@@ -47,6 +51,8 @@ export const COMMAND_LABELS: Partial<Record<GameCommand['type'], string>> = {
   'player.revive': 'Hồi sinh',
   'player.setChief': 'Đổi Trưởng làng',
   reset: 'Reset ván',
+  'remote.lock': 'Khóa lượt từ xa',
+  'remote.timeout': 'Bỏ lượt hộ người chơi',
 }
 
 const KNOWN = new Set<string>([
@@ -72,10 +78,13 @@ const KNOWN = new Set<string>([
   'reset',
   'finish',
   'undo',
+  'remote.lock',
+  'remote.timeout',
 ])
 
 const isStr = (x: unknown): x is string => typeof x === 'string' && x.length > 0 && x.length <= 200
 const isStrOrNull = (x: unknown) => x === null || x === undefined || isStr(x)
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 /** Bảng đếm (bộ vai, phiếu): giới hạn số khóa và từng giá trị trước khi engine dùng tới. */
 const isCountMap = (x: unknown, maxKeys: number) =>
   !!x &&
@@ -108,6 +117,7 @@ export function parseGameCommand(x: unknown): GameCommand | null {
           (Array.isArray(c.targets) && c.targets.length <= 4 && c.targets.every(isStr))) &&
         isStrOrNull(c.poison) &&
         (c.heal === undefined || typeof c.heal === 'boolean') &&
+        (c.timeout === undefined || typeof c.timeout === 'boolean') &&
         (c.note === undefined || (typeof c.note === 'string' && c.note.length <= 500))
         ? (c as GameCommand)
         : null
@@ -126,6 +136,13 @@ export function parseGameCommand(x: unknown): GameCommand | null {
         : null
     case 'effect.resolve':
       return Number.isInteger(c.effectId) && isStrOrNull(c.target) ? (c as GameCommand) : null
+    case 'remote.timeout':
+      return UUID.test(String(c.promptId ?? '')) &&
+        typeof c.reason === 'string' &&
+        c.reason.trim().length > 0 &&
+        c.reason.length <= 300
+        ? (c as GameCommand)
+        : null
     case 'player.kill':
     case 'player.revive':
       return isStr(c.playerId) ? (c as GameCommand) : null

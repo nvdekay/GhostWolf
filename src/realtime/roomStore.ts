@@ -13,7 +13,17 @@ import type { GameState } from '@engine'
 import { supabase } from '@/lib/supabase'
 import { uuid } from '@/lib/uuid'
 import { noteRevision } from '@/services/game'
-import type { AssignmentRow, GameRow, MemberRow, RoomRow } from '@/services/types'
+import type {
+  AssignmentRow,
+  GamePromptRow,
+  GameRow,
+  GameSubmissionRow,
+  MemberRow,
+  PrivateKnowledgeRow,
+  PrivateNoticeRow,
+  RemotePhaseRow,
+  RoomRow,
+} from '@/services/types'
 
 export interface RoomSnapshot {
   loading: boolean
@@ -27,6 +37,11 @@ export interface RoomSnapshot {
   secrets: GameState | null
   /** Quản trò: mọi người; người chơi: chỉ dòng của mình (sau khi gửi vai). */
   assignments: AssignmentRow[]
+  remotePhase: RemotePhaseRow | null
+  prompts: GamePromptRow[]
+  submissions: GameSubmissionRow[]
+  knowledge: PrivateKnowledgeRow[]
+  notices: PrivateNoticeRow[]
   /** Id thành viên đang online (presence), 'host' cho quản trò. */
   online: Set<string>
   /** Membership của phiên này (người chơi). */
@@ -44,6 +59,11 @@ const EMPTY: RoomSnapshot = {
   game: null,
   secrets: null,
   assignments: [],
+  remotePhase: null,
+  prompts: [],
+  submissions: [],
+  knowledge: [],
+  notices: [],
   online: new Set(),
   me: null,
 }
@@ -120,6 +140,23 @@ export class RoomStore {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'assignments' }, () =>
         this.later('assignments'),
       )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'remote_phases' }, () =>
+        this.later('remote'),
+      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'game_prompts' }, () =>
+        this.later('remote'),
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'game_action_submissions' },
+        () => this.later('remote'),
+      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'private_knowledge' }, () =>
+        this.later('remote'),
+      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'private_notices' }, () =>
+        this.later('remote'),
+      )
       // SUBSCRIBED đến trước khi server đăng ký xong postgres_changes; thay đổi trong khoảng đó
       // không được đẩy về, nên đọc lại một lần nữa khi server báo đã sẵn sàng.
       .on('system', {}, (p: { extension?: string; status?: string }) => {
@@ -147,7 +184,7 @@ export class RoomStore {
   }
 
   /** Gộp nhiều sự kiện liên tiếp thành một lần đọc lại (cũng dùng để thử lại sau lỗi). */
-  private later(what: 'room' | 'members' | 'game' | 'assignments', delay = 60) {
+  private later(what: 'room' | 'members' | 'game' | 'assignments' | 'remote', delay = 60) {
     clearTimeout(this.timers.get(what))
     this.timers.set(
       what,
@@ -157,6 +194,7 @@ export class RoomStore {
         if (what === 'members') void this.loadMembers()
         if (what === 'game') void this.loadGame()
         if (what === 'assignments') void this.loadAssignments()
+        if (what === 'remote') void this.loadRemote()
       }, delay),
     )
   }
@@ -205,7 +243,17 @@ export class RoomStore {
     this.set({ members, me })
     this.updateOnline()
     if (me && me.status !== 'active') {
-      this.set({ room: null, game: null, secrets: null, assignments: [] })
+      this.set({
+        room: null,
+        game: null,
+        secrets: null,
+        assignments: [],
+        remotePhase: null,
+        prompts: [],
+        submissions: [],
+        knowledge: [],
+        notices: [],
+      })
       return
     }
     this.trackPresence()
@@ -214,7 +262,16 @@ export class RoomStore {
   private async loadGame() {
     const gid = this.snap.room?.current_game_id
     if (!gid) {
-      this.set({ game: null, secrets: null, assignments: [] })
+      this.set({
+        game: null,
+        secrets: null,
+        assignments: [],
+        remotePhase: null,
+        prompts: [],
+        submissions: [],
+        knowledge: [],
+        notices: [],
+      })
       return
     }
     const isHost = this.snap.room?.host_id === this.userId
@@ -231,7 +288,7 @@ export class RoomStore {
     // Bỏ bản cũ hơn nếu sự kiện về không theo thứ tự.
     if (g && this.snap.game?.id === g.id && this.snap.game.revision > g.revision) return
     this.set({ game: g, secrets: (secrets.data as { state: GameState } | null)?.state ?? null })
-    await this.loadAssignments()
+    await Promise.all([this.loadAssignments(), this.loadRemote()])
   }
 
   private async loadAssignments() {
@@ -241,6 +298,33 @@ export class RoomStore {
     if (this.snap.room?.current_game_id !== gid) return
     if (error) return this.later('assignments', RETRY_MS)
     this.set({ assignments: (data ?? []) as AssignmentRow[] })
+  }
+
+  private async loadRemote() {
+    const gid = this.snap.room?.current_game_id
+    if (!gid || this.snap.room?.options?.mode !== 'remote') return
+    const [phase, prompts, knowledge, notices] = await Promise.all([
+      supabase.from('remote_phases').select('*').eq('game_id', gid).maybeSingle(),
+      supabase.from('game_prompts').select('*').eq('game_id', gid).order('created_at'),
+      supabase.from('private_knowledge').select('*').eq('game_id', gid).order('created_at'),
+      supabase.from('private_notices').select('*').eq('game_id', gid).order('created_at'),
+    ])
+    if (this.snap.room?.current_game_id !== gid) return
+    if (phase.error || prompts.error || knowledge.error || notices.error)
+      return this.later('remote', RETRY_MS)
+    const promptRows = (prompts.data ?? []) as GamePromptRow[]
+    const promptIds = promptRows.map((prompt) => prompt.id)
+    const submissions = promptIds.length
+      ? await supabase.from('game_action_submissions').select('*').in('prompt_id', promptIds)
+      : { data: [], error: null }
+    if (submissions.error) return this.later('remote', RETRY_MS)
+    this.set({
+      remotePhase: phase.data as RemotePhaseRow | null,
+      prompts: promptRows,
+      submissions: (submissions.data ?? []) as GameSubmissionRow[],
+      knowledge: (knowledge.data ?? []) as PrivateKnowledgeRow[],
+      notices: (notices.data ?? []) as PrivateNoticeRow[],
+    })
   }
 
   /** Bỏ key không khớp thành viên nào (key do client tự đặt, xem đầu file). */

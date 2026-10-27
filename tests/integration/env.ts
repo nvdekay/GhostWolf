@@ -2,6 +2,7 @@ import { execSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import type { CommandRequest, CommandResponse } from '../../supabase/functions/_shared/commands.ts'
+import type { PlayerCommandRequest } from '../../supabase/functions/_shared/remote.ts'
 
 /** Đọc URL/key của Supabase local (`supabase start`). */
 function localEnv(): { url: string; anon: string; service?: string } {
@@ -72,4 +73,36 @@ export async function command(
   })
   const json = (await res.json()) as CommandResponse & { error?: { code: string; message: string } }
   return res.ok ? { status: res.status, data: json } : { status: res.status, error: json.error }
+}
+
+export async function playerCommand(
+  db: SupabaseClient,
+  body: Omit<PlayerCommandRequest, 'commandId' | 'sessionId'> & {
+    commandId?: string
+    sessionId?: string
+  },
+) {
+  const { data: s } = await db.auth.getSession()
+  const base = process.env.FUNCTIONS_URL ?? 'http://127.0.0.1:54329'
+  const res = await fetch(`${base}/player-command`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: env.anon,
+      Authorization: `Bearer ${s.session!.access_token}`,
+    },
+    body: JSON.stringify({
+      ...body,
+      commandId: body.commandId ?? randomUUID(),
+      sessionId: body.sessionId ?? randomUUID(),
+    }),
+  })
+  const json = (await res.json()) as {
+    ok?: boolean
+    data?: unknown
+    error?: { code: string; message: string }
+  }
+  return res.ok
+    ? { status: res.status, data: json.data }
+    : { status: res.status, error: json.error }
 }

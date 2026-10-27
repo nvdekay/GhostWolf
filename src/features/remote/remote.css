@@ -66,3 +66,66 @@
     flex-direction: column;
   }
 }
+
+.remote-game {
+  gap: 1rem;
+}
+
+.remote-game__deadline {
+  background: var(--ink);
+  border-radius: 999px;
+  color: var(--paper);
+  display: inline-block;
+  padding: 0.35rem 0.7rem;
+}
+
+.remote-game__waiting,
+.remote-prompt,
+.remote-notebook {
+  border: 1px solid var(--border, rgba(80, 62, 45, 0.25));
+  border-radius: 14px;
+  padding: 1rem;
+}
+
+.remote-game__waiting {
+  text-align: center;
+}
+
+.remote-prompt__head {
+  align-items: flex-start;
+  display: flex;
+  justify-content: space-between;
+}
+
+.remote-prompt__head h2 {
+  margin: 0.25rem 0 0;
+}
+
+.remote-prompt__targets {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 1rem 0;
+}
+
+.remote-prompt__targets [aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.remote-prompt__heal {
+  align-items: center;
+  display: flex;
+  gap: 0.6rem;
+  min-height: 44px;
+}
+
+.remote-prompt__heal input {
+  height: 44px;
+  width: 44px;
+}
+
+.remote-prompt__status {
+  margin-bottom: 0;
+  text-align: center;
+}

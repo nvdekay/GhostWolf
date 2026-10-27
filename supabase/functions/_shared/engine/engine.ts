@@ -42,6 +42,8 @@ export type Command =
       heal?: boolean
       poison?: string | null
       note?: string
+      /** Chỉ orchestrator remote dùng khi deadline hết hoặc phiếu Sói hòa. */
+      timeout?: boolean
     }
   | { type: 'night.sleep'; stepIndex: number; step: string }
   | { type: 'night.end' }
@@ -598,6 +600,17 @@ function nightStep(
       'Vai này đã bị loại, không được hành động.',
     )
     log(s, `${info.title.replace('Gọi ', '')} đã bị loại, gọi cho có.`, false)
+    n.step++
+    return s
+  }
+
+  if (cmd.type === 'night.act' && cmd.timeout) {
+    assert(
+      targets.length === 0 && !cmd.heal && !cmd.poison,
+      'BAD_TIMEOUT',
+      'Hành động quá hạn không được chứa lựa chọn.',
+    )
+    log(s, `${info.title.replace('Gọi ', '')} hết thời gian và bỏ lượt.`, false)
     n.step++
     return s
   }

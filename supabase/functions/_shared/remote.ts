@@ -1,11 +1,14 @@
 import {
   availableTargets,
   currentStep,
+  isPack,
+  seerSeesWolf,
   stepActors,
   stepInfo,
   witchCanHeal,
   type GameState,
   type RuleOptions,
+  type Command,
 } from './engine/index.ts'
 
 export type RoomMode = 'local' | 'remote'
@@ -75,6 +78,59 @@ export interface RemoteProjection {
   prompts: PromptProjection[]
   wolfMembers: string[]
   requiredCount: number
+  knowledge: PrivateProjection[]
+  notices: PrivateProjection[]
+}
+
+export interface PrivateProjection {
+  memberId: string
+  kind: string
+  day: number
+  payload: Record<string, unknown>
+}
+
+export interface RemoteSubmission {
+  memberId: string
+  payload: { targets?: string[]; heal?: boolean; poison?: string | null }
+}
+
+/** Tổng hợp lựa chọn riêng thành đúng command mà engine hiện tại hiểu. */
+export function aggregateRemoteAction(
+  state: GameState,
+  submissions: RemoteSubmission[],
+): Command[] {
+  if (state.effects.length > 0) {
+    const effect = state.effects[0]!
+    const target = submissions[0]?.payload.targets?.[0] ?? null
+    return [{ type: 'effect.resolve', effectId: effect.id, target }]
+  }
+  const step = currentStep(state)
+  if (!step || !state.night) return []
+  const base = { step, stepIndex: state.night.step }
+  if (step === 'wolf') {
+    const tally = new Map<string, number>()
+    for (const submission of submissions) {
+      const target = submission.payload.targets?.[0]
+      if (target) tally.set(target, (tally.get(target) ?? 0) + 1)
+    }
+    const max = Math.max(0, ...tally.values())
+    const top = [...tally].filter(([, count]) => count === max).map(([id]) => id)
+    return [
+      top.length === 1
+        ? { type: 'night.act', ...base, targets: top }
+        : { type: 'night.act', ...base, targets: [], timeout: true },
+    ]
+  }
+  const payload = submissions[0]?.payload
+  if (!payload) return [{ type: 'night.act', ...base, targets: [], timeout: true }]
+  const action: Extract<Command, { type: 'night.act' }> = {
+    type: 'night.act',
+    ...base,
+    targets: payload.targets ?? [],
+    ...(step === 'witch' ? { heal: !!payload.heal, poison: payload.poison ?? null } : {}),
+  }
+  if (step !== 'seer') return [action]
+  return [action, { type: 'night.sleep', ...base }]
 }
 
 export type PlayerCommand =
@@ -168,6 +224,62 @@ function publicTarget(p: GameState['players'][number]): PromptTarget {
  * Edge Function ghi projection trong cùng transaction với state engine.
  */
 export function remoteProjection(s: GameState, settings: RemoteSettings): RemoteProjection {
+  const knowledge: PrivateProjection[] = []
+  const notices: PrivateProjection[] = []
+  const cupid = s.night?.actions.cupid
+  if (cupid) {
+    for (const [memberId, partnerId] of [
+      [cupid[0], cupid[1]],
+      [cupid[1], cupid[0]],
+    ] as const) {
+      const partner = s.players.find((player) => player.id === partnerId)
+      if (partner)
+        knowledge.push({
+          memberId,
+          kind: 'lover',
+          day: s.day,
+          payload: { partnerId, summary: `Bạn được ghép đôi với ${partner.name}.` },
+        })
+    }
+  }
+  const seerTarget = s.night?.actions.seer
+  if (seerTarget) {
+    const target = s.players.find((player) => player.id === seerTarget)
+    for (const actor of s.players.filter((player) => player.roleId === 'seer' && player.device))
+      if (target)
+        knowledge.push({
+          memberId: actor.id,
+          kind: 'seer',
+          day: s.day,
+          payload: {
+            targetId: target.id,
+            wolf: seerSeesWolf(s, target.roleId),
+            summary: `${target.name}: ${seerSeesWolf(s, target.roleId) ? 'Ma sói' : 'không phải Ma sói'}.`,
+          },
+        })
+  }
+  for (const memberId of s.night?.actions.piper ?? [])
+    notices.push({
+      memberId,
+      kind: 'charmed',
+      day: s.day,
+      payload: { summary: 'Bạn đã bị Người thổi sáo mê hoặc.' },
+    })
+  if (s.day === 1) {
+    const pack = s.players.filter((player) => isPack(s, player.roleId))
+    for (const actor of pack.filter((player) => player.device)) {
+      const names = pack.filter((player) => player.id !== actor.id).map((player) => player.name)
+      knowledge.push({
+        memberId: actor.id,
+        kind: 'wolf_pack',
+        day: 1,
+        payload: {
+          memberIds: pack.filter((player) => player.id !== actor.id).map((player) => player.id),
+          summary: names.length ? `Đồng đội Sói: ${names.join(', ')}.` : 'Bạn là Sói duy nhất.',
+        },
+      })
+    }
+  }
   const empty = (
     kind: RemotePhaseKind,
     durationSeconds: number | null = null,
@@ -178,6 +290,8 @@ export function remoteProjection(s: GameState, settings: RemoteSettings): Remote
     prompts: [],
     wolfMembers: [],
     requiredCount: 0,
+    knowledge,
+    notices,
   })
 
   if (s.status === 'ended') return empty('game_result')
@@ -213,6 +327,8 @@ export function remoteProjection(s: GameState, settings: RemoteSettings): Remote
       ],
       wolfMembers: [],
       requiredCount: 1,
+      knowledge,
+      notices,
     }
   }
 
@@ -248,6 +364,8 @@ export function remoteProjection(s: GameState, settings: RemoteSettings): Remote
       prompts,
       wolfMembers,
       requiredCount: prompts.length,
+      knowledge,
+      notices,
     }
   }
 

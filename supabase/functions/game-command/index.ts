@@ -9,6 +9,13 @@ import {
   type CommandResponse,
 } from '../_shared/commands.ts'
 import {
+  aggregateRemoteAction,
+  DEFAULT_REMOTE_SETTINGS,
+  remoteProjection,
+  type RemoteSubmission,
+  type RoomOptions,
+} from '../_shared/remote.ts'
+import {
   applyCommand,
   assignmentRows,
   createGame,
@@ -75,7 +82,7 @@ interface RoomRow {
   name: string
   host_id: string
   status: 'open' | 'locked' | 'closed'
-  options: Record<string, boolean>
+  options: RoomOptions
   current_game_id: string | null
 }
 
@@ -215,6 +222,24 @@ async function gameCommand(
   const room = await loadRoom(db, game.room_id, userId)
   if (room.current_game_id !== game.id)
     throw new HttpError(409, 'OLD_GAME', 'Ván này đã được thay bằng ván mới.')
+  if (command.type === 'remote.timeout') {
+    if (room.options.mode !== 'remote')
+      throw new HttpError(409, 'LOCAL_ROOM', 'Phòng cùng chỗ không có lượt remote.')
+    const { error } = await db.rpc('host_timeout_remote_prompt', {
+      p_game: game.id,
+      p_prompt: command.promptId,
+      p_actor_user: userId,
+      p_client_action_id: req.commandId,
+      p_reason: command.reason,
+    })
+    if (error)
+      throw new HttpError(
+        error.details === 'PHASE_STALE' || error.details === 'PROMPT_LOCKED' ? 409 : 500,
+        error.details || 'DB_ERROR',
+        error.message,
+      )
+    return { gameId: game.id, revision: game.revision, duplicate: false }
+  }
   const { state: prev } = await must<{ state: GameState }>(
     db.from('game_secrets').select('state').eq('game_id', game.id).maybeSingle(),
     'Không đọc được trạng thái ván',
@@ -249,7 +274,53 @@ async function gameCommand(
     if (command.type === 'deck.set' || command.type === 'deal')
       base.customRoles = await loadCustomRoles(db, userId)
     const seats = command.type === 'deal' ? await loadSeats(db, room.id) : undefined
-    next = applyCommand(base, command, { randomInt: cryptoRandomInt, seats })
+    if (command.type === 'remote.lock') {
+      if (room.options.mode !== 'remote')
+        throw new HttpError(409, 'LOCAL_ROOM', 'Phòng cùng chỗ không có lượt remote.')
+      const phase = await must<{ sequence: number; status: string }>(
+        db.from('remote_phases').select('sequence,status').eq('game_id', game.id).maybeSingle(),
+        'Không tìm thấy lượt remote',
+      )
+      if (phase.status !== 'open') throw new HttpError(409, 'PHASE_LOCKED', 'Lượt đã khóa.')
+      const prompts = await must<{ id: string; member_id: string }[]>(
+        db
+          .from('game_prompts')
+          .select('id,member_id')
+          .eq('game_id', game.id)
+          .eq('phase_sequence', phase.sequence),
+        'Không đọc được prompt',
+      )
+      const promptIds = prompts.map((prompt) => prompt.id)
+      const rows = promptIds.length
+        ? await must<
+            { prompt_id: string; member_id: string; payload: RemoteSubmission['payload'] }[]
+          >(
+            db
+              .from('game_action_submissions')
+              .select('prompt_id,member_id,payload')
+              .in('prompt_id', promptIds),
+            'Không đọc được hành động',
+          )
+        : []
+      const actions = aggregateRemoteAction(
+        base,
+        rows.map((row) => ({ memberId: row.member_id, payload: row.payload })),
+      )
+      if (rows.length < prompts.length)
+        throw new HttpError(
+          409,
+          'WAITING_ACTORS',
+          'Còn người chưa gửi. Hãy chờ hoặc ghi nhận bỏ lượt hộ trước khi khóa.',
+        )
+      if (actions.length === 0)
+        throw new HttpError(409, 'NOT_LOCKABLE', 'Phase này không có hành động để khóa.')
+      next = actions.reduce(
+        (state, action) => applyCommand(state, action, { randomInt: cryptoRandomInt }),
+        base,
+      )
+    } else {
+      next = applyCommand(base, command, { randomInt: cryptoRandomInt, seats })
+    }
     if (command.type === 'deal') assignments = assignmentRows(next)
     if (prev.status === 'dealt' && next.status === 'setup') assignments = []
     if (prev.status === 'playing' && command.type !== 'finish') {
@@ -268,6 +339,10 @@ async function gameCommand(
     p_history_state: historyState,
     p_pop_history: popHistory,
     p_assignments: assignments,
+    p_remote:
+      room.options.mode === 'remote'
+        ? remoteProjection(next, { ...DEFAULT_REMOTE_SETTINGS, ...room.options })
+        : null,
   })
   if (error) {
     if (error.details === 'REVISION_CONFLICT')

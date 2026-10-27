@@ -49,6 +49,70 @@ export interface ChatMessageRow {
   deleted_by: string | null
 }
 
+export interface RemotePhaseRow {
+  game_id: string
+  sequence: number
+  kind: string
+  started_at: string
+  deadline: string | null
+  locked_at: string | null
+  status: 'open' | 'locked' | 'expired' | 'cancelled'
+  required_count: number
+  submitted_count: number
+  updated_at: string
+}
+
+export interface GamePromptRow {
+  id: string
+  game_id: string
+  member_id: string
+  phase_sequence: number
+  kind: string
+  payload: {
+    title: string
+    instructions: string
+    min: number
+    max: number
+    targets: { id: string; name: string }[]
+    wolfVictim?: { id: string; name: string } | null
+    healAvailable?: boolean
+    poisonAvailable?: boolean
+  }
+  status: 'open' | 'submitted' | 'locked' | 'expired' | 'cancelled'
+  deadline: string | null
+  submitted_at: string | null
+}
+
+export interface GameSubmissionRow {
+  prompt_id: string
+  member_id: string
+  client_action_id: string
+  payload: { targets?: string[]; heal?: boolean; poison?: string | null }
+  revision: number
+  submitted_at: string
+}
+
+export interface PrivateKnowledgeRow {
+  id: string
+  game_id: string
+  member_id: string
+  kind: string
+  day: number
+  payload: Record<string, unknown>
+  created_at: string
+}
+
+export interface PrivateNoticeRow {
+  id: string
+  game_id: string
+  member_id: string
+  phase_sequence: number
+  kind: string
+  payload: Record<string, unknown>
+  read_at: string | null
+  created_at: string
+}
+
 export interface GameRow {
   id: string
   room_id: string

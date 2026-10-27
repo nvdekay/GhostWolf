@@ -78,6 +78,22 @@ export async function handlePlayerCommand(req: Request): Promise<Response> {
           error.message,
         )
       result = data
+    } else if (command.type === 'action.submit') {
+      if (!body.gameId) return fail(400, 'NO_GAME', 'Thiếu gameId.')
+      const { data, error } = await db.rpc('submit_remote_action', {
+        p_game: body.gameId,
+        p_prompt: command.promptId,
+        p_phase_sequence: command.phaseSequence,
+        p_client_action_id: body.commandId,
+        p_payload: command.payload,
+      })
+      if (error)
+        return fail(
+          error.details === 'DEADLINE' ? 410 : 409,
+          error.details || 'COMMAND_FAILED',
+          error.message,
+        )
+      result = data
     } else {
       return fail(409, 'NOT_AVAILABLE', 'Lệnh chưa khả dụng ở phase hiện tại.')
     }
