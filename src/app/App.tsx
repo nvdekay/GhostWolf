@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useReducer, type Dispatch } from 'react'
+import { Turnstile } from '@/components/Turnstile'
 import { Crescent } from '@/components/ui'
 import { supabaseConfigured } from '@/lib/supabase'
 import { HomeScreen } from '@/features/home/HomeScreen'
@@ -42,13 +43,36 @@ function Splash({ title, sub, action }: { title: string; sub: string; action?: R
 }
 
 function Screens() {
-  const { userId, error, retry } = useSession()
+  const { userId, error, captchaSiteKey, captchaAttempt, verifyCaptcha, captchaError, retry } =
+    useSession()
   const [route, dispatch] = useReducer(navReducer, undefined, initialRoute)
 
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [route])
 
+  if (!userId && captchaSiteKey)
+    return (
+      <Splash
+        title="Xác minh kết nối"
+        sub={error ?? 'Hoàn tất kiểm tra bảo mật để bắt đầu phiên chơi.'}
+        action={
+          <div className="captcha-panel">
+            <Turnstile
+              key={captchaAttempt}
+              siteKey={captchaSiteKey}
+              onVerify={verifyCaptcha}
+              onError={captchaError}
+            />
+            {error && (
+              <button className="btn btn-ghost" onClick={retry}>
+                Thử lại
+              </button>
+            )}
+          </div>
+        }
+      />
+    )
   if (error)
     return (
       <Splash

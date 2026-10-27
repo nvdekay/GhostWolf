@@ -42,6 +42,10 @@ npm run dev               # frontend tại http://localhost:5173
 
 Mỗi trình duyệt hoặc cửa sổ ẩn danh là một người chơi khác. Để thử trên điện thoại cùng Wi-Fi, chạy `npm run dev -- --host` rồi mở `http://<IP-máy>:5173`; app tự ánh xạ backend local sang cùng hostname.
 
+Production dùng Cloudflare Turnstile trước khi tạo anonymous session. Đặt public site key bằng
+`VITE_TURNSTILE_SITE_KEY` trên Vercel; secret chỉ cấu hình trong Supabase Auth, tuyệt đối không
+đặt vào biến `VITE_*`. Local mặc định bỏ trống site key để dùng Auth local không bật CAPTCHA.
+
 ## Kiểm thử
 
 ```bash
@@ -57,6 +61,7 @@ Sau khi `db:start` và `functions:serve` đang chạy:
 ```bash
 npm run test:integration
 npm run test:e2e
+npm run test:e2e:captcha
 # Hoặc dùng trình duyệt đã cài: PW_CHANNEL=msedge npm run test:e2e
 ```
 

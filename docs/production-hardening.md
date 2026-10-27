@@ -114,7 +114,9 @@ Rollback (nếu cần): tạo migration mới khôi phục định nghĩa hàm t
 
 ## 7. Việc còn lại
 
-- [ ] CAPTCHA cho anonymous sign-in ở frontend và bật provider/rate limit trong Supabase Dashboard.
+- [~] Frontend Cloudflare Turnstile và CAPTCHA E2E đã hoàn thành. Còn tạo production widget,
+  đặt `VITE_TURNSTILE_SITE_KEY` ở Vercel, nhập secret/bật CAPTCHA trong Supabase Dashboard
+  và chạy production smoke trước khi coi là hoàn tất. Anonymous rate limit đã khai báo 30/giờ/IP.
 - [ ] Lập lịch `gw_cleanup()` bằng Supabase Cron; chạy thử và kiểm tra số dòng trước khi dùng lịch production.
 - [ ] Cấu hình alert 5xx, latency p95, rate-limit, prompt timeout/AFK và Realtime errors.
 - [~] Realtime chat hosted đã smoke test; presence private cần adversarial test trên hosted project.

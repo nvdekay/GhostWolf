@@ -8,7 +8,8 @@ Cập nhật phát hành 2026-10-27: `main` chứa toàn bộ implementation Rem
 production đã deploy; closed beta trên mạng và thiết bị thật chưa thực hiện.
 
 Kiểm thử đã chạy (Supabase local + Edge Function chạy bằng Deno):
-`npm test` 63 test · `npm run test:integration` 46 test · `npm run test:e2e` 9 kịch bản,
+`npm test` 63 test · `npm run test:integration` 46 test · `npm run test:e2e` 9 kịch bản ·
+`npm run test:e2e:captcha` 1 kịch bản,
 bao gồm local full-game, remote full-game, RLS, reconnect, takeover tab, tải 30 người và
 responsive 320–1920 px.
 
@@ -83,6 +84,7 @@ responsive 320–1920 px.
 - [x] Playwright: quản trò + 2 người chơi; kick / mất mạng / đóng phòng; ván 10 người chọn ngẫu nhiên tới khi có kết quả (gồm hiệu ứng Thợ săn và kế nhiệm Trưởng làng); responsive 360/390/768/1024/1440/1920 (không tràn ngang, nút ≥ 32px chiều cao).
 - [~] Focus trap + trả focus trong dialog/sheet, hold-to-reveal bằng bàn phím: đã cài đặt, chưa có test tự động.
 - [~] Bàn phím ảo che CTA trên điện thoại thật: chưa kiểm trên thiết bị thật.
+- [~] Frontend Cloudflare Turnstile truyền token vào anonymous sign-in và CAPTCHA E2E pass; production site key/secret và Supabase enforcement chưa cấu hình.
 - [x] typecheck, lint, test, build.
 - [x] `.env.example`, README (Supabase, anonymous auth, realtime, deploy).
 - [x] Deploy thật: bốn migration Remote Play và hai Edge Function active trên Supabase hosted; Vercel build từ `main` SHA `703c8df`, domain `https://ghostwolf.khanhnvd.click` trả HTTP 200; smoke flow production pass.

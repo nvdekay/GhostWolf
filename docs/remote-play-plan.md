@@ -808,6 +808,8 @@ Kết quả baseline đã chốt ngày 2026-10-27:
 - `npm run test:integration`: 46/46 integration tests pass trên Supabase local.
 - `npm run test:e2e`: 9/9 scenarios pass, gồm local full-game, remote full-flow, RLS,
   reconnect, takeover thiết bị, Tiên tri reconnect, tải 30 người và responsive 320–1920 px.
+- `npm run test:e2e:captcha`: 1/1 scenario pass; xác minh widget cấp token và anonymous
+  sign-in gửi đúng token tới Supabase Auth.
 - Production smoke: tạo phòng remote, join, claim thiết bị, ready, chat Realtime, host nhận tin,
   đóng phòng và player nhận trạng thái đóng đều pass.
 
@@ -866,7 +868,8 @@ Automated tests không đánh giá được nhịp chat và cảm giác chờ. C
 
 Chưa cấu hình hoặc chưa xác minh trên production:
 
-- [ ] CAPTCHA và rate limit phù hợp cho anonymous sign-in.
+- [~] Frontend Turnstile và CAPTCHA E2E đã hoàn thành; cần tạo production widget, đặt site key
+  ở Vercel, secret ở Supabase Auth rồi bật enforcement. Anonymous rate limit đã khai báo 30/giờ/IP.
 - [ ] Lịch Supabase Cron chạy `gw_cleanup()` và kiểm tra kết quả lần chạy đầu.
 - [ ] Alert cho 5xx, latency p95, rate-limit, prompt timeout/AFK và Realtime errors.
 - [ ] Dashboard/báo cáo funnel join → ready → start → finish phục vụ beta.
@@ -947,8 +950,8 @@ browser notification; người bị mê hoặc nhận thông báo; chat phòng �
 
 Thực hiện theo thứ tự:
 
-1. **Hoàn thiện guardrail production:** tích hợp CAPTCHA vào anonymous sign-in, bật rate limit
-   phù hợp và xác minh không làm hỏng join/reconnect.
+1. **Hoàn thiện guardrail production:** frontend CAPTCHA đã xong; tạo Turnstile production
+   widget, cấu hình site key/secret, bật enforcement và xác minh không làm hỏng join/reconnect.
 2. **Bật vận hành nền:** lập lịch `gw_cleanup`, cấu hình alert và dashboard chỉ số; chạy cleanup
    thử trên bản sao hoặc dữ liệu kiểm thử trước.
 3. **Xác minh hosted/thiết bị thật:** adversarial test presence private, hai tab quản trò,
