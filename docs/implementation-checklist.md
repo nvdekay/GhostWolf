@@ -8,7 +8,7 @@ Cập nhật phát hành 2026-10-27: `main` chứa toàn bộ implementation Rem
 production đã deploy; closed beta trên mạng và thiết bị thật chưa thực hiện.
 
 Kiểm thử đã chạy (Supabase local + Edge Function chạy bằng Deno):
-`npm test` 63 test · `npm run test:integration` 47 test · `npm run test:e2e` 12 kịch bản,
+`npm test` 63 test · `npm run test:integration` 49 test · `npm run test:e2e` 13 kịch bản,
 bao gồm local full-game, remote full-game, RLS, reconnect, takeover tab, tải 30 người và
 responsive 320–1920 px.
 
@@ -101,7 +101,7 @@ responsive 320–1920 px.
 - [x] OPS-01 30 người/phòng, 10 phòng mở/quản trò, 60 lệnh/10 giây/ván, `gw_cleanup`, lịch `pg_cron`, dọn run history và service-only cron health (integration). Lịch chạy: `docs/production-hardening.md`.
 - [x] P2 Key toast/màn chuyển cảnh, E2E không sleep cố định, vùng chạm 44px, server E2E mới khi CI, log JSON có request ID.
 - [~] RT-03 Presence key do client đặt: thành viên giả được key `host`/id người khác (đã tái hiện local). Chỉ dùng hiển thị; đã lọc key lạ. Chưa có heartbeat tin cậy.
-- [ ] FE-02 Khôi phục quyền quản trò khi đổi thiết bị: mới có đề xuất thiết kế (khác với lease tab người chơi remote đã hoàn thành).
+- [x] FE-02 Khôi phục quyền quản trò bằng mã entropy 96-bit chỉ lưu hash, tự xoay sau mỗi lần dùng, thu hồi host cũ và chặn thiết bị người chơi chuyển vai (integration + E2E).
 - [ ] Luật cho nhiều Cupid/Phù thủy/Tiên tri…: chưa định nghĩa (ghi chú trong `docs/ruleset.md`).
 
 ## 8. Chế độ chơi từ xa (2026-10-27)

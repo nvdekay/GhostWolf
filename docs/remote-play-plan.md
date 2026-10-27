@@ -29,8 +29,8 @@ Snapshot phát hành:
 - Edge Function `game-command` và `player-command` đang active trên Supabase hosted.
 - Vercel nối GitHub branch `main`; bản production chứa baseline trên đã được xác minh và đang
   phục vụ tại `https://ghostwolf.khanhnvd.click`.
-- Xác minh phát hành: typecheck, lint, build, Deno check, 63 unit tests, 47 integration tests,
-  12 E2E scenarios và smoke test hai browser context trên production đều pass.
+- Xác minh phát hành: typecheck, lint, build, Deno check, 63 unit tests, 49 integration tests,
+  13 E2E scenarios và smoke test hai browser context trên production đều pass.
 
 Trạng thái này chỉ xác nhận code và hạ tầng đã phát hành. Lịch cleanup, alerting, kiểm thử thiết
 bị thật và closed beta được theo dõi riêng ở các mục 19, 20 và 23.
@@ -805,10 +805,10 @@ Kết quả baseline đã chốt ngày 2026-10-27:
 - `npm run typecheck`, `npm run lint`, `npm run build`: pass.
 - `deno check` cho `game-command` và `player-command`: pass.
 - `npm test`: 63/63 unit tests pass.
-- `npm run test:integration`: 47/47 integration tests pass trên Supabase local.
-- `npm run test:e2e`: 12/12 scenarios pass, gồm local full-game, remote full-flow, RLS,
+- `npm run test:integration`: 49/49 integration tests pass trên Supabase local.
+- `npm run test:e2e`: 13/13 scenarios pass, gồm local full-game, remote full-flow, RLS,
   reconnect, takeover thiết bị, xung đột hai tab quản trò, focus/keyboard accessibility, Tiên
-  tri reconnect, tải 30 người và responsive 320–1920 px.
+  tri reconnect, khôi phục quản trò sang thiết bị mới, tải 30 người và responsive 320–1920 px.
 - Production smoke: tạo phòng remote, join, claim thiết bị, ready, chat Realtime, host nhận tin,
   đóng phòng và player nhận trạng thái đóng đều pass.
 
@@ -962,9 +962,9 @@ Thực hiện theo thứ tự:
 5. **Cổng phát hành rộng:** chỉ mở rộng khi không có sự cố đọc chéo dữ liệu, tỷ lệ hoàn tất và
    lỗi command đạt mục tiêu; cập nhật checklist bằng bằng chứng beta.
 
-Các backlog không chặn beta: khôi phục quyền quản trò khi mất thiết bị (FE-02), heartbeat
-presence đáng tin cậy (RT-03), luật nhiều instance của cùng vai và action schema cho vai tùy
-chỉnh.
+Các backlog không chặn beta: heartbeat presence đáng tin cậy (RT-03), luật nhiều instance của
+cùng vai và action schema cho vai tùy chỉnh. Khôi phục quyền quản trò khi mất thiết bị (FE-02)
+đã hoàn thành bằng mã một lần tự xoay.
 
 ## 24. Hướng phát triển sau MVP
 

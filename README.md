@@ -42,6 +42,10 @@ npm run dev               # frontend tại http://localhost:5173
 
 Mỗi trình duyệt hoặc cửa sổ ẩn danh là một người chơi khác. Để thử trên điện thoại cùng Wi-Fi, chạy `npm run dev -- --host` rồi mở `http://<IP-máy>:5173`; app tự ánh xạ backend local sang cùng hostname.
 
+Khi tạo phòng, quản trò nên mở “Mã khôi phục” và lưu riêng mã này. Nếu đổi hoặc mất thiết bị,
+chọn “Khôi phục quản trò” ở trang chủ, nhập mã phòng cùng mã khôi phục; mã cũ sẽ bị vô hiệu và
+thiết bị mới nhận một mã mới.
+
 ## Kiểm thử
 
 ```bash

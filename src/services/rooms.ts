@@ -1,5 +1,6 @@
 /* RPC lệnh phòng (Postgres, security definer — kiểm tra quyền ở server). */
 import type { RoomOptions } from '@shared/remote.ts'
+import { getHostRecoveryKey, storeHostRecoveryKey } from '@/lib/hostRecovery'
 import { supabase } from '@/lib/supabase'
 import { fromPostgrest } from './errors'
 import type { MemberRow, RoomRow, RoomStatus } from './types'
@@ -10,8 +11,31 @@ async function call<T>(fn: string, args: Record<string, unknown>): Promise<T> {
   return data as T
 }
 
-export const createRoom = (name: string, options: Partial<RoomOptions>) =>
-  call<RoomRow>('create_room', { p_name: name, p_options: options })
+export async function createRoom(name: string, options: Partial<RoomOptions>) {
+  const result = await call<{ room: RoomRow; recovery_key: string }>('create_room_with_recovery', {
+    p_name: name,
+    p_options: options,
+  })
+  storeHostRecoveryKey(result.room.id, result.recovery_key)
+  return { room: result.room, recoveryKey: result.recovery_key }
+}
+
+export async function recoverRoomHost(code: string, recoveryKey: string) {
+  const result = await call<{ room_id: string; recovery_key: string }>('recover_room_host', {
+    p_code: code,
+    p_recovery_key: recoveryKey,
+  })
+  storeHostRecoveryKey(result.room_id, result.recovery_key)
+  return { roomId: result.room_id, recoveryKey: result.recovery_key }
+}
+
+export async function hostRecoveryKey(roomId: string) {
+  const stored = getHostRecoveryKey(roomId)
+  if (stored) return stored
+  const recoveryKey = await call<string>('rotate_host_recovery', { p_room: roomId })
+  storeHostRecoveryKey(roomId, recoveryKey)
+  return recoveryKey
+}
 
 export async function findRoom(code: string) {
   const rows = await call<

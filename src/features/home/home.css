@@ -173,6 +173,18 @@
   border-top: 1px solid var(--gold-line);
 }
 
+.recovery-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.recovery-key {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.06em;
+  text-align: center;
+}
+
 @media (min-width: 1024px) {
   .home__card {
     display: grid;

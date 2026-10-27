@@ -4,7 +4,8 @@ import { useSession } from '@/app/session'
 import { Icon } from '@/components/Icon'
 import { Sheet } from '@/components/overlay'
 import { Crescent, Ornament, WolfEmblem } from '@/components/ui'
-import { mySessions, type SessionSummary } from '@/services/rooms'
+import { mySessions, recoverRoomHost, type SessionSummary } from '@/services/rooms'
+import { toAppError } from '@/services/errors'
 import { HowToSheet } from './HowToSheet'
 import './home.css'
 
@@ -14,6 +15,26 @@ export function HomeScreen() {
   const [sessions, setSessions] = useState<SessionSummary[] | null>(null)
   const [loadError, setLoadError] = useState(false)
   const [howto, setHowto] = useState(false)
+  const [recovering, setRecovering] = useState(false)
+  const [recoveryCode, setRecoveryCode] = useState('')
+  const [recoveryKey, setRecoveryKey] = useState('')
+  const [recoveryError, setRecoveryError] = useState('')
+  const [recoveryBusy, setRecoveryBusy] = useState(false)
+
+  const recover = async () => {
+    if (recoveryCode.length !== 6 || !recoveryKey.trim()) return
+    setRecoveryBusy(true)
+    setRecoveryError('')
+    try {
+      const result = await recoverRoomHost(recoveryCode, recoveryKey)
+      nav.go({ name: 'host', roomId: result.roomId })
+      setRecovering(false)
+    } catch (error) {
+      setRecoveryError(toAppError(error).message)
+    } finally {
+      setRecoveryBusy(false)
+    }
+  }
 
   useEffect(() => {
     let alive = true
@@ -104,6 +125,12 @@ export function HomeScreen() {
             <button className="link-btn" onClick={() => setHowto(true)}>
               Cách chơi
             </button>
+            <span aria-hidden="true" className="gold-text">
+              ·
+            </span>
+            <button className="link-btn" onClick={() => setRecovering(true)}>
+              Khôi phục quản trò
+            </button>
           </div>
           <div className="home__footer">
             <span className="gold-text">
@@ -117,6 +144,69 @@ export function HomeScreen() {
       {howto && (
         <Sheet onClose={() => setHowto(false)} label="Cách chơi">
           <HowToSheet />
+        </Sheet>
+      )}
+      {recovering && (
+        <Sheet onClose={() => setRecovering(false)} label="Khôi phục quyền quản trò">
+          <div className="recovery-form">
+            <div>
+              <div className="eyebrow">Thiết bị mới</div>
+              <h2 className="sheet__title">Khôi phục quyền quản trò</h2>
+              <p className="muted">
+                Nhập mã phòng và mã khôi phục đã lưu khi tạo phòng. Thiết bị cũ sẽ mất quyền điều
+                khiển.
+              </p>
+            </div>
+            <label className="field">
+              <span>Mã phòng</span>
+              <input
+                className="input"
+                aria-label="Mã phòng khôi phục"
+                value={recoveryCode}
+                maxLength={6}
+                autoCapitalize="characters"
+                spellCheck={false}
+                onChange={(event) => {
+                  setRecoveryCode(
+                    event.target.value
+                      .toUpperCase()
+                      .replace(/[^A-Z0-9]/g, '')
+                      .slice(0, 6),
+                  )
+                  setRecoveryError('')
+                }}
+              />
+            </label>
+            <label className="field">
+              <span>Mã khôi phục quản trò</span>
+              <input
+                className="input recovery-key"
+                aria-label="Mã khôi phục quản trò"
+                value={recoveryKey}
+                maxLength={27}
+                autoCapitalize="characters"
+                spellCheck={false}
+                onChange={(event) => {
+                  setRecoveryKey(event.target.value.toUpperCase())
+                  setRecoveryError('')
+                }}
+                onKeyDown={(event) => event.key === 'Enter' && void recover()}
+              />
+            </label>
+            {recoveryError && (
+              <p className="join__err" role="alert">
+                <Icon name="alert" size={15} />
+                {recoveryError}
+              </p>
+            )}
+            <button
+              className="btn btn-ink btn-lg btn-block"
+              disabled={recoveryCode.length !== 6 || !recoveryKey.trim() || recoveryBusy}
+              onClick={() => void recover()}
+            >
+              {recoveryBusy ? 'Đang khôi phục…' : 'Khôi phục quyền quản trò'}
+            </button>
+          </div>
         </Sheet>
       )}
     </div>

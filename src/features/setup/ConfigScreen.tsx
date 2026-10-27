@@ -20,8 +20,9 @@ export function ConfigScreen() {
   const create = async () => {
     setBusy(true)
     try {
-      const room = await createRoom(name.trim() || 'Ván mới', opts)
-      nav.go({ name: 'host', roomId: room.id })
+      const result = await createRoom(name.trim() || 'Ván mới', opts)
+      fb.toast('Phòng đã tạo · hãy lưu mã khôi phục quản trò')
+      nav.go({ name: 'host', roomId: result.room.id })
     } catch (e) {
       fb.error(e)
       setBusy(false)

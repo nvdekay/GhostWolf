@@ -8,7 +8,14 @@ import { BottomBar, EmptyState, Paper, Stepper, TopBar } from '@/components/ui'
 import { copyText, inviteUrl } from '@/lib/clipboard'
 import { refreshRoom } from '@/realtime/roomStore'
 import { sendRoomCommand } from '@/services/game'
-import { addMember, closeRoom, kickMember, lockRoom, unlockRoom } from '@/services/rooms'
+import {
+  addMember,
+  closeRoom,
+  hostRecoveryKey,
+  kickMember,
+  lockRoom,
+  unlockRoom,
+} from '@/services/rooms'
 import { useHost, useStepper } from '@/features/host/context'
 import { RemoteChat } from '@/features/remote/RemoteChat'
 import './setup.css'
@@ -23,6 +30,7 @@ export function LobbyScreen() {
   const inFlight = useRef(false)
   const [confirmClose, setConfirmClose] = useState(false)
   const [shareFallback, setShareFallback] = useState<string | null>(null)
+  const [recoveryKey, setRecoveryKey] = useState<string | null>(null)
 
   const members = snap.members.filter((m) => m.status === 'active')
   const n = members.length
@@ -76,6 +84,14 @@ export function LobbyScreen() {
     else {
       setShareFallback(url)
       fb.error(new Error('Trình duyệt không cho sao chép. Chọn link bên dưới để tự sao chép.'))
+    }
+  }
+
+  const showRecovery = async () => {
+    try {
+      setRecoveryKey(await hostRecoveryKey(room.id))
+    } catch (error) {
+      fb.error(error)
     }
   }
 
@@ -136,6 +152,10 @@ export function LobbyScreen() {
             <button className="btn btn-secondary" onClick={share}>
               <Icon name="link" />
               Chia sẻ link mời
+            </button>
+            <button className="btn btn-secondary" onClick={() => void showRecovery()}>
+              <Icon name="lock" />
+              Mã khôi phục
             </button>
           </div>
           {shareFallback && <p className="lobby__share-text">{shareFallback}</p>}
@@ -330,6 +350,40 @@ export function LobbyScreen() {
           <p className="dialog__body">
             Mọi người trong phòng sẽ bị ngắt kết nối và mã phòng hết hiệu lực.
           </p>
+        </Dialog>
+      )}
+      {recoveryKey && (
+        <Dialog
+          title="Mã khôi phục quản trò"
+          onClose={() => setRecoveryKey(null)}
+          actions={
+            <>
+              <button
+                className="btn btn-secondary"
+                onClick={async () => {
+                  if (await copyText(recoveryKey)) fb.toast('Đã sao chép mã khôi phục')
+                  else fb.error(new Error('Không sao chép được. Chọn mã trong ô để tự sao chép.'))
+                }}
+              >
+                Sao chép mã
+              </button>
+              <button className="btn btn-ink" onClick={() => setRecoveryKey(null)}>
+                Đóng
+              </button>
+            </>
+          }
+        >
+          <p className="dialog__body">
+            Cất mã này riêng với link mời. Người có mã có thể chuyển quyền quản trò sang thiết bị
+            khác.
+          </p>
+          <input
+            className="input recovery-key"
+            aria-label="Mã khôi phục quản trò"
+            value={recoveryKey}
+            readOnly
+            onFocus={(event) => event.currentTarget.select()}
+          />
         </Dialog>
       )}
     </Paper>
