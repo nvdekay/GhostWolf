@@ -872,7 +872,8 @@ Chưa cấu hình hoặc chưa xác minh trên production:
   ở Vercel, secret ở Supabase Auth rồi bật enforcement. Anonymous rate limit đã khai báo 30/giờ/IP.
 - [~] Migration Supabase Cron, dọn run history và RPC health đã có; cần deploy và xác minh lần
   chạy hosted đầu tiên.
-- [ ] Alert cho 5xx, latency p95, rate-limit, prompt timeout/AFK và Realtime errors.
+- [~] Synthetic health/cron/expired-prompt alert mỗi giờ qua GitHub Actions đã có; log-based
+  alert cho tỷ lệ 5xx, p95, rate-limit và Realtime errors vẫn cần cấu hình Dashboard.
 - [ ] Dashboard/báo cáo funnel join → ready → start → finish phục vụ beta.
 - [~] Realtime chat production đã smoke test; policy presence private chưa được adversarial test
   trên hosted project.

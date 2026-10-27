@@ -15,6 +15,7 @@
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:e2e": "playwright test",
     "test:e2e:captcha": "playwright test --config playwright.captcha.config.ts",
+    "health:production": "node scripts/production-health.mjs",
     "db:start": "supabase start -x edge-runtime",
     "db:reset": "supabase db reset",
     "functions:serve": "node scripts/functions-dev.mjs"
