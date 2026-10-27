@@ -131,9 +131,9 @@ Rollback (nếu cần): tạo migration mới khôi phục định nghĩa hàm t
 
 ## 7. Việc còn lại
 
-- [~] Frontend Cloudflare Turnstile và CAPTCHA E2E đã hoàn thành. Còn tạo production widget,
-  đặt `VITE_TURNSTILE_SITE_KEY` ở Vercel, nhập secret/bật CAPTCHA trong Supabase Dashboard
-  và chạy production smoke trước khi coi là hoàn tất. Anonymous rate limit đã khai báo 30/giờ/IP.
+- [~] Frontend Cloudflare Turnstile, production widget, Vercel site key và CAPTCHA E2E đã hoàn
+  thành. Còn push Supabase Auth config bằng secret rồi chạy production smoke trước khi coi là
+  hoàn tất. Anonymous rate limit đã khai báo 30/giờ/IP.
 - [~] Migration Supabase Cron, dọn run history và RPC health đã có; cần deploy migration và xác minh lần chạy hosted đầu tiên.
 - [~] Synthetic health/cron/expired-prompt alert mỗi giờ qua GitHub Actions đã có; alert dựa
   trên Supabase logs cho tỷ lệ 5xx, p95, rate-limit và Realtime errors vẫn cần cấu hình Dashboard.

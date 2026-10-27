@@ -869,8 +869,9 @@ Automated tests không đánh giá được nhịp chat và cảm giác chờ. C
 
 Chưa cấu hình hoặc chưa xác minh trên production:
 
-- [~] Frontend Turnstile và CAPTCHA E2E đã hoàn thành; cần tạo production widget, đặt site key
-  ở Vercel, secret ở Supabase Auth rồi bật enforcement. Anonymous rate limit đã khai báo 30/giờ/IP.
+- [~] Frontend Turnstile, production widget, Vercel site key và CAPTCHA E2E đã hoàn thành; cần
+  push Supabase Auth secret/enforcement và chạy production smoke. Anonymous rate limit đã khai
+  báo 30/giờ/IP.
 - [~] Migration Supabase Cron, dọn run history và RPC health đã có; cần deploy và xác minh lần
   chạy hosted đầu tiên.
 - [~] Synthetic health/cron/expired-prompt alert mỗi giờ qua GitHub Actions đã có; log-based

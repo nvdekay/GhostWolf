@@ -430,6 +430,11 @@ additional_redirect_urls = ["https://ghostwolf.khanhnvd.click", "https://ghostwo
 # Production chặt hơn local (300): số lần đăng nhập ẩn danh mỗi giờ mỗi IP.
 anonymous_users = 30
 
+[remotes.production.auth.captcha]
+enabled = true
+provider = "turnstile"
+secret = "env(SUPABASE_AUTH_CAPTCHA_SECRET)"
+
 # Giữ mặc định an toàn của Supabase hosted cho đăng nhập email/MFA (app không dùng, nhưng không nới lỏng).
 [remotes.production.auth.email]
 enable_confirmations = true
