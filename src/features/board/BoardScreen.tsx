@@ -16,6 +16,7 @@ import { useIsDesktop } from '@/lib/media'
 import { useHost } from '@/features/host/context'
 import { HowToSheet } from '@/features/home/HowToSheet'
 import { RoleDetailSheet } from '@/features/roles/RoleSheets'
+import { RemoteChat } from '@/features/remote/RemoteChat'
 import { viewOf } from '@/features/roles/roles'
 import { EffectDialog, EndDialog, MenuSheet, PlayerSheet } from './BoardSheets'
 import { DayPanel, Timer, type VoteDraft } from './DayPanel'
@@ -104,8 +105,7 @@ export function BoardScreen() {
     room.options.mode === 'remote' && snap.remotePhase
       ? snap.prompts.filter(
           (prompt) =>
-            prompt.phase_sequence === snap.remotePhase!.sequence &&
-            !snap.submissions.some((submission) => submission.prompt_id === prompt.id),
+            prompt.phase_sequence === snap.remotePhase!.sequence && prompt.status !== 'submitted',
         )
       : []
 
@@ -388,7 +388,24 @@ export function BoardScreen() {
                   {snap.members.find((member) => member.id === remoteMissing[0]!.member_id)?.name}
                 </button>
               )}
-              {['night_action', 'effect_resolution'].includes(snap.remotePhase.kind) && (
+              {snap.remotePhase.deadline && (
+                <button
+                  className="btn btn-secondary"
+                  disabled={busy}
+                  onClick={() =>
+                    void exec({
+                      type: 'remote.extend',
+                      seconds: 30,
+                      reason: 'Quản trò gia hạn phase.',
+                    })
+                  }
+                >
+                  +30 giây
+                </button>
+              )}
+              {['night_action', 'effect_resolution', 'day_voting'].includes(
+                snap.remotePhase.kind,
+              ) && (
                 <button
                   className="btn btn-ink"
                   disabled={busy || remoteMissing.length > 0}
@@ -410,14 +427,26 @@ export function BoardScreen() {
           ) : night && nm ? (
             <NightPanel s={s} m={nm} ui={ui} setUi={setUi} footer={footer} />
           ) : (
-            <DayPanel
-              s={s}
-              gameId={game.id}
-              draft={draft}
-              setDraft={setDraft}
-              onEliminate={(id, reason) => setDialog({ type: 'kill', id, cause: 'vote', reason })}
-              footer={footer}
-            />
+            <>
+              <DayPanel
+                s={s}
+                gameId={game.id}
+                draft={draft}
+                setDraft={setDraft}
+                onEliminate={(id, reason) => setDialog({ type: 'kill', id, cause: 'vote', reason })}
+                footer={footer}
+              />
+              {room.options.mode === 'remote' && s.dayState?.step === 'discuss' && (
+                <RemoteChat
+                  roomId={room.id}
+                  gameId={game.id}
+                  channel="public"
+                  members={snap.members}
+                  canSend
+                  isHost
+                />
+              )}
+            </>
           )}
         </section>
 

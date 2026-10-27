@@ -25,6 +25,7 @@ export function RemoteChat({
   const fb = useFeedback()
   const [messages, setMessages] = useState<ChatMessageRow[]>([])
   const [body, setBody] = useState('')
+  const [replyTo, setReplyTo] = useState<ChatMessageRow | null>(null)
   const [busy, setBusy] = useState(false)
   const [limit, setLimit] = useState(50)
   const names = useMemo(() => new Map(members.map((m) => [m.id, m.name])), [members])
@@ -63,8 +64,14 @@ export function RemoteChat({
     if (!text || busy) return
     setBusy(true)
     try {
-      await sendPlayerCommand(roomId, gameId, { type: 'chat.send', channel, body: text })
+      await sendPlayerCommand(roomId, gameId, {
+        type: 'chat.send',
+        channel,
+        body: text,
+        ...(replyTo ? { replyTo: replyTo.id } : {}),
+      })
       setBody('')
+      setReplyTo(null)
     } catch (error) {
       fb.error(error)
     } finally {
@@ -87,10 +94,24 @@ export function RemoteChat({
       <ol className="remote-chat__messages" aria-live="polite">
         {messages.map((message) => (
           <li key={message.id} className="remote-chat__message">
+            {message.reply_to_id && (
+              <span className="remote-chat__reply">
+                ↪ Trả lời{' '}
+                {names.get(
+                  messages.find((candidate) => candidate.id === message.reply_to_id)
+                    ?.sender_member_id ?? '',
+                ) ?? 'tin trước'}
+              </span>
+            )}
             <strong>
               {message.sender_member_id ? names.get(message.sender_member_id) : 'Quản trò'}
             </strong>
             <span>{message.deleted_at ? 'Tin nhắn đã bị quản trò xóa' : message.body}</span>
+            {canSend && !message.deleted_at && (
+              <button className="btn btn-ghost" onClick={() => setReplyTo(message)}>
+                Trả lời
+              </button>
+            )}
             {isHost && !message.deleted_at && (
               <button
                 className="btn btn-ghost btn-icon"
@@ -109,6 +130,21 @@ export function RemoteChat({
           </li>
         ))}
       </ol>
+      {replyTo && (
+        <div className="remote-chat__replying">
+          <span>
+            Đang trả lời{' '}
+            {replyTo.sender_member_id ? names.get(replyTo.sender_member_id) : 'Quản trò'}
+          </span>
+          <button
+            className="btn btn-ghost btn-icon"
+            aria-label="Hủy trả lời"
+            onClick={() => setReplyTo(null)}
+          >
+            <Icon name="x" />
+          </button>
+        </div>
+      )}
       <div className="remote-chat__composer">
         <label className="sr-only" htmlFor={`chat-${channel}`}>
           Tin nhắn

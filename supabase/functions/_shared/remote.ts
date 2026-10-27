@@ -1,10 +1,12 @@
 import {
   availableTargets,
   currentStep,
+  eligibleVoters,
   isPack,
   seerSeesWolf,
   stepActors,
   stepInfo,
+  voteCandidates,
   witchCanHeal,
   type GameState,
   type RuleOptions,
@@ -131,6 +133,21 @@ export function aggregateRemoteAction(
   }
   if (step !== 'seer') return [action]
   return [action, { type: 'night.sleep', ...base }]
+}
+
+/** Tổng hợp phiếu riêng; phiếu Trưởng làng được engine cộng thêm đúng một lần. */
+export function aggregateRemoteVote(state: GameState, submissions: RemoteSubmission[]): Command {
+  const votes: Record<string, number> = {}
+  let chiefVote: string | null = null
+  for (const submission of submissions) {
+    const target = submission.payload.targets?.[0]
+    if (!target) continue
+    votes[target] = (votes[target] ?? 0) + 1
+    if (state.players.find((player) => player.id === submission.memberId)?.chief) chiefVote = target
+  }
+  return Object.keys(votes).length
+    ? { type: 'vote.tally', votes, chiefVote }
+    : { type: 'vote.skip' }
 }
 
 export type PlayerCommand =
@@ -374,9 +391,22 @@ export function remoteProjection(s: GameState, settings: RemoteSettings): Remote
   if (dayStep === 'discuss') return empty('day_discussion', settings.discussionSeconds)
   if (dayStep === 'vote') {
     if (s.dayState?.result) return empty('vote_result')
+    const candidates = voteCandidates(s).map(publicTarget)
+    const voters = eligibleVoters(s).filter((player) => player.device)
     return {
       ...empty('day_voting', settings.voteSeconds),
-      requiredCount: s.players.filter((p) => p.alive && p.canVote && p.device).length,
+      prompts: voters.map((voter) => ({
+        memberId: voter.id,
+        kind: 'vote',
+        payload: {
+          title: 'Bỏ phiếu',
+          instructions: 'Chọn một người để loại, hoặc để trống để bỏ phiếu trắng.',
+          min: 0,
+          max: 1,
+          targets: candidates,
+        },
+      })),
+      requiredCount: voters.length,
     }
   }
   return empty('vote_result')

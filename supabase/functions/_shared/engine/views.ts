@@ -13,6 +13,7 @@ import type {
   LogEntry,
   RoleDef,
   Team,
+  VoteResult,
   WinnerTeam,
 } from './types.ts'
 
@@ -54,6 +55,8 @@ export interface PublicState {
   /** Người bị loại được công bố gần nhất. */
   announcements: { id: string; name: string; role: PublicRole | null }[]
   log: LogEntry[]
+  /** Chỉ tổng phiếu đã khóa; không chứa danh tính người bầu. */
+  voteResult: VoteResult | null
   result: PublicResult | null
 }
 
@@ -88,6 +91,7 @@ export function publicView(s: GameState): PublicState {
         : [],
     // Khi ván kết thúc, mọi bí mật đã công bố: nhật ký đầy đủ cho phần “Diễn biến chính”.
     log: ended ? s.log : s.log.filter((e) => e.pub),
+    voteResult: s.dayState?.result ?? null,
     result:
       ended && s.winner
         ? {

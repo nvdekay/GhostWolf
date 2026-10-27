@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   aggregateRemoteAction,
+  aggregateRemoteVote,
   DEFAULT_REMOTE_SETTINGS,
   parsePlayerCommand,
   remoteProjection,
@@ -88,5 +89,39 @@ describe('remote contracts', () => {
       ['p0', 'charmed'],
       ['p1', 'charmed'],
     ])
+  })
+
+  it('aggregates private votes and adds the chief weight in the engine', () => {
+    const state = startedGame(['wolf', 'villager', 'villager', 'villager'])
+    state.phase = 'day'
+    state.night = null
+    state.dayState = { step: 'vote', voteOnly: null, result: null, resolved: false }
+    state.players[0]!.chief = true
+    expect(
+      aggregateRemoteVote(state, [
+        { memberId: 'p0', payload: { targets: ['p2'] } },
+        { memberId: 'p1', payload: { targets: ['p2'] } },
+        { memberId: 'p2', payload: { targets: [] } },
+      ]),
+    ).toEqual({ type: 'vote.tally', votes: { p2: 2 }, chiefVote: 'p2' })
+    expect(aggregateRemoteVote(state, [])).toEqual({ type: 'vote.skip' })
+  })
+
+  it('projects and aggregates a queued hunter effect for the affected player', () => {
+    const state = startedGame(['hunter', 'wolf', 'villager', 'villager'])
+    state.phase = 'day'
+    state.night = null
+    state.dayState = { step: 'announce', voteOnly: null, result: null, resolved: false }
+    state.effects = [{ id: 7, kind: 'hunter', playerId: 'p0' }]
+    state.players[0]!.alive = false
+    const projection = remoteProjection(state, { ...DEFAULT_REMOTE_SETTINGS, mode: 'remote' })
+    expect(projection).toMatchObject({
+      kind: 'effect_resolution',
+      requiredCount: 1,
+      prompts: [{ memberId: 'p0', kind: 'hunter' }],
+    })
+    expect(
+      aggregateRemoteAction(state, [{ memberId: 'p0', payload: { targets: ['p2'] } }]),
+    ).toEqual([{ type: 'effect.resolve', effectId: 7, target: 'p2' }])
   })
 })

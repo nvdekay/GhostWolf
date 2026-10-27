@@ -73,13 +73,25 @@ function PromptCard({
   const submit = async () => {
     setBusy(true)
     try {
-      await sendPlayerCommand(room.id, game.id, {
-        type: 'action.submit',
-        promptId: prompt.id,
-        phaseSequence: prompt.phase_sequence,
-        payload:
-          prompt.kind === 'witch' ? { targets: [], heal, poison: targets[0] ?? null } : { targets },
-      })
+      await sendPlayerCommand(
+        room.id,
+        game.id,
+        prompt.kind === 'vote'
+          ? {
+              type: 'vote.submit',
+              phaseSequence: prompt.phase_sequence,
+              candidateId: targets[0] ?? null,
+            }
+          : {
+              type: 'action.submit',
+              promptId: prompt.id,
+              phaseSequence: prompt.phase_sequence,
+              payload:
+                prompt.kind === 'witch'
+                  ? { targets: [], heal, poison: targets[0] ?? null }
+                  : { targets },
+            },
+      )
       await snap.refresh()
       fb.toast(submitted ? 'Đã cập nhật lựa chọn' : 'Server đã nhận hành động')
     } catch (error) {
@@ -127,7 +139,15 @@ function PromptCard({
         </div>
       )}
       <button className="btn btn-ink btn-lg btn-block" disabled={!valid || busy} onClick={submit}>
-        {busy ? 'Đang gửi…' : submitted ? 'Cập nhật lựa chọn' : 'Xác nhận hành động'}
+        {busy
+          ? 'Đang gửi…'
+          : submitted
+            ? prompt.kind === 'vote'
+              ? 'Đổi phiếu'
+              : 'Cập nhật lựa chọn'
+            : prompt.kind === 'vote'
+              ? 'Gửi phiếu'
+              : 'Xác nhận hành động'}
       </button>
       <p className="remote-prompt__status" role="status">
         {busy
@@ -210,6 +230,20 @@ export function RemotePlayerGame({
           members={snap.members}
           canSend={canPublicChat}
         />
+      )}
+      {phase?.kind === 'vote_result' && game.public_state.voteResult && (
+        <section className="remote-notebook" aria-label="Kết quả bỏ phiếu">
+          <h2>Kết quả bỏ phiếu</h2>
+          <ul>
+            {Object.entries(game.public_state.voteResult.tally).map(([memberId, count]) => (
+              <li key={memberId}>
+                {snap.members.find((member) => member.id === memberId)?.name ?? 'Người chơi'}:{' '}
+                {count} phiếu
+              </li>
+            ))}
+            <li>Phiếu trắng: {game.public_state.voteResult.abstain}</li>
+          </ul>
+        </section>
       )}
       {snap.knowledge.length > 0 && (
         <section className="remote-notebook">

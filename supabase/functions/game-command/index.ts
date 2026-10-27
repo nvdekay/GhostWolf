@@ -10,6 +10,7 @@ import {
 } from '../_shared/commands.ts'
 import {
   aggregateRemoteAction,
+  aggregateRemoteVote,
   DEFAULT_REMOTE_SETTINGS,
   remoteProjection,
   type RemoteSubmission,
@@ -240,6 +241,23 @@ async function gameCommand(
       )
     return { gameId: game.id, revision: game.revision, duplicate: false }
   }
+  if (command.type === 'remote.extend') {
+    if (room.options.mode !== 'remote')
+      throw new HttpError(409, 'LOCAL_ROOM', 'Phòng cùng chỗ không có lượt remote.')
+    const { error } = await db.rpc('host_extend_remote_phase', {
+      p_game: game.id,
+      p_actor_user: userId,
+      p_seconds: command.seconds,
+      p_reason: command.reason,
+    })
+    if (error)
+      throw new HttpError(
+        error.details === 'PHASE_LOCKED' ? 409 : 500,
+        error.details || 'DB_ERROR',
+        error.message,
+      )
+    return { gameId: game.id, revision: game.revision, duplicate: false }
+  }
   const { state: prev } = await must<{ state: GameState }>(
     db.from('game_secrets').select('state').eq('game_id', game.id).maybeSingle(),
     'Không đọc được trạng thái ván',
@@ -277,8 +295,12 @@ async function gameCommand(
     if (command.type === 'remote.lock') {
       if (room.options.mode !== 'remote')
         throw new HttpError(409, 'LOCAL_ROOM', 'Phòng cùng chỗ không có lượt remote.')
-      const phase = await must<{ sequence: number; status: string }>(
-        db.from('remote_phases').select('sequence,status').eq('game_id', game.id).maybeSingle(),
+      const phase = await must<{ sequence: number; status: string; kind: string }>(
+        db
+          .from('remote_phases')
+          .select('sequence,status,kind')
+          .eq('game_id', game.id)
+          .maybeSingle(),
         'Không tìm thấy lượt remote',
       )
       if (phase.status !== 'open') throw new HttpError(409, 'PHASE_LOCKED', 'Lượt đã khóa.')
@@ -302,16 +324,17 @@ async function gameCommand(
             'Không đọc được hành động',
           )
         : []
-      const actions = aggregateRemoteAction(
-        base,
-        rows.map((row) => ({ memberId: row.member_id, payload: row.payload })),
-      )
+      const submissions = rows.map((row) => ({ memberId: row.member_id, payload: row.payload }))
       if (rows.length < prompts.length)
         throw new HttpError(
           409,
           'WAITING_ACTORS',
           'Còn người chưa gửi. Hãy chờ hoặc ghi nhận bỏ lượt hộ trước khi khóa.',
         )
+      const actions =
+        phase.kind === 'day_voting'
+          ? [aggregateRemoteVote(base, submissions)]
+          : aggregateRemoteAction(base, submissions)
       if (actions.length === 0)
         throw new HttpError(409, 'NOT_LOCKABLE', 'Phase này không có hành động để khóa.')
       next = actions.reduce(

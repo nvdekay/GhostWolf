@@ -16,6 +16,19 @@
   gap: 0.6rem;
 }
 
+.remote-chat__reply {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.remote-chat__replying {
+  align-items: center;
+  background: color-mix(in srgb, var(--gold) 10%, transparent);
+  display: flex;
+  justify-content: space-between;
+  padding: 0.35rem 0.55rem;
+}
+
 .remote-chat__head {
   justify-content: space-between;
 }

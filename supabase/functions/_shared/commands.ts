@@ -11,6 +11,7 @@ export type GameCommand =
   | { type: 'undo' }
   | { type: 'remote.lock' }
   | { type: 'remote.timeout'; promptId: string; reason: string }
+  | { type: 'remote.extend'; seconds: number; reason: string }
 
 export type CommandRequest =
   | { scope: 'room'; roomId: string; commandId: string; command: RoomCommand }
@@ -53,6 +54,7 @@ export const COMMAND_LABELS: Partial<Record<GameCommand['type'], string>> = {
   reset: 'Reset ván',
   'remote.lock': 'Khóa lượt từ xa',
   'remote.timeout': 'Bỏ lượt hộ người chơi',
+  'remote.extend': 'Gia hạn lượt từ xa',
 }
 
 const KNOWN = new Set<string>([
@@ -80,6 +82,7 @@ const KNOWN = new Set<string>([
   'undo',
   'remote.lock',
   'remote.timeout',
+  'remote.extend',
 ])
 
 const isStr = (x: unknown): x is string => typeof x === 'string' && x.length > 0 && x.length <= 200
@@ -140,6 +143,14 @@ export function parseGameCommand(x: unknown): GameCommand | null {
       return UUID.test(String(c.promptId ?? '')) &&
         typeof c.reason === 'string' &&
         c.reason.trim().length > 0 &&
+        c.reason.length <= 300
+        ? (c as GameCommand)
+        : null
+    case 'remote.extend':
+      return Number.isInteger(c.seconds) &&
+        (c.seconds as number) > 0 &&
+        (c.seconds as number) <= 600 &&
+        typeof c.reason === 'string' &&
         c.reason.length <= 300
         ? (c as GameCommand)
         : null
