@@ -8,7 +8,7 @@ Cập nhật phát hành 2026-10-27: `main` chứa toàn bộ implementation Rem
 production đã deploy; closed beta trên mạng và thiết bị thật chưa thực hiện.
 
 Kiểm thử đã chạy (Supabase local + Edge Function chạy bằng Deno):
-`npm test` 63 test · `npm run test:integration` 47 test · `npm run test:e2e` 10 kịch bản ·
+`npm test` 63 test · `npm run test:integration` 47 test · `npm run test:e2e` 12 kịch bản ·
 `npm run test:e2e:captcha` 1 kịch bản,
 bao gồm local full-game, remote full-game, RLS, reconnect, takeover tab, tải 30 người và
 responsive 320–1920 px.
@@ -82,7 +82,7 @@ responsive 320–1920 px.
 - [x] Vitest: chia bài + tần suất, đêm, dây chuyền, Thợ săn, Thằng ngốc, Trưởng làng, phiếu, thắng, reset, public view.
 - [x] Integration: RLS, lobby, kick, khóa, reconnect, idempotency, revision, realtime, undo/reset/kết thúc/replay, thư viện.
 - [x] Playwright: quản trò + 2 người chơi; kick / mất mạng / đóng phòng; xung đột hai tab quản trò; ván 10 người chọn ngẫu nhiên tới khi có kết quả (gồm hiệu ứng Thợ săn và kế nhiệm Trưởng làng); responsive 360/390/768/1024/1440/1920 (không tràn ngang, nút ≥ 32px chiều cao).
-- [~] Focus trap + trả focus trong dialog/sheet, hold-to-reveal bằng bàn phím: đã cài đặt, chưa có test tự động.
+- [x] Focus trap + trả focus trong dialog/sheet, đóng bằng Escape và hold-to-reveal bằng bàn phím có E2E tự động.
 - [~] Bàn phím ảo che CTA trên điện thoại thật: chưa kiểm trên thiết bị thật.
 - [~] Frontend Cloudflare Turnstile truyền token vào anonymous sign-in và CAPTCHA E2E pass; production site key/secret và Supabase enforcement chưa cấu hình.
 - [x] typecheck, lint, test, build.

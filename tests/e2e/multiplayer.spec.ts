@@ -197,6 +197,11 @@ test('quản trò và hai người chơi trên ba thiết bị', async ({ browse
   await expect(p1.page.locator('.hold__role')).toHaveText(roles[0]!)
   await hold.dispatchEvent('pointerup')
   await expect(p1.page.locator('.hold__role')).toHaveCount(0)
+  await hold.focus()
+  await p1.page.keyboard.down('Space')
+  await expect(p1.page.locator('.hold__role')).toHaveText(roles[0]!)
+  await p1.page.keyboard.up('Space')
+  await expect(p1.page.locator('.hold__role')).toHaveCount(0)
 
   // — Quản trò kết thúc ván: người chơi thấy kết quả —
   await host.page.getByRole('button', { name: 'Menu ván' }).click()

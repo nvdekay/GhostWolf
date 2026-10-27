@@ -30,7 +30,7 @@ Snapshot phát hành:
 - Vercel nối GitHub branch `main`; bản production chứa baseline trên đã được xác minh và đang
   phục vụ tại `https://ghostwolf.khanhnvd.click`.
 - Xác minh phát hành: typecheck, lint, build, Deno check, 63 unit tests, 47 integration tests,
-  10 E2E scenarios, CAPTCHA E2E và smoke test hai browser context trên production đều pass.
+  12 E2E scenarios, CAPTCHA E2E và smoke test hai browser context trên production đều pass.
 
 Trạng thái này chỉ xác nhận code và hạ tầng đã phát hành. CAPTCHA, lịch cleanup, alerting,
 kiểm thử thiết bị thật và closed beta được theo dõi riêng ở các mục 19, 20 và 23.
@@ -806,9 +806,9 @@ Kết quả baseline đã chốt ngày 2026-10-27:
 - `deno check` cho `game-command` và `player-command`: pass.
 - `npm test`: 63/63 unit tests pass.
 - `npm run test:integration`: 47/47 integration tests pass trên Supabase local.
-- `npm run test:e2e`: 10/10 scenarios pass, gồm local full-game, remote full-flow, RLS,
-  reconnect, takeover thiết bị, xung đột hai tab quản trò, Tiên tri reconnect, tải 30 người và
-  responsive 320–1920 px.
+- `npm run test:e2e`: 12/12 scenarios pass, gồm local full-game, remote full-flow, RLS,
+  reconnect, takeover thiết bị, xung đột hai tab quản trò, focus/keyboard accessibility, Tiên
+  tri reconnect, tải 30 người và responsive 320–1920 px.
 - `npm run test:e2e:captcha`: 1/1 scenario pass; xác minh widget cấp token và anonymous
   sign-in gửi đúng token tới Supabase Auth.
 - Production smoke: tạo phòng remote, join, claim thiết bị, ready, chat Realtime, host nhận tin,
