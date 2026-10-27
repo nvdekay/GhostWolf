@@ -10,6 +10,7 @@ import { refreshRoom } from '@/realtime/roomStore'
 import { sendRoomCommand } from '@/services/game'
 import { addMember, closeRoom, kickMember, lockRoom, unlockRoom } from '@/services/rooms'
 import { useHost, useStepper } from '@/features/host/context'
+import { RemoteChat } from '@/features/remote/RemoteChat'
 import './setup.css'
 
 export function LobbyScreen() {
@@ -27,6 +28,8 @@ export function LobbyScreen() {
   const n = members.length
   const open = room.status === 'open'
   const canLock = n >= MIN_PLAYERS
+  const remote = room.options.mode === 'remote'
+  const waitingReady = members.filter((member) => member.device && !member.ready)
   const rolesSent = !!game && !['setup', 'dealt', 'ended'].includes(game.status)
 
   const guard = async (fn: () => Promise<unknown>) => {
@@ -183,6 +186,11 @@ export function LobbyScreen() {
                           </>
                         )}
                       </span>
+                      {remote && p.device && (
+                        <span className="lobby__device">
+                          {p.ready ? 'Đã sẵn sàng' : 'Chưa sẵn sàng'}
+                        </span>
+                      )}
                     </span>
                     {open && (
                       <button
@@ -239,6 +247,9 @@ export function LobbyScreen() {
             </div>
           )}
         </section>
+        {remote && (
+          <RemoteChat roomId={room.id} channel="lobby" members={members} canSend={open} isHost />
+        )}
       </div>
 
       {open ? (
@@ -251,10 +262,12 @@ export function LobbyScreen() {
           <button
             className="btn btn-ink btn-lg lobby__lock"
             onClick={lock}
-            disabled={!canLock || busy}
+            disabled={!canLock || busy || (remote && waitingReady.length > 0)}
           >
             <Icon name="lock" />
-            Chốt phòng · {n} người
+            {remote && waitingReady.length > 0
+              ? `Chờ ${waitingReady.length} người sẵn sàng`
+              : `Chốt phòng · ${n} người`}
           </button>
         </BottomBar>
       ) : (

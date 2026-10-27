@@ -284,11 +284,9 @@ async function gameCommand(
   }
 }
 
-const port = Number(Deno.env.get('PORT') ?? 0)
-
 const SAFE_ID = /^[0-9a-zA-Z-]{8,64}$/
 
-Deno.serve(port ? { port } : {}, async (req) => {
+export async function handleGameCommand(req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
   const started = performance.now()
   const incoming = req.headers.get('x-request-id') ?? ''
@@ -306,7 +304,12 @@ Deno.serve(port ? { port } : {}, async (req) => {
   logLine(res.status >= 500 ? 'error' : res.ok ? 'info' : 'warn', entry)
   res.headers.set('x-request-id', entry.requestId)
   return res
-})
+}
+
+if (import.meta.main) {
+  const port = Number(Deno.env.get('PORT') ?? 0)
+  Deno.serve(port ? { port } : {}, handleGameCommand)
+}
 
 async function handle(req: Request, entry: RequestLog): Promise<Response> {
   if (req.method !== 'POST') return fail(405, 'METHOD', 'Chỉ nhận POST.')

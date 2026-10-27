@@ -1,0 +1,68 @@
+.remote-chat {
+  border: 1px solid var(--border, rgba(80, 62, 45, 0.25));
+  border-radius: 14px;
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  min-width: 0;
+  padding: 0.85rem;
+}
+
+.remote-chat__head,
+.remote-chat__composer,
+.remote-chat__message {
+  align-items: center;
+  display: flex;
+  gap: 0.6rem;
+}
+
+.remote-chat__head {
+  justify-content: space-between;
+}
+
+.remote-chat__head h2 {
+  margin: 0;
+}
+
+.remote-chat__messages {
+  display: grid;
+  gap: 0.55rem;
+  list-style: none;
+  margin: 0;
+  max-height: 18rem;
+  overflow: auto;
+  padding: 0;
+}
+
+.remote-chat__message {
+  align-items: flex-start;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 10px;
+  padding: 0.65rem;
+}
+
+.remote-chat__message strong {
+  flex: 0 0 auto;
+}
+
+.remote-chat__message span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.remote-chat__message .btn {
+  margin-left: auto;
+}
+
+.remote-chat__composer textarea {
+  min-height: 44px;
+  resize: vertical;
+}
+
+@media (max-width: 480px) {
+  .remote-chat__composer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

@@ -32,6 +32,10 @@ export const closeRoom = (roomId: string) => call<void>('host_close', { p_room: 
 export const ackRole = (gameId: string) => call<string>('ack_role', { p_game: gameId })
 export const hostAckRole = (gameId: string, memberId: string) =>
   call<string>('host_ack_role', { p_game: gameId, p_member: memberId })
+export const deleteChatMessage = (messageId: string, reason = '') =>
+  call<void>('host_delete_chat', { p_message: messageId, p_reason: reason })
+export const muteMember = (memberId: string, until: string | null, reason = '') =>
+  call<void>('host_mute_member', { p_member: memberId, p_until: until, p_reason: reason })
 
 export interface SessionSummary {
   room: RoomRow

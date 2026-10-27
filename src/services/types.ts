@@ -24,7 +24,29 @@ export interface MemberRow {
   seat: number
   device: boolean
   status: MemberStatus
+  ready: boolean
+  ready_at: string | null
+  muted_until: string | null
+  afk_count: number
   joined_at: string
+}
+
+export type ChatChannel = 'lobby' | 'public' | 'wolves' | 'system' | 'moderator'
+
+export interface ChatMessageRow {
+  id: string
+  room_id: string
+  game_id: string | null
+  channel: ChatChannel
+  sender_member_id: string | null
+  client_message_id: string
+  reply_to_id: string | null
+  body: string
+  day: number | null
+  phase_sequence: number | null
+  created_at: string
+  deleted_at: string | null
+  deleted_by: string | null
 }
 
 export interface GameRow {

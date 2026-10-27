@@ -12,6 +12,8 @@ import { ackRole, leaveRoom } from '@/services/rooms'
 import { RoomMessage } from '@/features/host/HostRoom'
 import { ResultView } from '@/features/result/ResultScreen'
 import { roleView, type RoleView } from '@/features/roles/roles'
+import { RemoteChat } from '@/features/remote/RemoteChat'
+import { sendPlayerCommand } from '@/services/player'
 import './join.css'
 
 /** Gọi `hide` khi người dùng rời màn hình: mất focus cửa sổ, chuyển tab/ẩn app, rời trang. */
@@ -131,6 +133,7 @@ export function PlayerRoom({ roomId }: { roomId: string }) {
   const sent = !!game && ['sent', 'playing', 'ended'].includes(game.status)
   const others = snap.members.filter((m) => m.status === 'active' && m.id !== me.id)
   const myPub = pub?.players.find((p) => p.id === me.id)
+  const remote = room.options.mode === 'remote'
 
   const header = (meta: string) => (
     <div className="join__bar join__bar--split">
@@ -211,6 +214,31 @@ export function PlayerRoom({ roomId }: { roomId: string }) {
             ))}
           </ul>
         </section>
+        {remote && room.status === 'open' && (
+          <>
+            <button
+              className="btn btn-ink btn-lg btn-block"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true)
+                try {
+                  await sendPlayerCommand(room.id, game?.id, {
+                    type: 'player.ready',
+                    ready: !me.ready,
+                  })
+                  await refreshRoom(room.id)
+                } catch (error) {
+                  fb.error(error)
+                } finally {
+                  setBusy(false)
+                }
+              }}
+            >
+              {me.ready ? 'Hủy sẵn sàng' : 'Sẵn sàng'}
+            </button>
+            <RemoteChat roomId={room.id} channel="lobby" members={snap.members} canSend />
+          </>
+        )}
       </main>
     )
   } else if (!a!.viewed_at) {
