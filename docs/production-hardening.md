@@ -135,7 +135,8 @@ Rollback (nếu cần): tạo migration mới khôi phục định nghĩa hàm t
       và Supabase config. Anonymous rate limit production là 30/giờ/IP.
 - [~] Migration Supabase Cron, dọn run history và RPC health đã deploy; lịch active, còn chờ xác minh lần chạy hosted đầu tiên.
 - [~] Synthetic health/cron/expired-prompt alert mỗi giờ qua GitHub Actions đã có; alert dựa
-  trên Supabase logs cho tỷ lệ 5xx, p95, rate-limit và Realtime errors vẫn cần cấu hình Dashboard.
+  trên Supabase logs cho tỷ lệ 5xx, p95, rate-limit và Realtime errors cần Log Drains nên tạm
+  hoãn khi project còn ở Supabase Free. Workflow dùng Actions runtime hiện hành và đã chạy pass.
 - [x] Realtime chat hosted đã smoke test; presence private adversarial test hosted pass (member
       subscribe, outsider `CHANNEL_ERROR`). Key presence vẫn chỉ là tín hiệu UI theo RT-03.
 - [ ] Chạy closed beta 6–8 và 12–16 người trên Wi-Fi + 4G/5G, ghi lại các chỉ số trong kế hoạch.

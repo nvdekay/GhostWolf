@@ -872,7 +872,8 @@ Chưa cấu hình hoặc chưa xác minh trên production:
 - [~] Migration Supabase Cron, dọn run history và RPC health đã deploy; lịch active, còn chờ
   xác minh lần chạy hosted đầu tiên.
 - [~] Synthetic health/cron/expired-prompt alert mỗi giờ qua GitHub Actions đã có; log-based
-  alert cho tỷ lệ 5xx, p95, rate-limit và Realtime errors vẫn cần cấu hình Dashboard.
+  alert cho tỷ lệ 5xx, p95, rate-limit và Realtime errors cần Log Drains nên tạm hoãn khi project
+  còn ở Supabase Free.
 - [ ] Dashboard/báo cáo funnel join → ready → start → finish phục vụ beta.
 - [x] Realtime chat production đã smoke test; presence private đã adversarial test trên hosted:
       thành viên subscribe được, người ngoài bị RLS từ chối.
