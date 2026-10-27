@@ -137,7 +137,8 @@ Rollback (nếu cần): tạo migration mới khôi phục định nghĩa hàm t
 - [~] Migration Supabase Cron, dọn run history và RPC health đã có; cần deploy migration và xác minh lần chạy hosted đầu tiên.
 - [~] Synthetic health/cron/expired-prompt alert mỗi giờ qua GitHub Actions đã có; alert dựa
   trên Supabase logs cho tỷ lệ 5xx, p95, rate-limit và Realtime errors vẫn cần cấu hình Dashboard.
-- [~] Realtime chat hosted đã smoke test; presence private cần adversarial test trên hosted project.
+- [x] Realtime chat hosted đã smoke test; presence private adversarial test hosted pass (member
+      subscribe, outsider `CHANNEL_ERROR`). Key presence vẫn chỉ là tín hiệu UI theo RT-03.
 - [ ] Chạy closed beta 6–8 và 12–16 người trên Wi-Fi + 4G/5G, ghi lại các chỉ số trong kế hoạch.
 - [ ] Khôi phục quyền **quản trò** khi đổi/mất thiết bị (FE-02); lease thiết bị người chơi remote đã có.
 - [~] Presence: key do client đặt, chỉ dùng để hiển thị online (RT-03). Muốn tin cậy được cần heartbeat qua RPC.

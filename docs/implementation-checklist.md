@@ -8,7 +8,7 @@ Cập nhật phát hành 2026-10-27: `main` chứa toàn bộ implementation Rem
 production đã deploy; closed beta trên mạng và thiết bị thật chưa thực hiện.
 
 Kiểm thử đã chạy (Supabase local + Edge Function chạy bằng Deno):
-`npm test` 63 test · `npm run test:integration` 47 test · `npm run test:e2e` 9 kịch bản ·
+`npm test` 63 test · `npm run test:integration` 47 test · `npm run test:e2e` 10 kịch bản ·
 `npm run test:e2e:captcha` 1 kịch bản,
 bao gồm local full-game, remote full-game, RLS, reconnect, takeover tab, tải 30 người và
 responsive 320–1920 px.
@@ -67,7 +67,7 @@ responsive 320–1920 px.
 - [x] `game_secrets`, lịch sử, command log: chỉ quản trò / service role; client không ghi trực tiếp bảng ván.
 - [x] Không service-role key ở frontend; realtime không gửi `game_secrets` tới người chơi (integration).
 - [x] Màn hình chung render từ public state; e2e kiểm không có tên vai trên bàn khi bật. Nhãn hoàn tác chung chung, không chứa mục tiêu.
-- [~] Chính sách kênh presence private (`realtime.messages`) chạy được local; Realtime chat hosted đã smoke test nhưng presence private chưa được adversarial test trên Supabase hosted.
+- [x] Chính sách kênh presence private (`realtime.messages`) chạy local và adversarial test trên Supabase hosted: thành viên subscribe được, người ngoài bị `CHANNEL_ERROR`.
 
 ## 5. Persistence & đồng bộ
 
@@ -75,13 +75,13 @@ responsive 320–1920 px.
 - [x] Reconnect: lấy lại snapshot khi (re)subscribe; store có refcount, không tạo kênh trùng khi remount.
 - [x] Phân biệt phòng đóng / ván kết thúc / reset / chơi lại; ván cũ giữ nguyên.
 - [x] localStorage chỉ cho phiên auth, route đang mở, timer, chế độ màn hình chung. Không cache bí mật.
-- [~] Hai tab quản trò cùng lúc: revision conflict được báo và tải lại (integration ở mức API); chưa có e2e hai tab.
+- [x] Hai tab quản trò cùng lúc: revision conflict được báo, tải lại và hai tab hội tụ về cùng state (integration + E2E).
 
 ## 6. Kiểm thử & bàn giao
 
 - [x] Vitest: chia bài + tần suất, đêm, dây chuyền, Thợ săn, Thằng ngốc, Trưởng làng, phiếu, thắng, reset, public view.
 - [x] Integration: RLS, lobby, kick, khóa, reconnect, idempotency, revision, realtime, undo/reset/kết thúc/replay, thư viện.
-- [x] Playwright: quản trò + 2 người chơi; kick / mất mạng / đóng phòng; ván 10 người chọn ngẫu nhiên tới khi có kết quả (gồm hiệu ứng Thợ săn và kế nhiệm Trưởng làng); responsive 360/390/768/1024/1440/1920 (không tràn ngang, nút ≥ 32px chiều cao).
+- [x] Playwright: quản trò + 2 người chơi; kick / mất mạng / đóng phòng; xung đột hai tab quản trò; ván 10 người chọn ngẫu nhiên tới khi có kết quả (gồm hiệu ứng Thợ săn và kế nhiệm Trưởng làng); responsive 360/390/768/1024/1440/1920 (không tràn ngang, nút ≥ 32px chiều cao).
 - [~] Focus trap + trả focus trong dialog/sheet, hold-to-reveal bằng bàn phím: đã cài đặt, chưa có test tự động.
 - [~] Bàn phím ảo che CTA trên điện thoại thật: chưa kiểm trên thiết bị thật.
 - [~] Frontend Cloudflare Turnstile truyền token vào anonymous sign-in và CAPTCHA E2E pass; production site key/secret và Supabase enforcement chưa cấu hình.
