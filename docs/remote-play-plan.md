@@ -1,11 +1,39 @@
 # Kế hoạch chế độ chơi từ xa cho Ghostwolf
 
-> Trạng thái: MVP đã triển khai và qua kiểm thử tự động ngày 2026-10-27; closed beta/manual game
-> session trên mạng thật vẫn là bước vận hành tiếp theo.
+> Trạng thái ngày 2026-10-27: MVP kỹ thuật (baseline `703c8df`) đã triển khai lên production
+> từ `main`, migrations và hai Edge Function đã hoạt động, toàn bộ kiểm thử tự động và smoke
+> test production đã qua. Giai đoạn 0–3 đã hoàn thành; phần kỹ thuật của Giai đoạn 4 đã xong.
+> Closed beta/manual game session trên thiết bị và mạng thật vẫn là cổng nghiệm thu cuối.
 >
 > Mục tiêu: cho phép mọi người ở các địa điểm khác nhau chơi một ván Ghostwolf hoàn
 > chỉnh chỉ bằng trình duyệt và kết nối Internet, không cần gọi thoại hoặc ứng dụng chat
 > bên ngoài.
+
+## 0. Trạng thái triển khai hiện tại
+
+| Hạng mục                             | Trạng thái      | Bằng chứng                                                              |
+| ------------------------------------ | --------------- | ----------------------------------------------------------------------- |
+| Giai đoạn 0 — Thiết kế/regression    | Hoàn thành      | Contracts, room mode, migrations/RLS và regression local mode đã merge  |
+| Giai đoạn 1 — Room/chat công khai    | Hoàn thành      | Ready check, chat, moderation, pagination, reconnect và rate limit      |
+| Giai đoạn 2 — Prompt/hành động đêm   | Hoàn thành      | Toàn bộ vai chuẩn, chat Sói, timeout, thao tác hộ và private view       |
+| Giai đoạn 3 — Discussion/vote/effect | Hoàn thành      | Timer, vote kín, hòa/bầu lại, hiệu ứng, kết quả và replay               |
+| Giai đoạn 4 — Hardening/beta         | Đang nghiệm thu | Hardening tự động đã xong; closed beta và chỉ số thực tế chưa thực hiện |
+
+Snapshot phát hành:
+
+- `main` chứa toàn bộ implementation qua commit
+  `703c8dfd67b57a934c16ee4dd97a472a179e3505`; local và remote đã được đồng bộ trước bản cập
+  nhật tài liệu này.
+- Supabase project `ztyefvgplgafhfukmkxh` đã áp dụng đủ bốn migration Remote Play
+  `20261027000000`–`20261027030000`.
+- Edge Function `game-command` và `player-command` đang active trên Supabase hosted.
+- Vercel nối GitHub branch `main`; bản production chứa baseline trên đã được xác minh và đang
+  phục vụ tại `https://ghostwolf.khanhnvd.click`.
+- Xác minh phát hành: typecheck, lint, build, Deno check, 63 unit tests, 46 integration tests,
+  9 E2E scenarios và smoke test hai browser context trên production đều pass.
+
+Trạng thái này chỉ xác nhận code và hạ tầng đã phát hành. CAPTCHA, lịch cleanup, alerting,
+kiểm thử thiết bị thật và closed beta được theo dõi riêng ở các mục 19, 20 và 23.
 
 ## 1. Tóm tắt quyết định
 
@@ -707,6 +735,8 @@ Khi hiển thị timer:
 
 ### Giai đoạn 0 — Thiết kế và bảo vệ regression
 
+**Trạng thái: hoàn thành.**
+
 - Chốt state machine và command contracts.
 - Thêm `mode` vào room options/types.
 - Viết test bảo đảm local mode không đổi hành vi.
@@ -716,6 +746,8 @@ Khi hiển thị timer:
 **Hoàn thành khi:** schema/contract được review, unit test engine hiện tại vẫn pass.
 
 ### Giai đoạn 1 — Nền tảng room và chat công khai
+
+**Trạng thái: hoàn thành.**
 
 - Remote room config.
 - Ready check.
@@ -728,6 +760,8 @@ Khi hiển thị timer:
 
 ### Giai đoạn 2 — Prompt và hành động đêm
 
+**Trạng thái: hoàn thành.**
+
 - Player private view.
 - Prompt lifecycle và submission idempotency.
 - Cupid, Bảo vệ, Sói, Sói trắng, Phù thủy, Tiên tri và Người thổi sáo.
@@ -738,6 +772,8 @@ Khi hiển thị timer:
 **Hoàn thành khi:** toàn bộ đêm có thể chạy mà quản trò không nhập lại lựa chọn của người chơi.
 
 ### Giai đoạn 3 — Thảo luận, vote và hiệu ứng
+
+**Trạng thái: hoàn thành.**
 
 - Discussion timer.
 - Khóa chat khi vote.
@@ -750,6 +786,8 @@ Khi hiển thị timer:
 
 ### Giai đoạn 4 — Hardening và beta
 
+**Trạng thái: hoàn thành phần kỹ thuật, chưa hoàn thành closed beta.**
+
 - Multi-device/conflicting tab handling.
 - Network throttling và reconnect tests.
 - Security audit RLS.
@@ -761,6 +799,17 @@ Khi hiển thị timer:
 **Hoàn thành khi:** không có lỗi lộ dữ liệu mức nghiêm trọng và các chỉ số beta đạt mục tiêu.
 
 ## 18. Chiến lược kiểm thử
+
+Kết quả baseline đã chốt ngày 2026-10-27:
+
+- `npm run typecheck`, `npm run lint`, `npm run build`: pass.
+- `deno check` cho `game-command` và `player-command`: pass.
+- `npm test`: 63/63 unit tests pass.
+- `npm run test:integration`: 46/46 integration tests pass trên Supabase local.
+- `npm run test:e2e`: 9/9 scenarios pass, gồm local full-game, remote full-flow, RLS,
+  reconnect, takeover thiết bị, Tiên tri reconnect, tải 30 người và responsive 320–1920 px.
+- Production smoke: tạo phòng remote, join, claim thiết bị, ready, chat Realtime, host nhận tin,
+  đóng phòng và player nhận trạng thái đóng đều pass.
 
 ### Unit tests
 
@@ -800,12 +849,29 @@ Khi hiển thị timer:
 
 Automated tests không đánh giá được nhịp chat và cảm giác chờ. Cần test thật với ít nhất:
 
-- Nhóm 6–8 người.
-- Nhóm 12–16 người.
-- Người dùng đồng thời Wi-Fi và 4G/5G.
-- Một người cố tình mất mạng hoặc mở hai tab.
+- [ ] Nhóm 6–8 người.
+- [ ] Nhóm 12–16 người.
+- [ ] Người dùng đồng thời Wi-Fi và 4G/5G.
+- [ ] Một người cố tình mất mạng hoặc mở hai tab.
+- [ ] Ghi lại lỗi, thời lượng phase, số lần reconnect/thao tác hộ và phản hồi về trạng thái gửi.
 
 ## 19. Monitoring và vận hành
+
+Đã có trong bản phát hành:
+
+- Log JSON đã lọc bí mật và `x-request-id` ở cả hai Edge Function.
+- RPC metric tổng hợp không chứa payload riêng tư.
+- Cleanup/retention RPC `gw_cleanup` và runbook xử lý sự cố.
+- Security headers trong `vercel.json` và HTTPS trên domain production.
+
+Chưa cấu hình hoặc chưa xác minh trên production:
+
+- [ ] CAPTCHA và rate limit phù hợp cho anonymous sign-in.
+- [ ] Lịch Supabase Cron chạy `gw_cleanup()` và kiểm tra kết quả lần chạy đầu.
+- [ ] Alert cho 5xx, latency p95, rate-limit, prompt timeout/AFK và Realtime errors.
+- [ ] Dashboard/báo cáo funnel join → ready → start → finish phục vụ beta.
+- [~] Realtime chat production đã smoke test; policy presence private chưa được adversarial test
+  trên hosted project.
 
 Theo dõi tối thiểu:
 
@@ -839,41 +905,65 @@ Các mục tiêu beta ban đầu:
 - Một ván 12 người không cần quản trò nhập hộ trong điều kiện mọi người online.
 - Người mới hiểu trạng thái gửi hành động mà không cần hướng dẫn ngoài ứng dụng.
 
+**Trạng thái:** chưa có dữ liệu nhóm chơi thật để đánh giá các chỉ số này. Automated tests và
+production smoke chỉ là điều kiện vào beta, không thay thế số liệu beta.
+
 ## 21. Tiêu chí hoàn thành MVP
 
-MVP được coi là hoàn thành khi:
+MVP kỹ thuật được coi là hoàn thành khi; tất cả tiêu chí dưới đây đã đạt ngày 2026-10-27:
 
-- Tạo được phòng remote và mời người qua link/mã.
-- Mọi người ready và xác nhận vai độc lập.
-- Tất cả vai engine đang hỗ trợ có luồng remote hoặc fallback quản trò được ghi rõ.
-- Sói phối hợp bằng chat bí mật và gửi mục tiêu.
-- Chat công khai chỉ mở đúng lúc và người chết không thể gửi.
-- Vote được gửi, thay đổi, khóa và tính ở server.
-- Refresh/mất mạng ngắn không làm mất tiến trình.
-- Host xử lý timeout và thao tác hộ có audit.
-- RLS integration tests cho dữ liệu bí mật đều pass.
-- Unit, integration, E2E hiện có của local mode không regression.
-- Tài liệu luật và hướng dẫn người dùng được cập nhật.
+- [x] Tạo được phòng remote và mời người qua link/mã.
+- [x] Mọi người ready và xác nhận vai độc lập.
+- [x] Tất cả vai engine đang hỗ trợ có luồng remote hoặc fallback quản trò được ghi rõ.
+- [x] Sói phối hợp bằng chat bí mật và gửi mục tiêu.
+- [x] Chat công khai chỉ mở đúng lúc và người chết không thể gửi.
+- [x] Vote được gửi, thay đổi, khóa và tính ở server.
+- [x] Refresh/mất mạng ngắn không làm mất tiến trình.
+- [x] Host xử lý timeout và thao tác hộ có audit.
+- [x] RLS integration tests cho dữ liệu bí mật đều pass.
+- [x] Unit, integration, E2E hiện có của local mode không regression.
+- [x] Tài liệu luật và hướng dẫn người dùng được cập nhật.
 
-## 22. Các quyết định cần chốt trước khi code
+Closed beta là cổng phát hành rộng, không còn là hạng mục code của MVP kỹ thuật.
+
+## 22. Các quyết định MVP đã chốt
 
 Quyết định cho MVP: Sói hòa thì không cắn; chat Sói mặc định công khai sau trận; phiếu ban
 ngày chỉ công khai tổng; chỉ quản trò xóa tin; thiết bị mới giành quyền điều khiển; chưa gửi
 browser notification; người bị mê hoặc nhận thông báo; chat phòng đóng được giữ 30 ngày.
 
-1. Khi phiếu Sói hòa sau thời gian phụ: không cắn ai hay quản trò quyết định?
-2. Chat Sói sau trận mặc định công khai hay riêng tư?
-3. Phiếu ban ngày mặc định chỉ hiện tổng hay hiện từng người?
-4. Cho phép người chơi tự xóa tin hay chỉ quản trò xóa?
-5. Khi một tài khoản mở hai thiết bị, thiết bị mới thay thế thiết bị cũ hay cả hai cùng xem?
-6. Có gửi thông báo trình duyệt khi đến lượt không?
-7. Người bị mê hoặc có được thông báo ngay trong MVP không?
-8. Giữ chat phòng đóng bao lâu?
+| Quyết định                  | Giá trị MVP                         |
+| --------------------------- | ----------------------------------- |
+| Sói hòa sau thời gian phụ   | Không cắn ai                        |
+| Chat Sói sau trận           | Công khai mặc định, có cấu hình tắt |
+| Phiếu ban ngày              | Chỉ công khai tổng sau khi khóa     |
+| Xóa tin                     | Chỉ quản trò                        |
+| Hai thiết bị cùng tài khoản | Thiết bị mới giành quyền điều khiển |
+| Browser notification        | Chưa có trong MVP                   |
+| Thông báo người bị mê hoặc  | Có, qua private notice              |
+| Retention chat phòng đóng   | 30 ngày                             |
 
-Các câu hỏi này không chặn việc thiết kế nền tảng, nhưng phải được chốt trước khi hoàn thiện UI
-và acceptance tests tương ứng.
+## 23. Kế hoạch còn lại sau khi deploy
 
-## 23. Hướng phát triển sau MVP
+Thực hiện theo thứ tự:
+
+1. **Hoàn thiện guardrail production:** tích hợp CAPTCHA vào anonymous sign-in, bật rate limit
+   phù hợp và xác minh không làm hỏng join/reconnect.
+2. **Bật vận hành nền:** lập lịch `gw_cleanup`, cấu hình alert và dashboard chỉ số; chạy cleanup
+   thử trên bản sao hoặc dữ liệu kiểm thử trước.
+3. **Xác minh hosted/thiết bị thật:** adversarial test presence private, hai tab quản trò,
+   focus/keyboard accessibility và bàn phím ảo trên iOS/Android.
+4. **Closed beta vòng 1:** 6–8 người, mixed Wi-Fi/4G/5G; sửa lỗi blocker và chạy lại bộ test.
+5. **Closed beta vòng 2:** 12–16 người, chủ động tạo reconnect/takeover/AFK; thu thập các chỉ
+   số ở mục 20.
+6. **Cổng phát hành rộng:** chỉ mở rộng khi không có sự cố đọc chéo dữ liệu, tỷ lệ hoàn tất và
+   lỗi command đạt mục tiêu; cập nhật checklist bằng bằng chứng beta.
+
+Các backlog không chặn beta: khôi phục quyền quản trò khi mất thiết bị (FE-02), heartbeat
+presence đáng tin cậy (RT-03), luật nhiều instance của cùng vai và action schema cho vai tùy
+chỉnh.
+
+## 24. Hướng phát triển sau MVP
 
 - Chat nghĩa địa.
 - Kênh riêng cho Cặp đôi nếu luật phòng bật.

@@ -3,6 +3,10 @@
 Nguồn tham chiếu: `GhostWolf.html` (bundle: `__bundler/template` + manifest base64/gzip + component `text/x-dc`).
 Trạng thái: `[x]` xong và đã kiểm · `[~]` xong nhưng chưa xác minh đầy đủ (ghi lý do) · `[ ]` chưa làm.
 
+Cập nhật phát hành 2026-10-27: `main` chứa toàn bộ implementation Remote Play qua baseline
+`703c8dfd67b57a934c16ee4dd97a472a179e3505`. Supabase migrations/Edge Functions và Vercel
+production đã deploy; closed beta trên mạng và thiết bị thật chưa thực hiện.
+
 Kiểm thử đã chạy (Supabase local + Edge Function chạy bằng Deno):
 `npm test` 63 test · `npm run test:integration` 46 test · `npm run test:e2e` 9 kịch bản,
 bao gồm local full-game, remote full-game, RLS, reconnect, takeover tab, tải 30 người và
@@ -15,7 +19,7 @@ responsive 320–1920 px.
 - [x] Game engine TS thuần dùng chung Edge Function và frontend (`supabase/functions/_shared/engine`, alias `@engine`); `deno check` qua.
 - [x] Lệnh phòng là RPC `security definer`; lệnh ván qua Edge Function `game-command` → `commit_game` (1 transaction, revision, idempotency).
 - [x] Tách UI / domain / services / realtime / session.
-- [~] Edge runtime của Supabase CLI không chạy được trên máy kiểm thử (jsr.io trả 403 Cloudflare challenge). Function được chạy bằng Deno trực tiếp với đúng mã nguồn (`npm run functions:serve`). Chưa deploy lên Supabase hosted (không có thông tin dự án).
+- [x] Edge Function được chạy local bằng Deno trực tiếp (`npm run functions:serve`), `deno check` qua và đã deploy `game-command` + `player-command` lên Supabase hosted project `ztyefvgplgafhfukmkxh`.
 
 ## 1. Màn hình
 
@@ -62,7 +66,7 @@ responsive 320–1920 px.
 - [x] `game_secrets`, lịch sử, command log: chỉ quản trò / service role; client không ghi trực tiếp bảng ván.
 - [x] Không service-role key ở frontend; realtime không gửi `game_secrets` tới người chơi (integration).
 - [x] Màn hình chung render từ public state; e2e kiểm không có tên vai trên bàn khi bật. Nhãn hoàn tác chung chung, không chứa mục tiêu.
-- [~] Chính sách kênh presence private (`realtime.messages`) chạy được local; chưa kiểm trên Supabase hosted.
+- [~] Chính sách kênh presence private (`realtime.messages`) chạy được local; Realtime chat hosted đã smoke test nhưng presence private chưa được adversarial test trên Supabase hosted.
 
 ## 5. Persistence & đồng bộ
 
@@ -81,7 +85,7 @@ responsive 320–1920 px.
 - [~] Bàn phím ảo che CTA trên điện thoại thật: chưa kiểm trên thiết bị thật.
 - [x] typecheck, lint, test, build.
 - [x] `.env.example`, README (Supabase, anonymous auth, realtime, deploy).
-- [ ] Deploy thật (Supabase hosted + host static): cần thông tin dự án của bạn — các bước ở README.
+- [x] Deploy thật: bốn migration Remote Play và hai Edge Function active trên Supabase hosted; Vercel build từ `main` SHA `703c8df`, domain `https://ghostwolf.khanhnvd.click` trả HTTP 200; smoke flow production pass.
 
 ## 7. Audit bảo mật / luật (2026-10-25)
 

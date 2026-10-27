@@ -2,6 +2,11 @@
 
 Bổ sung cho phần "Triển khai" trong README. Không thay đổi được từ code frontend (static), cần cấu hình ở host và Supabase.
 
+Trạng thái phát hành 2026-10-27: migrations và hai Edge Function đã deploy lên Supabase project
+`ztyefvgplgafhfukmkxh`; frontend Vercel production chứa implementation baseline `703c8df`,
+được build từ `main` và đang phục vụ tại `https://ghostwolf.khanhnvd.click`. Các mục
+dashboard/cron/alert bên dưới vẫn phải được xác minh riêng vì không nằm trong static build.
+
 ## 1. Header bảo mật (host static)
 
 Production (Vercel) đã đặt các header dưới đây trong `vercel.json`. Nếu đổi host static khác (Netlify `_headers`, Cloudflare `_headers`…), đặt lại cho mọi response và thay `<ref>` bằng project ref Supabase.
@@ -109,6 +114,10 @@ Rollback (nếu cần): tạo migration mới khôi phục định nghĩa hàm t
 
 ## 7. Việc còn lại
 
-- CAPTCHA cho anonymous sign-in ở frontend.
-- Khôi phục quyền **quản trò** khi đổi/mất thiết bị (FE-02); lease thiết bị người chơi remote đã có.
-- Presence: key do client đặt, chỉ dùng để hiển thị online (RT-03). Muốn tin cậy được cần heartbeat qua RPC.
+- [ ] CAPTCHA cho anonymous sign-in ở frontend và bật provider/rate limit trong Supabase Dashboard.
+- [ ] Lập lịch `gw_cleanup()` bằng Supabase Cron; chạy thử và kiểm tra số dòng trước khi dùng lịch production.
+- [ ] Cấu hình alert 5xx, latency p95, rate-limit, prompt timeout/AFK và Realtime errors.
+- [~] Realtime chat hosted đã smoke test; presence private cần adversarial test trên hosted project.
+- [ ] Chạy closed beta 6–8 và 12–16 người trên Wi-Fi + 4G/5G, ghi lại các chỉ số trong kế hoạch.
+- [ ] Khôi phục quyền **quản trò** khi đổi/mất thiết bị (FE-02); lease thiết bị người chơi remote đã có.
+- [~] Presence: key do client đặt, chỉ dùng để hiển thị online (RT-03). Muốn tin cậy được cần heartbeat qua RPC.
