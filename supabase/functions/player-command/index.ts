@@ -44,6 +44,28 @@ export async function handlePlayerCommand(req: Request): Promise<Response> {
     )
       return fail(400, 'BAD_REQUEST', 'Yêu cầu không hợp lệ.')
 
+    const reject = (status: number, code: string, message: string) => {
+      console.warn(
+        JSON.stringify({
+          fn: 'player-command',
+          requestId,
+          type: command.type,
+          roomId: body.roomId,
+          gameId: body.gameId,
+          status,
+          code,
+        }),
+      )
+      return fail(status, code, message)
+    }
+
+    const { error: sessionError } = await db.rpc('require_player_session', {
+      p_room: body.roomId,
+      p_session: body.sessionId,
+    })
+    if (sessionError)
+      return reject(409, sessionError.details || 'DEVICE_REPLACED', sessionError.message)
+
     let result: unknown
     if (command.type === 'player.ready') {
       const { data, error } = await db.rpc('player_set_ready', {
@@ -51,16 +73,16 @@ export async function handlePlayerCommand(req: Request): Promise<Response> {
         p_ready: command.ready,
       })
       if (error)
-        return fail(
+        return reject(
           error.code === '42501' ? 403 : 409,
           error.details || 'COMMAND_FAILED',
           error.message,
         )
       result = data
     } else if (command.type === 'player.ackRole') {
-      if (!body.gameId) return fail(400, 'NO_GAME', 'Thiếu gameId.')
+      if (!body.gameId) return reject(400, 'NO_GAME', 'Thiếu gameId.')
       const { data, error } = await db.rpc('ack_role', { p_game: body.gameId })
-      if (error) return fail(409, error.details || 'COMMAND_FAILED', error.message)
+      if (error) return reject(409, error.details || 'COMMAND_FAILED', error.message)
       result = data
     } else if (command.type === 'chat.send') {
       const { data, error } = await db.rpc('send_chat_message', {
@@ -72,14 +94,14 @@ export async function handlePlayerCommand(req: Request): Promise<Response> {
         p_reply_to: command.replyTo ?? null,
       })
       if (error)
-        return fail(
+        return reject(
           error.details === 'RATE_LIMITED' ? 429 : 409,
           error.details || 'COMMAND_FAILED',
           error.message,
         )
       result = data
     } else if (command.type === 'action.submit') {
-      if (!body.gameId) return fail(400, 'NO_GAME', 'Thiếu gameId.')
+      if (!body.gameId) return reject(400, 'NO_GAME', 'Thiếu gameId.')
       const { data, error } = await db.rpc('submit_remote_action', {
         p_game: body.gameId,
         p_prompt: command.promptId,
@@ -88,14 +110,14 @@ export async function handlePlayerCommand(req: Request): Promise<Response> {
         p_payload: command.payload,
       })
       if (error)
-        return fail(
+        return reject(
           error.details === 'DEADLINE' ? 410 : 409,
           error.details || 'COMMAND_FAILED',
           error.message,
         )
       result = data
     } else if (command.type === 'vote.submit') {
-      if (!body.gameId) return fail(400, 'NO_GAME', 'Thiếu gameId.')
+      if (!body.gameId) return reject(400, 'NO_GAME', 'Thiếu gameId.')
       const { data, error } = await db.rpc('submit_remote_vote', {
         p_game: body.gameId,
         p_phase_sequence: command.phaseSequence,
@@ -103,17 +125,24 @@ export async function handlePlayerCommand(req: Request): Promise<Response> {
         p_candidate: command.candidateId,
       })
       if (error)
-        return fail(
+        return reject(
           error.details === 'DEADLINE' ? 410 : 409,
           error.details || 'COMMAND_FAILED',
           error.message,
         )
       result = data
     } else {
-      return fail(409, 'NOT_AVAILABLE', 'Lệnh chưa khả dụng ở phase hiện tại.')
+      return reject(409, 'NOT_AVAILABLE', 'Lệnh chưa khả dụng ở phase hiện tại.')
     }
     console.info(
-      JSON.stringify({ fn: 'player-command', requestId, type: command.type, status: 200 }),
+      JSON.stringify({
+        fn: 'player-command',
+        requestId,
+        type: command.type,
+        roomId: body.roomId,
+        gameId: body.gameId,
+        status: 200,
+      }),
     )
     const response = json(200, { ok: true, data: result })
     response.headers.set('x-request-id', requestId)

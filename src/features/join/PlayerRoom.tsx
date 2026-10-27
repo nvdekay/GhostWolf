@@ -7,6 +7,7 @@ import { Dialog } from '@/components/overlay'
 import { Crescent, FlipCard } from '@/components/ui'
 import { Paper } from '@/components/ui'
 import { prefersReducedMotion } from '@/lib/media'
+import { supabase } from '@/lib/supabase'
 import { refreshRoom, useRoom } from '@/realtime/roomStore'
 import { ackRole, leaveRoom } from '@/services/rooms'
 import { RoomMessage } from '@/features/host/HostRoom'
@@ -14,7 +15,7 @@ import { ResultView } from '@/features/result/ResultScreen'
 import { roleView, type RoleView } from '@/features/roles/roles'
 import { RemoteChat } from '@/features/remote/RemoteChat'
 import { RemotePlayerGame } from '@/features/remote/RemotePlayerGame'
-import { sendPlayerCommand } from '@/services/player'
+import { claimPlayerSession, playerSessionId, sendPlayerCommand } from '@/services/player'
 import './join.css'
 
 /** Gọi `hide` khi người dùng rời màn hình: mất focus cửa sổ, chuyển tab/ẩn app, rời trang. */
@@ -98,8 +99,45 @@ export function PlayerRoom({ roomId }: { roomId: string }) {
   )
   const [busy, setBusy] = useState(false)
   const [confirmLeave, setConfirmLeave] = useState(false)
+  const [deviceState, setDeviceState] = useState<'claiming' | 'active' | 'replaced' | 'error'>(
+    'claiming',
+  )
 
   const { room, game, me } = snap
+  const remoteMemberId = room?.options.mode === 'remote' && me?.status === 'active' ? me.id : null
+  useEffect(() => {
+    if (!remoteMemberId) return
+    let alive = true
+    const channel = supabase
+      .channel(`device:${remoteMemberId}:${playerSessionId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'player_device_sessions',
+          filter: `member_id=eq.${remoteMemberId}`,
+        },
+        (payload) => {
+          const current = payload.new as { session_id?: string }
+          if (current.session_id && current.session_id !== playerSessionId)
+            setDeviceState('replaced')
+        },
+      )
+      .subscribe()
+    claimPlayerSession(roomId)
+      .then(() => alive && setDeviceState('active'))
+      .catch((error) => {
+        if (alive) {
+          setDeviceState('error')
+          fb.error(error)
+        }
+      })
+    return () => {
+      alive = false
+      void supabase.removeChannel(channel)
+    }
+  }, [fb, remoteMemberId, roomId])
   if (snap.loading && !room && !me)
     return <RoomMessage title="Đang vào phòng…" sub="Đang lấy dữ liệu mới nhất." />
   if (me?.status === 'kicked')
@@ -125,6 +163,25 @@ export function PlayerRoom({ roomId }: { roomId: string }) {
       <RoomMessage
         title="Không mở được phòng"
         sub="Phòng không tồn tại, đã đóng, hoặc bạn chưa vào phòng này."
+      />
+    )
+
+  if (room.options.mode === 'remote' && deviceState === 'replaced')
+    return (
+      <RoomMessage
+        title="Thiết bị khác đang điều khiển"
+        sub="Phiên mới hơn đã nhận quyền gửi hành động cho ghế này. Tải lại trang nếu bạn muốn giành lại quyền điều khiển."
+      />
+    )
+  if (room.options.mode === 'remote' && deviceState !== 'active')
+    return (
+      <RoomMessage
+        title={deviceState === 'error' ? 'Không xác nhận được thiết bị' : 'Đang xác nhận thiết bị…'}
+        sub={
+          deviceState === 'error'
+            ? 'Kiểm tra kết nối rồi tải lại trang.'
+            : 'Đang khóa quyền điều khiển cho tab này.'
+        }
       />
     )
 
@@ -160,7 +217,9 @@ export function PlayerRoom({ roomId }: { roomId: string }) {
     if (!game) return
     setBusy(true)
     try {
-      await ackRole(game.id)
+      if (room.options.mode === 'remote')
+        await sendPlayerCommand(room.id, game.id, { type: 'player.ackRole' })
+      else await ackRole(game.id)
       await refreshRoom(room.id)
       setFlipped(false)
     } catch (e) {
@@ -182,7 +241,26 @@ export function PlayerRoom({ roomId }: { roomId: string }) {
             Về trang chủ
           </button>
         }
-      />
+      >
+        {remote && (
+          <RemoteChat
+            roomId={room.id}
+            gameId={game.id}
+            channel="public"
+            members={snap.members}
+            canSend
+          />
+        )}
+        {remote && room.options.revealWolfChatAfterGame && (
+          <RemoteChat
+            roomId={room.id}
+            gameId={game.id}
+            channel="wolves"
+            members={snap.members}
+            canSend={false}
+          />
+        )}
+      </ResultView>
     )
   } else if (!sent || !role) {
     const locked = room.status === 'locked'

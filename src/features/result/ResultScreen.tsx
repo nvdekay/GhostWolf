@@ -7,6 +7,7 @@ import { Ornament, Paper, RoleMedal } from '@/components/ui'
 import { refreshRoom } from '@/realtime/roomStore'
 import { sendRoomCommand } from '@/services/game'
 import { useHost } from '@/features/host/context'
+import { RemoteChat } from '@/features/remote/RemoteChat'
 import { roleView, viewOf } from '@/features/roles/roles'
 import './result.css'
 
@@ -26,10 +27,12 @@ export function ResultView({
   pub,
   highlight,
   actions,
+  children,
 }: {
   pub: PublicState
   highlight?: string
   actions?: React.ReactNode
+  children?: React.ReactNode
 }) {
   const r = pub.result
   if (!r) return null
@@ -106,6 +109,7 @@ export function ResultView({
           ))}
         </ol>
       </section>
+      {children}
       {actions && <div className="result__actions">{actions}</div>}
     </Paper>
   )
@@ -114,7 +118,7 @@ export function ResultView({
 export function ResultScreen() {
   const nav = useNav()
   const fb = useFeedback()
-  const { game, room, setView } = useHost()
+  const { game, room, snap, setView } = useHost()
   const [busy, setBusy] = useState(false)
   if (!game) return null
 
@@ -158,6 +162,28 @@ export function ResultScreen() {
           </button>
         </>
       }
-    />
+    >
+      {room.options.mode === 'remote' && (
+        <>
+          <RemoteChat
+            roomId={room.id}
+            gameId={game.id}
+            channel="public"
+            members={snap.members}
+            canSend
+            isHost
+          />
+          {room.options.revealWolfChatAfterGame && (
+            <RemoteChat
+              roomId={room.id}
+              gameId={game.id}
+              channel="wolves"
+              members={snap.members}
+              canSend={false}
+            />
+          )}
+        </>
+      )}
+    </ResultView>
   )
 }

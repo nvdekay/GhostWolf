@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { curtainGone, nextFrame } from './helpers'
 
-const WIDTHS = [360, 390, 768, 1024, 1440, 1920]
+const WIDTHS = [320, 360, 390, 768, 1024, 1440, 1920]
 const SHOTS = process.env.E2E_SHOTS
 
 async function checkAll(page: Page, name: string) {

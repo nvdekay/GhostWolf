@@ -1,6 +1,7 @@
 # Ghostwolf
 
-Web hỗ trợ chơi Ma Sói trực tiếp: quản trò điều hành ván trên một máy, còn mỗi người chơi xem vai bí mật trên điện thoại của mình.
+Web hỗ trợ cả chơi Ma Sói cùng phòng và chơi từ xa hoàn toàn trong trình duyệt. Ở chế độ từ xa,
+mỗi người dùng thiết bị riêng để ready, xem vai, chat, hành động ban đêm và bỏ phiếu.
 
 **Production:** [ghostwolf.khanhnvd.click](https://ghostwolf.khanhnvd.click)
 
@@ -35,7 +36,7 @@ supabase status
 Điền anon key từ `supabase status` vào `.env.local`, sau đó chạy hai terminal:
 
 ```bash
-npm run functions:serve   # game-command tại http://127.0.0.1:54329
+npm run functions:serve   # game-command + player-command tại http://127.0.0.1:54329
 npm run dev               # frontend tại http://localhost:5173
 ```
 
@@ -69,6 +70,7 @@ Backend (khi đổi migration, Edge Function hoặc cấu hình auth):
 supabase link --project-ref ztyefvgplgafhfukmkxh
 supabase db push
 supabase functions deploy game-command --use-api
+supabase functions deploy player-command --use-api
 supabase config push --project-ref ztyefvgplgafhfukmkxh   # chạy không --yes trước để xem diff
 ```
 
@@ -77,6 +79,8 @@ Frontend: project Vercel `ghostwolf` nối với repo GitHub, mỗi lần push l
 ## Tài liệu
 
 - [Luật game](docs/ruleset.md)
+- [Hướng dẫn chơi từ xa](docs/remote-play.md)
+- [Kế hoạch/kiến trúc chế độ từ xa](docs/remote-play-plan.md)
 - [Checklist triển khai](docs/implementation-checklist.md)
 - [Bảo mật, monitoring, cleanup và rollback production](docs/production-hardening.md)
 - [Hướng dẫn đóng góp](AGENTS.md)

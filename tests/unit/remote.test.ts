@@ -56,7 +56,7 @@ describe('remote contracts', () => {
     ).toEqual([{ type: 'night.act', step: 'wolf', stepIndex: 0, targets: [], timeout: true }])
   })
 
-  it('acknowledges a seer result in the same remote lock', () => {
+  it('separates the seer action from acknowledging its private result', () => {
     const initial = startedGame(['seer', 'wolf', 'villager', 'villager'])
     const state = run(initial, {
       type: 'night.act',
@@ -66,10 +66,14 @@ describe('remote contracts', () => {
     })
     expect(
       aggregateRemoteAction(state, [{ memberId: 'p0', payload: { targets: ['p1'] } }]),
-    ).toEqual([
-      { type: 'night.act', step: 'seer', stepIndex: 1, targets: ['p1'] },
+    ).toEqual([{ type: 'night.act', step: 'seer', stepIndex: 1, targets: ['p1'] }])
+    state.night!.actions.seer = 'p1'
+    expect(aggregateRemoteAction(state, [{ memberId: 'p0', payload: { targets: [] } }])).toEqual([
       { type: 'night.sleep', step: 'seer', stepIndex: 1 },
     ])
+    expect(remoteProjection(state, { ...DEFAULT_REMOTE_SETTINGS, mode: 'remote' })).toMatchObject({
+      prompts: [{ memberId: 'p0', kind: 'seer_result' }],
+    })
   })
 
   it('projects private seer knowledge, lovers and charmed notices without public data', () => {
@@ -89,6 +93,14 @@ describe('remote contracts', () => {
       ['p0', 'charmed'],
       ['p1', 'charmed'],
     ])
+  })
+
+  it('does not publish pack knowledge before the game starts', () => {
+    const state = startedGame(['wolf', 'villager', 'villager', 'villager'])
+    state.status = 'dealt'
+    expect(
+      remoteProjection(state, { ...DEFAULT_REMOTE_SETTINGS, mode: 'remote' }).knowledge,
+    ).toEqual([])
   })
 
   it('aggregates private votes and adds the chief weight in the engine', () => {

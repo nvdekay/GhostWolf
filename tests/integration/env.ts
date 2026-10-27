@@ -26,6 +26,7 @@ function localEnv(): { url: string; anon: string; service?: string } {
 }
 
 const env = localEnv()
+const playerSessions = new WeakMap<SupabaseClient, string>()
 
 export async function anonClient(): Promise<{ db: SupabaseClient; uid: string }> {
   const db = createClient(env.url, env.anon, {
@@ -83,6 +84,16 @@ export async function playerCommand(
   },
 ) {
   const { data: s } = await db.auth.getSession()
+  let sessionId = body.sessionId ?? playerSessions.get(db)
+  if (!sessionId) {
+    sessionId = randomUUID()
+    const { error } = await db.rpc('claim_player_session', {
+      p_room: body.roomId,
+      p_session: sessionId,
+    })
+    if (error) throw error
+    playerSessions.set(db, sessionId)
+  }
   const base = process.env.FUNCTIONS_URL ?? 'http://127.0.0.1:54329'
   const res = await fetch(`${base}/player-command`, {
     method: 'POST',
@@ -94,7 +105,7 @@ export async function playerCommand(
     body: JSON.stringify({
       ...body,
       commandId: body.commandId ?? randomUUID(),
-      sessionId: body.sessionId ?? randomUUID(),
+      sessionId,
     }),
   })
   const json = (await res.json()) as {

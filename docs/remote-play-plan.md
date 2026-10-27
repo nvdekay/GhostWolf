@@ -1,6 +1,7 @@
 # Kế hoạch chế độ chơi từ xa cho Ghostwolf
 
-> Trạng thái: đang triển khai; các quyết định MVP ở mục 22 đã được chốt ngày 2026-10-27
+> Trạng thái: MVP đã triển khai và qua kiểm thử tự động ngày 2026-10-27; closed beta/manual game
+> session trên mạng thật vẫn là bước vận hành tiếp theo.
 >
 > Mục tiêu: cho phép mọi người ở các địa điểm khác nhau chơi một ván Ghostwolf hoàn
 > chỉnh chỉ bằng trình duyệt và kết nối Internet, không cần gọi thoại hoặc ứng dụng chat

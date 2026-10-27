@@ -405,15 +405,16 @@ export function BoardScreen() {
               )}
               {['night_action', 'effect_resolution', 'day_voting'].includes(
                 snap.remotePhase.kind,
-              ) && (
-                <button
-                  className="btn btn-ink"
-                  disabled={busy || remoteMissing.length > 0}
-                  onClick={() => void exec({ type: 'remote.lock' })}
-                >
-                  Khóa lượt và áp dụng
-                </button>
-              )}
+              ) &&
+                snap.remotePhase.required_count > 0 && (
+                  <button
+                    className="btn btn-ink"
+                    disabled={busy || remoteMissing.length > 0}
+                    onClick={() => void exec({ type: 'remote.lock' })}
+                  >
+                    Khóa lượt và áp dụng
+                  </button>
+                )}
             </div>
           )}
           {effect && !shared && (

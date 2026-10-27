@@ -55,6 +55,9 @@ test('remote full flow: role → night → discussion → private vote → resul
 
   await expect(host.getByText('4/4 người đã xem vai').first()).toBeVisible()
   await host.getByRole('button', { name: /Bắt đầu Đêm 1/ }).click()
+  await wolf.page.getByLabel('Tin nhắn').fill('Bí mật của Sói sau trận mới được mở')
+  await wolf.page.getByRole('button', { name: 'Gửi', exact: true }).click()
+  await expect(villagers[1]!.page.getByText('Bí mật của Sói sau trận mới được mở')).toHaveCount(0)
   await wolf.page.getByRole('button', { name: villagers[0]!.name, exact: true }).click()
   await wolf.page.getByRole('button', { name: 'Xác nhận hành động' }).click()
   await expect(host.getByText('Remote · 1/1 đã gửi')).toBeVisible()
@@ -72,6 +75,9 @@ test('remote full flow: role → night → discussion → private vote → resul
   await expect(victim.page.getByLabel('Tin nhắn')).toBeDisabled()
 
   await host.getByRole('button', { name: 'Chuyển sang bỏ phiếu' }).click()
+  await alive[0]!.page.context().setOffline(true)
+  await alive[0]!.page.context().setOffline(false)
+  await alive[0]!.page.reload()
   for (const player of alive) {
     await expect(player.page.getByRole('heading', { name: 'Bỏ phiếu', level: 1 })).toBeVisible()
     await player.page.getByRole('button', { name: wolf.name, exact: true }).click()
@@ -93,4 +99,9 @@ test('remote full flow: role → night → discussion → private vote → resul
     await expect(
       player.page.getByRole('heading', { name: 'Phe Dân làng chiến thắng' }),
     ).toBeVisible()
+  await expect(villagers[1]!.page.getByText('Bí mật của Sói sau trận mới được mở')).toBeVisible()
+  const afterGameChat = victim.page.getByRole('region', { name: 'Chat', exact: true })
+  await afterGameChat.getByLabel('Tin nhắn').fill('Người chết chat lại sau trận')
+  await afterGameChat.getByRole('button', { name: 'Gửi', exact: true }).click()
+  await expect(host.getByText('Người chết chat lại sau trận')).toBeVisible()
 })

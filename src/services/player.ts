@@ -3,7 +3,7 @@ import { sameHostUrl, supabase } from '@/lib/supabase'
 import { uuid } from '@/lib/uuid'
 import { AppError, networkError } from './errors'
 
-const sessionId = (() => {
+export const playerSessionId = (() => {
   try {
     const current = sessionStorage.getItem('gw.remote.session')
     if (current) return current
@@ -14,6 +14,15 @@ const sessionId = (() => {
     return uuid()
   }
 })()
+
+export async function claimPlayerSession(roomId: string) {
+  const { data, error } = await supabase.rpc('claim_player_session', {
+    p_room: roomId,
+    p_session: playerSessionId,
+  })
+  if (error) throw new AppError(error.details || 'CLAIM_FAILED', error.message)
+  return data as { member_id: string; session_id: string }
+}
 
 export async function sendPlayerCommand(
   roomId: string,
@@ -27,7 +36,13 @@ export async function sendPlayerCommand(
   const base = sameHostUrl(
     import.meta.env.VITE_FUNCTIONS_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`,
   )
-  const body: PlayerCommandRequest = { roomId, gameId, commandId, sessionId, command }
+  const body: PlayerCommandRequest = {
+    roomId,
+    gameId,
+    commandId,
+    sessionId: playerSessionId,
+    command,
+  }
   let response: Response
   try {
     response = await fetch(`${base}/player-command`, {

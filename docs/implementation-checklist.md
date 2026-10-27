@@ -4,7 +4,9 @@ Nguồn tham chiếu: `GhostWolf.html` (bundle: `__bundler/template` + manifest 
 Trạng thái: `[x]` xong và đã kiểm · `[~]` xong nhưng chưa xác minh đầy đủ (ghi lý do) · `[ ]` chưa làm.
 
 Kiểm thử đã chạy (Supabase local + Edge Function chạy bằng Deno):
-`npm test` 54 test (engine, giới hạn, room store, feedback, timeout lệnh) · `npm run test:integration` 33 test (RLS, lobby, idempotency, revision, realtime, undo/reset/replay, thư viện, audit) · `npm run test:e2e` 4 kịch bản (quản trò + 2 người chơi, kick/mất mạng/đóng phòng, ván 10 người chơi ngẫu nhiên tới kết quả, responsive 360–1920px).
+`npm test` 63 test · `npm run test:integration` 46 test · `npm run test:e2e` 9 kịch bản,
+bao gồm local full-game, remote full-game, RLS, reconnect, takeover tab, tải 30 người và
+responsive 320–1920 px.
 
 ## 0. Kiến trúc
 
@@ -94,5 +96,21 @@ Kiểm thử đã chạy (Supabase local + Edge Function chạy bằng Deno):
 - [x] OPS-01 30 người/phòng, 10 phòng mở/quản trò, 60 lệnh/10 giây/ván, `gw_cleanup` (integration). Lịch chạy: `docs/production-hardening.md`.
 - [x] P2 Key toast/màn chuyển cảnh, E2E không sleep cố định, vùng chạm 44px, server E2E mới khi CI, log JSON có request ID.
 - [~] RT-03 Presence key do client đặt: thành viên giả được key `host`/id người khác (đã tái hiện local). Chỉ dùng hiển thị; đã lọc key lạ. Chưa có heartbeat tin cậy.
-- [ ] FE-02 Khôi phục quyền quản trò khi đổi thiết bị: mới có đề xuất thiết kế.
+- [ ] FE-02 Khôi phục quyền quản trò khi đổi thiết bị: mới có đề xuất thiết kế (khác với lease tab người chơi remote đã hoàn thành).
 - [ ] Luật cho nhiều Cupid/Phù thủy/Tiên tri…: chưa định nghĩa (ghi chú trong `docs/ruleset.md`).
+
+## 8. Chế độ chơi từ xa (2026-10-27)
+
+- [x] Room mode, timer, ready check bắt buộc ở server; lobby/public chat có pagination, reconnect,
+      rate limit, reply và moderation.
+- [x] Prompt riêng + submission idempotent cho Cupid, Bảo vệ, bầy Sói/Sói trắng, Phù thủy,
+      Tiên tri, Người thổi sáo và hiệu ứng Thợ săn/kế nhiệm; timeout/thao tác hộ có audit.
+- [x] Chat Sói RLS theo membership phase; người chết mất quyền ngay; host và dân làng không đọc
+      được trong trận; công khai sau trận theo cấu hình.
+- [x] Vote riêng, đổi phiếu, phiếu trắng, Trưởng làng, hòa/bầu lại; chỉ công khai tổng sau khóa.
+- [x] Private notebook/thông báo cho kết quả soi, Cặp đôi, đồng đội Sói và người bị mê hoặc.
+- [x] Thiết bị/tab mới giành quyền điều khiển; tab cũ nhận Realtime và mọi command cũ bị server từ chối.
+- [x] Retention prompt/submission/private inbox, metrics không chứa payload và runbook production.
+- [x] Unit/integration/E2E gồm full remote flow, RLS chéo, reconnect, takeover, 30 người/chat đồng thời,
+      responsive mobile và regression full-game local.
+- [~] Closed beta 6–8 và 12–16 người trên Wi-Fi + 4G/5G cần thực hiện sau deploy hosted.

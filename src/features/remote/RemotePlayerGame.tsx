@@ -147,7 +147,9 @@ function PromptCard({
               : 'Cập nhật lựa chọn'
             : prompt.kind === 'vote'
               ? 'Gửi phiếu'
-              : 'Xác nhận hành động'}
+              : prompt.kind === 'seer_result'
+                ? 'Đã xem, đi ngủ'
+                : 'Xác nhận hành động'}
       </button>
       <p className="remote-prompt__status" role="status">
         {busy

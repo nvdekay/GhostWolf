@@ -35,7 +35,8 @@ Giới hạn nghiệp vụ đã có trong database (migration `20261025000100`):
 
 ## 3. Monitoring
 
-Edge Function `game-command` ghi một dòng JSON cho mỗi request (Dashboard → Edge Functions → Logs):
+Hai Edge Function `game-command` và `player-command` ghi log JSON đã lọc bí mật cho mỗi request
+(Dashboard → Edge Functions → Logs):
 
 ```json
 {
@@ -54,14 +55,18 @@ Edge Function `game-command` ghi một dòng JSON cho mỗi request (Dashboard �
 - Không bao giờ ghi JWT, key, thân lệnh (vai, mục tiêu, phiếu) hay trạng thái ván.
 - `x-request-id`: client có thể gửi (8–64 ký tự `[0-9A-Za-z-]`), server trả lại trong header để đối chiếu.
 - Cảnh báo nên đặt: tỉ lệ `level=error` (5xx) > 1% trong 5 phút; `code=RATE_LIMITED` tăng đột biến; `ms` p95 > 1500.
-- Postgres: theo dõi số dòng `game_history`, `game_commands`, `auth.users` (ẩn danh) để kiểm tra việc dọn dữ liệu.
+- Postgres: service role gọi `select public.gw_remote_metrics()` để lấy số phòng/ván remote,
+  prompt mở/hết hạn, AFK, lượt takeover thiết bị và moderation trong 24 giờ. Kết quả không chứa
+  chat, vai, mục tiêu hay phiếu cá nhân.
+- Cảnh báo thêm: prompt hết hạn tăng đột biến, `afk_total` tăng nhanh, hoặc takeover thiết bị bất thường.
 
 ## 4. Dọn dữ liệu cũ (TTL)
 
 `public.gw_cleanup(p_closed_days int = 30, p_history_days int = 7, p_anon_days int = 90)` — chỉ service role gọi được. Chỉ xóa:
 
 1. Phòng đã đóng quá `p_closed_days` ngày (kéo theo ván, vai, lịch sử của phòng đó).
-2. Lịch sử hoàn tác + nhật ký lệnh của ván đã kết thúc quá `p_history_days` ngày.
+2. Lịch sử hoàn tác + nhật ký lệnh + prompt/submission/private inbox của ván đã kết thúc quá
+   `p_history_days` ngày.
 3. Người dùng ẩn danh không đăng nhập lại quá `p_anon_days` ngày, không làm quản trò phòng chưa đóng và không là thành viên đang hoạt động ở đâu.
 
 Không tự chạy. Lên lịch bằng `pg_cron` (Dashboard → Integrations → Cron):
@@ -70,14 +75,15 @@ Không tự chạy. Lên lịch bằng `pg_cron` (Dashboard → Integrations →
 select cron.schedule('ghostwolf-cleanup', '17 3 * * *', $$ select public.gw_cleanup() $$);
 ```
 
-Chạy thử trước trên bản sao dữ liệu và xem số dòng trả về (`{"rooms":…,"history":…,"commands":…,"anon_users":…}`).
+Chạy thử trước trên bản sao dữ liệu và xem số dòng trả về
+(`{"rooms":…,"history":…,"commands":…,"prompts":…,"knowledge":…,"notices":…,"anon_users":…}`).
 
 ## 5. Deploy và rollback migration
 
 Thứ tự deploy:
 
 1. `supabase db push` (migration chạy trong transaction; lỗi là rollback toàn bộ migration đó).
-2. `supabase functions deploy game-command`.
+2. `supabase functions deploy game-command` và `supabase functions deploy player-command`.
 3. Build và upload frontend.
 
 Migration `20261025000000` và `20261025000100` chỉ `create or replace` hàm (cùng chữ ký, giữ quyền đã cấp), thêm trigger, index và CHECK. CHECK được thêm `NOT VALID` rồi `VALIDATE`: nếu dữ liệu cũ vi phạm, migration dừng và không áp một nửa. Kiểm tra trước trên production:
@@ -90,8 +96,19 @@ select count(*) from public.rooms r join public.games g on g.id = r.current_game
 
 Rollback (nếu cần): tạo migration mới khôi phục định nghĩa hàm từ `20261024000000_ghostwolf_schema.sql` (create_room, join_room, host_add_member, create_game, commit_game), rồi `drop trigger rooms_current_game_guard on public.rooms`, `drop trigger assignments_room_guard on public.assignments`, `alter table … drop constraint …` cho ba CHECK, `drop function public.gw_cleanup(int, int, int)`. Không sửa migration đã áp dụng. Frontend và Edge Function mới tương thích với schema cũ, trừ việc mất các mã lỗi mới.
 
-## 6. Việc còn lại
+## 6. Runbook remote
+
+- Người chơi báo “thiết bị khác đang điều khiển”: xác nhận họ vừa mở tab/thiết bị mới; tải lại
+  đúng thiết bị muốn dùng. Không sửa trực tiếp `session_id`.
+- Prompt kẹt: host dùng “Bỏ lượt hộ …”; thao tác tăng `afk_count` và tạo `moderation_events`.
+- Deadline ngắn: host dùng `+30 giây`; thay đổi được lưu server và audit, không dựa timer trình duyệt.
+- Nghi lộ bí mật: đóng phòng, lưu request id/thời điểm (không sao chép payload), kiểm tra RLS và
+  log function; không bật service key ở client để điều tra.
+- Realtime chập chờn: snapshot được tải lại khi subscribe; kiểm tra REST vẫn hoạt động trước khi
+  kết luận mất dữ liệu.
+
+## 7. Việc còn lại
 
 - CAPTCHA cho anonymous sign-in ở frontend.
-- Khôi phục quyền quản trò khi đổi/mất thiết bị (FE-02) — xem đề xuất trong báo cáo audit.
+- Khôi phục quyền **quản trò** khi đổi/mất thiết bị (FE-02); lease thiết bị người chơi remote đã có.
 - Presence: key do client đặt, chỉ dùng để hiển thị online (RT-03). Muốn tin cậy được cần heartbeat qua RPC.
