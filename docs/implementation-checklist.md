@@ -8,7 +8,7 @@ Cập nhật phát hành 2026-10-27: `main` chứa toàn bộ implementation Rem
 production đã deploy; closed beta trên mạng và thiết bị thật chưa thực hiện.
 
 Kiểm thử đã chạy (Supabase local + Edge Function chạy bằng Deno):
-`npm test` 63 test · `npm run test:integration` 46 test · `npm run test:e2e` 9 kịch bản ·
+`npm test` 63 test · `npm run test:integration` 47 test · `npm run test:e2e` 9 kịch bản ·
 `npm run test:e2e:captcha` 1 kịch bản,
 bao gồm local full-game, remote full-game, RLS, reconnect, takeover tab, tải 30 người và
 responsive 320–1920 px.
@@ -99,7 +99,7 @@ responsive 320–1920 px.
 - [x] RT-02 Room store bỏ kết quả của ván cũ về muộn; lỗi query giữ dữ liệu và thử lại (unit, mock Supabase).
 - [x] RULE-02 Ngày không quay lại bước trước (unit; tab đã qua bị khóa trên UI).
 - [x] DB-01 Trigger `current_game_id` cùng phòng, vai cùng phòng; CHECK seat/number/revision (integration).
-- [x] OPS-01 30 người/phòng, 10 phòng mở/quản trò, 60 lệnh/10 giây/ván, `gw_cleanup` (integration). Lịch chạy: `docs/production-hardening.md`.
+- [x] OPS-01 30 người/phòng, 10 phòng mở/quản trò, 60 lệnh/10 giây/ván, `gw_cleanup`, lịch `pg_cron`, dọn run history và service-only cron health (integration). Lịch chạy: `docs/production-hardening.md`.
 - [x] P2 Key toast/màn chuyển cảnh, E2E không sleep cố định, vùng chạm 44px, server E2E mới khi CI, log JSON có request ID.
 - [~] RT-03 Presence key do client đặt: thành viên giả được key `host`/id người khác (đã tái hiện local). Chỉ dùng hiển thị; đã lọc key lạ. Chưa có heartbeat tin cậy.
 - [ ] FE-02 Khôi phục quyền quản trò khi đổi thiết bị: mới có đề xuất thiết kế (khác với lease tab người chơi remote đã hoàn thành).

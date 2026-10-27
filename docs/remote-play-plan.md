@@ -29,7 +29,7 @@ Snapshot phát hành:
 - Edge Function `game-command` và `player-command` đang active trên Supabase hosted.
 - Vercel nối GitHub branch `main`; bản production chứa baseline trên đã được xác minh và đang
   phục vụ tại `https://ghostwolf.khanhnvd.click`.
-- Xác minh phát hành: typecheck, lint, build, Deno check, 63 unit tests, 46 integration tests,
+- Xác minh phát hành: typecheck, lint, build, Deno check, 63 unit tests, 47 integration tests,
   9 E2E scenarios và smoke test hai browser context trên production đều pass.
 
 Trạng thái này chỉ xác nhận code và hạ tầng đã phát hành. CAPTCHA, lịch cleanup, alerting,
@@ -805,7 +805,7 @@ Kết quả baseline đã chốt ngày 2026-10-27:
 - `npm run typecheck`, `npm run lint`, `npm run build`: pass.
 - `deno check` cho `game-command` và `player-command`: pass.
 - `npm test`: 63/63 unit tests pass.
-- `npm run test:integration`: 46/46 integration tests pass trên Supabase local.
+- `npm run test:integration`: 47/47 integration tests pass trên Supabase local.
 - `npm run test:e2e`: 9/9 scenarios pass, gồm local full-game, remote full-flow, RLS,
   reconnect, takeover thiết bị, Tiên tri reconnect, tải 30 người và responsive 320–1920 px.
 - `npm run test:e2e:captcha`: 1/1 scenario pass; xác minh widget cấp token và anonymous
@@ -870,7 +870,8 @@ Chưa cấu hình hoặc chưa xác minh trên production:
 
 - [~] Frontend Turnstile và CAPTCHA E2E đã hoàn thành; cần tạo production widget, đặt site key
   ở Vercel, secret ở Supabase Auth rồi bật enforcement. Anonymous rate limit đã khai báo 30/giờ/IP.
-- [ ] Lịch Supabase Cron chạy `gw_cleanup()` và kiểm tra kết quả lần chạy đầu.
+- [~] Migration Supabase Cron, dọn run history và RPC health đã có; cần deploy và xác minh lần
+  chạy hosted đầu tiên.
 - [ ] Alert cho 5xx, latency p95, rate-limit, prompt timeout/AFK và Realtime errors.
 - [ ] Dashboard/báo cáo funnel join → ready → start → finish phục vụ beta.
 - [~] Realtime chat production đã smoke test; policy presence private chưa được adversarial test

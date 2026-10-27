@@ -74,13 +74,22 @@ Hai Edge Function `game-command` và `player-command` ghi log JSON đã lọc b�
    `p_history_days` ngày.
 3. Người dùng ẩn danh không đăng nhập lại quá `p_anon_days` ngày, không làm quản trò phòng chưa đóng và không là thành viên đang hoạt động ở đâu.
 
-Không tự chạy. Lên lịch bằng `pg_cron` (Dashboard → Integrations → Cron):
+Migration `20261027040000_schedule_retention.sql` bật `pg_cron` và tạo hai job:
 
 ```sql
+-- 03:17 UTC hằng ngày
 select cron.schedule('ghostwolf-cleanup', '17 3 * * *', $$ select public.gw_cleanup() $$);
+
+-- 03:47 UTC hằng ngày; pg_cron không tự dọn run history
+select cron.schedule(
+  'ghostwolf-cron-history-cleanup',
+  '47 3 * * *',
+  $$ delete from cron.job_run_details where end_time < now() - interval '14 days' $$
+);
 ```
 
-Chạy thử trước trên bản sao dữ liệu và xem số dòng trả về
+`public.gw_cron_health()` chỉ cho `service_role` đọc trạng thái lịch và lần chạy gần nhất, không
+trả command. Chạy thử `gw_cleanup` trước trên bản sao dữ liệu và xem số dòng trả về
 (`{"rooms":…,"history":…,"commands":…,"prompts":…,"knowledge":…,"notices":…,"anon_users":…}`).
 
 ## 5. Deploy và rollback migration
@@ -117,7 +126,7 @@ Rollback (nếu cần): tạo migration mới khôi phục định nghĩa hàm t
 - [~] Frontend Cloudflare Turnstile và CAPTCHA E2E đã hoàn thành. Còn tạo production widget,
   đặt `VITE_TURNSTILE_SITE_KEY` ở Vercel, nhập secret/bật CAPTCHA trong Supabase Dashboard
   và chạy production smoke trước khi coi là hoàn tất. Anonymous rate limit đã khai báo 30/giờ/IP.
-- [ ] Lập lịch `gw_cleanup()` bằng Supabase Cron; chạy thử và kiểm tra số dòng trước khi dùng lịch production.
+- [~] Migration Supabase Cron, dọn run history và RPC health đã có; cần deploy migration và xác minh lần chạy hosted đầu tiên.
 - [ ] Cấu hình alert 5xx, latency p95, rate-limit, prompt timeout/AFK và Realtime errors.
 - [~] Realtime chat hosted đã smoke test; presence private cần adversarial test trên hosted project.
 - [ ] Chạy closed beta 6–8 và 12–16 người trên Wi-Fi + 4G/5G, ghi lại các chỉ số trong kế hoạch.

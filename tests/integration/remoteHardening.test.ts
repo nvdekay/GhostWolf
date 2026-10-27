@@ -55,6 +55,22 @@ describe('remote hardening', () => {
     expect(JSON.stringify(data)).not.toMatch(/payload|role|target|body/i)
   })
 
+  it('retention cron được bật và health chỉ service role đọc được', async () => {
+    const user = await anonClient()
+    expect((await user.db.rpc('gw_cron_health')).error).not.toBeNull()
+
+    const { data, error } = await serviceClient().rpc('gw_cron_health')
+    expect(error).toBeNull()
+    expect(data).toEqual(
+      expect.objectContaining({
+        scheduled: true,
+        active: true,
+        schedule: '17 3 * * *',
+      }),
+    )
+    expect(JSON.stringify(data)).not.toMatch(/command|payload|role|target|body/i)
+  })
+
   it('phòng 30 người nhận đủ 30 tin đồng thời mà không tạo bản sao', async () => {
     const host = await anonClient()
     const room = await rpc<{ id: string; code: string }>(host.db, 'create_room', {
