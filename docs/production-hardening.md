@@ -24,10 +24,10 @@ X-Content-Type-Options: nosniff
 - Nếu Edge Function dùng domain riêng, thêm vào `connect-src`.
 - Chỉ bật HSTS `preload` khi chắc chắn mọi subdomain đều HTTPS.
 
-## 2. Đăng nhập ẩn danh: CAPTCHA và rate limit
+## 2. Đăng nhập ẩn danh và rate limit
 
-- Dashboard → Authentication → Attack Protection: bật CAPTCHA (hCaptcha/Turnstile) cho anonymous sign-in. Frontend cần truyền `captchaToken` vào `signInAnonymously` (chưa làm trong repo — xem mục "Việc còn lại").
-- Authentication → Rate Limits: giới hạn anonymous sign-ins theo IP (local đang là 300/giờ trong `supabase/config.toml`; production nên thấp hơn, ví dụ 30/giờ).
+- Theo quyết định sản phẩm ngày 2026-10-27, production không dùng CAPTCHA để người chơi vào thẳng ứng dụng. Cloudflare Turnstile widget, Vercel site key và Supabase enforcement đều đã gỡ.
+- Authentication → Rate Limits giới hạn anonymous sign-ins theo IP: local là 300/giờ, production là 30/giờ trong `supabase/config.toml`.
 
 Giới hạn nghiệp vụ đã có trong database (migration `20261025000100`):
 
@@ -131,10 +131,9 @@ Rollback (nếu cần): tạo migration mới khôi phục định nghĩa hàm t
 
 ## 7. Việc còn lại
 
-- [~] Frontend Cloudflare Turnstile, production widget, Vercel site key và CAPTCHA E2E đã hoàn
-  thành. Còn push Supabase Auth config bằng secret rồi chạy production smoke trước khi coi là
-  hoàn tất. Anonymous rate limit đã khai báo 30/giờ/IP.
-- [~] Migration Supabase Cron, dọn run history và RPC health đã có; cần deploy migration và xác minh lần chạy hosted đầu tiên.
+- [x] Không dùng CAPTCHA theo quyết định sản phẩm; Turnstile đã gỡ khỏi code, Vercel, Cloudflare
+      và Supabase config. Anonymous rate limit production là 30/giờ/IP.
+- [~] Migration Supabase Cron, dọn run history và RPC health đã deploy; lịch active, còn chờ xác minh lần chạy hosted đầu tiên.
 - [~] Synthetic health/cron/expired-prompt alert mỗi giờ qua GitHub Actions đã có; alert dựa
   trên Supabase logs cho tỷ lệ 5xx, p95, rate-limit và Realtime errors vẫn cần cấu hình Dashboard.
 - [x] Realtime chat hosted đã smoke test; presence private adversarial test hosted pass (member

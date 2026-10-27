@@ -768,17 +768,3 @@
   border-top: 0;
   border-radius: 0 0 var(--radius-md) var(--radius-md);
 }
-
-/* — Anonymous auth bot check — */
-.captcha-panel {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-
-.captcha {
-  min-height: 65px;
-  display: grid;
-  place-items: center;
-}

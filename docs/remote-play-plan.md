@@ -30,10 +30,10 @@ Snapshot phát hành:
 - Vercel nối GitHub branch `main`; bản production chứa baseline trên đã được xác minh và đang
   phục vụ tại `https://ghostwolf.khanhnvd.click`.
 - Xác minh phát hành: typecheck, lint, build, Deno check, 63 unit tests, 47 integration tests,
-  12 E2E scenarios, CAPTCHA E2E và smoke test hai browser context trên production đều pass.
+  12 E2E scenarios và smoke test hai browser context trên production đều pass.
 
-Trạng thái này chỉ xác nhận code và hạ tầng đã phát hành. CAPTCHA, lịch cleanup, alerting,
-kiểm thử thiết bị thật và closed beta được theo dõi riêng ở các mục 19, 20 và 23.
+Trạng thái này chỉ xác nhận code và hạ tầng đã phát hành. Lịch cleanup, alerting, kiểm thử thiết
+bị thật và closed beta được theo dõi riêng ở các mục 19, 20 và 23.
 
 ## 1. Tóm tắt quyết định
 
@@ -809,8 +809,6 @@ Kết quả baseline đã chốt ngày 2026-10-27:
 - `npm run test:e2e`: 12/12 scenarios pass, gồm local full-game, remote full-flow, RLS,
   reconnect, takeover thiết bị, xung đột hai tab quản trò, focus/keyboard accessibility, Tiên
   tri reconnect, tải 30 người và responsive 320–1920 px.
-- `npm run test:e2e:captcha`: 1/1 scenario pass; xác minh widget cấp token và anonymous
-  sign-in gửi đúng token tới Supabase Auth.
 - Production smoke: tạo phòng remote, join, claim thiết bị, ready, chat Realtime, host nhận tin,
   đóng phòng và player nhận trạng thái đóng đều pass.
 
@@ -869,11 +867,10 @@ Automated tests không đánh giá được nhịp chat và cảm giác chờ. C
 
 Chưa cấu hình hoặc chưa xác minh trên production:
 
-- [~] Frontend Turnstile, production widget, Vercel site key và CAPTCHA E2E đã hoàn thành; cần
-  push Supabase Auth secret/enforcement và chạy production smoke. Anonymous rate limit đã khai
-  báo 30/giờ/IP.
-- [~] Migration Supabase Cron, dọn run history và RPC health đã có; cần deploy và xác minh lần
-  chạy hosted đầu tiên.
+- [x] Không dùng CAPTCHA theo quyết định sản phẩm; Turnstile đã gỡ khỏi code và production.
+      Anonymous rate limit được giữ ở 30/giờ/IP cùng các giới hạn nghiệp vụ trong database.
+- [~] Migration Supabase Cron, dọn run history và RPC health đã deploy; lịch active, còn chờ
+  xác minh lần chạy hosted đầu tiên.
 - [~] Synthetic health/cron/expired-prompt alert mỗi giờ qua GitHub Actions đã có; log-based
   alert cho tỷ lệ 5xx, p95, rate-limit và Realtime errors vẫn cần cấu hình Dashboard.
 - [ ] Dashboard/báo cáo funnel join → ready → start → finish phục vụ beta.
@@ -954,16 +951,14 @@ browser notification; người bị mê hoặc nhận thông báo; chat phòng �
 
 Thực hiện theo thứ tự:
 
-1. **Hoàn thiện guardrail production:** frontend CAPTCHA đã xong; tạo Turnstile production
-   widget, cấu hình site key/secret, bật enforcement và xác minh không làm hỏng join/reconnect.
-2. **Bật vận hành nền:** lập lịch `gw_cleanup`, cấu hình alert và dashboard chỉ số; chạy cleanup
-   thử trên bản sao hoặc dữ liệu kiểm thử trước.
-3. **Xác minh hosted/thiết bị thật:** adversarial test presence private, hai tab quản trò,
-   focus/keyboard accessibility và bàn phím ảo trên iOS/Android.
-4. **Closed beta vòng 1:** 6–8 người, mixed Wi-Fi/4G/5G; sửa lỗi blocker và chạy lại bộ test.
-5. **Closed beta vòng 2:** 12–16 người, chủ động tạo reconnect/takeover/AFK; thu thập các chỉ
+1. **Hoàn thiện vận hành nền:** xác minh lần chạy đầu của `gw_cleanup`, cấu hình alert dựa trên
+   Supabase logs và dashboard chỉ số. Synthetic health mỗi giờ đã hoạt động.
+2. **Xác minh thiết bị thật:** kiểm tra bàn phím ảo và CTA trên iOS/Android; presence private,
+   hai tab quản trò và focus/keyboard accessibility đã có kiểm thử tự động/hosted.
+3. **Closed beta vòng 1:** 6–8 người, mixed Wi-Fi/4G/5G; sửa lỗi blocker và chạy lại bộ test.
+4. **Closed beta vòng 2:** 12–16 người, chủ động tạo reconnect/takeover/AFK; thu thập các chỉ
    số ở mục 20.
-6. **Cổng phát hành rộng:** chỉ mở rộng khi không có sự cố đọc chéo dữ liệu, tỷ lệ hoàn tất và
+5. **Cổng phát hành rộng:** chỉ mở rộng khi không có sự cố đọc chéo dữ liệu, tỷ lệ hoàn tất và
    lỗi command đạt mục tiêu; cập nhật checklist bằng bằng chứng beta.
 
 Các backlog không chặn beta: khôi phục quyền quản trò khi mất thiết bị (FE-02), heartbeat
