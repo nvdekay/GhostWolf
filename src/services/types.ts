@@ -1,4 +1,5 @@
-import type { GameStatus, PublicState, RoleDef, RuleOptions } from '@engine'
+import type { GameStatus, PublicState, RoleDef } from '@engine'
+import type { RoomOptions } from '@shared/remote.ts'
 
 export type RoomStatus = 'open' | 'locked' | 'closed'
 export type MemberStatus = 'active' | 'left' | 'kicked' | 'closed'
@@ -9,7 +10,7 @@ export interface RoomRow {
   name: string
   host_id: string
   status: RoomStatus
-  options: RuleOptions
+  options: RoomOptions
   current_game_id: string | null
   created_at: string
   updated_at: string

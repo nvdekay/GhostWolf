@@ -374,3 +374,46 @@
   overflow-wrap: anywhere;
   user-select: all;
 }
+.config__mode {
+  border: 0;
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+  padding: 0;
+}
+
+.config__mode legend,
+.config__remote h2 {
+  font-weight: 700;
+  margin-bottom: 0.65rem;
+}
+
+.config__mode-option {
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  gap: 0.75rem;
+  min-height: 60px;
+  padding: 0.75rem;
+}
+
+.config__mode-option[data-selected='true'] {
+  border-color: var(--gold);
+}
+
+.config__mode-option span,
+.config__mode-option small {
+  display: block;
+}
+
+.config__mode-option small {
+  color: var(--muted);
+  margin-top: 0.2rem;
+}
+
+.config__remote {
+  display: grid;
+  gap: 0.75rem;
+}

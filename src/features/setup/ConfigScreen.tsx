@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { DEFAULT_OPTIONS, type RuleOptions } from '@engine'
+import { DEFAULT_REMOTE_SETTINGS, type RoomMode, type RoomOptions } from '@shared/remote.ts'
 import { useNav } from '@/app/App'
 import { useFeedback } from '@/app/feedback'
 import { Icon } from '@/components/Icon'
@@ -11,10 +12,10 @@ export function ConfigScreen() {
   const nav = useNav()
   const fb = useFeedback()
   const [name, setName] = useState('Ván tối thứ Sáu')
-  const [opts, setOpts] = useState<RuleOptions>(DEFAULT_OPTIONS)
+  const [opts, setOpts] = useState<RoomOptions>({ ...DEFAULT_OPTIONS, ...DEFAULT_REMOTE_SETTINGS })
   const [variants, setVariants] = useState(false)
   const [busy, setBusy] = useState(false)
-  const patch = (p: Partial<RuleOptions>) => setOpts((o) => ({ ...o, ...p }))
+  const patch = (p: Partial<RuleOptions & RoomOptions>) => setOpts((o) => ({ ...o, ...p }))
 
   const create = async () => {
     setBusy(true)
@@ -38,6 +39,29 @@ export function ConfigScreen() {
           <p>Bạn có thể đổi bộ vai sau khi mọi người vào phòng.</p>
         </div>
         <div className="config__form">
+          <fieldset className="config__mode">
+            <legend>Chế độ chơi</legend>
+            {(
+              [
+                ['local', 'Cùng phòng', 'Quản trò nhập hành động và phiếu trên một máy.'],
+                ['remote', 'Từ xa', 'Mỗi người chat, hành động và bỏ phiếu trên thiết bị riêng.'],
+              ] as const
+            ).map(([mode, title, sub]) => (
+              <label key={mode} className="config__mode-option" data-selected={opts.mode === mode}>
+                <input
+                  type="radio"
+                  name="mode"
+                  value={mode}
+                  checked={opts.mode === mode}
+                  onChange={() => patch({ mode: mode as RoomMode })}
+                />
+                <span>
+                  <strong>{title}</strong>
+                  <small>{sub}</small>
+                </span>
+              </label>
+            ))}
+          </fieldset>
           <div className="field">
             <label htmlFor="rname">Tên ván</label>
             <input
@@ -102,6 +126,44 @@ export function ConfigScreen() {
               </div>
             )}
           </section>
+          {opts.mode === 'remote' && (
+            <section className="config__remote" aria-label="Thời gian chơi từ xa">
+              <h2>Thời gian mỗi lượt</h2>
+              {(
+                [
+                  ['discussionSeconds', 'Thảo luận', 60, 900],
+                  ['nightActionSeconds', 'Hành động đêm', 15, 180],
+                  ['voteSeconds', 'Bỏ phiếu', 15, 180],
+                ] as const
+              ).map(([key, label, min, max]) => (
+                <label className="field" key={key}>
+                  <span>{label} (giây)</span>
+                  <input
+                    className="input"
+                    type="number"
+                    min={min}
+                    max={max}
+                    value={opts[key]}
+                    onChange={(e) => patch({ [key]: Number(e.target.value) })}
+                  />
+                </label>
+              ))}
+              <SwitchRow
+                title="Cho phép đổi phiếu"
+                sub="Phiếu cuối cùng trước khi khóa có hiệu lực"
+                checked={opts.allowVoteChange}
+                onToggle={() => patch({ allowVoteChange: !opts.allowVoteChange })}
+                label="Cho phép đổi phiếu"
+              />
+              <SwitchRow
+                title="Công khai chat Sói sau trận"
+                sub="Mặc định bật; không công khai trong lúc ván diễn ra"
+                checked={opts.revealWolfChatAfterGame}
+                onToggle={() => patch({ revealWolfChatAfterGame: !opts.revealWolfChatAfterGame })}
+                label="Công khai chat Sói sau trận"
+              />
+            </section>
+          )}
         </div>
         <div className="note-box">
           <Icon name="info" />

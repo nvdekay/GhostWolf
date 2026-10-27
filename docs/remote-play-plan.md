@@ -1,6 +1,6 @@
 # Kế hoạch chế độ chơi từ xa cho Ghostwolf
 
-> Trạng thái: kế hoạch sản phẩm và kỹ thuật
+> Trạng thái: đang triển khai; các quyết định MVP ở mục 22 đã được chốt ngày 2026-10-27
 >
 > Mục tiêu: cho phép mọi người ở các địa điểm khác nhau chơi một ván Ghostwolf hoàn
 > chỉnh chỉ bằng trình duyệt và kết nối Internet, không cần gọi thoại hoặc ứng dụng chat
@@ -855,6 +855,10 @@ MVP được coi là hoàn thành khi:
 - Tài liệu luật và hướng dẫn người dùng được cập nhật.
 
 ## 22. Các quyết định cần chốt trước khi code
+
+Quyết định cho MVP: Sói hòa thì không cắn; chat Sói mặc định công khai sau trận; phiếu ban
+ngày chỉ công khai tổng; chỉ quản trò xóa tin; thiết bị mới giành quyền điều khiển; chưa gửi
+browser notification; người bị mê hoặc nhận thông báo; chat phòng đóng được giữ 30 ngày.
 
 1. Khi phiếu Sói hòa sau thời gian phụ: không cắn ai hay quản trò quyết định?
 2. Chat Sói sau trận mặc định công khai hay riêng tư?

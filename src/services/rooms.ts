@@ -1,5 +1,5 @@
 /* RPC lệnh phòng (Postgres, security definer — kiểm tra quyền ở server). */
-import type { RuleOptions } from '@engine'
+import type { RoomOptions } from '@shared/remote.ts'
 import { supabase } from '@/lib/supabase'
 import { fromPostgrest } from './errors'
 import type { MemberRow, RoomRow, RoomStatus } from './types'
@@ -10,7 +10,7 @@ async function call<T>(fn: string, args: Record<string, unknown>): Promise<T> {
   return data as T
 }
 
-export const createRoom = (name: string, options: Partial<RuleOptions>) =>
+export const createRoom = (name: string, options: Partial<RoomOptions>) =>
   call<RoomRow>('create_room', { p_name: name, p_options: options })
 
 export async function findRoom(code: string) {
