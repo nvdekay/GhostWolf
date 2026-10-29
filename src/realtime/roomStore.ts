@@ -355,6 +355,11 @@ export class RoomStore {
       if (row.is_host) online.add('host')
       else if (row.member_id && knownMembers.has(row.member_id)) online.add(row.member_id)
     }
+    if (
+      online.size === this.snap.online.size &&
+      [...online].every((identity) => this.snap.online.has(identity))
+    )
+      return
     this.set({ online })
   }
 
