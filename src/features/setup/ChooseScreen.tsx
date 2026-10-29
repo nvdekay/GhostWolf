@@ -44,8 +44,8 @@ export function ChooseScreen() {
           <h1 className="choose__title">Bạn vào ván với vai trò nào?</h1>
           <Ornament />
           <p className="muted pretty choose__lead">
-            Mỗi người dùng điện thoại của mình. Quản trò tạo phòng và đọc mã, người chơi nhập mã để
-            vào.
+            Quản trò có thể tổ chức cho mọi người ngồi cùng một chỗ hoặc chơi từ xa. Người chơi mở
+            link mời hoặc nhập mã phòng để tham gia trên thiết bị của mình.
           </p>
         </div>
         <div className="choose__grid">

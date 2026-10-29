@@ -44,8 +44,16 @@ export function ConfigScreen() {
             <legend>Chế độ chơi</legend>
             {(
               [
-                ['local', 'Cùng phòng', 'Quản trò nhập hành động và phiếu trên một máy.'],
-                ['remote', 'Từ xa', 'Mỗi người chat, hành động và bỏ phiếu trên thiết bị riêng.'],
+                [
+                  'local',
+                  'Chơi cùng phòng',
+                  'Mọi người ngồi cùng bàn hoặc cùng một địa điểm. Quản trò điều hành trên một máy; người chơi có thể dùng điện thoại riêng hoặc chuyền máy để xem vai.',
+                ],
+                [
+                  'remote',
+                  'Chơi từ xa',
+                  'Mỗi người có thể ở một nơi khác nhau và dùng thiết bị riêng để chat, hành động ban đêm và bỏ phiếu trong phòng online.',
+                ],
               ] as const
             ).map(([mode, title, sub]) => (
               <label key={mode} className="config__mode-option" data-selected={opts.mode === mode}>

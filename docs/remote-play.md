@@ -2,7 +2,7 @@
 
 ## Chuẩn bị
 
-Quản trò chọn **Tạo ván mới → Quản trò → Từ xa**, cấu hình thời gian rồi gửi link hoặc mã
+Quản trò chọn **Tạo ván mới → Quản trò → Chơi từ xa**, cấu hình thời gian rồi gửi link hoặc mã
 phòng. Mỗi người mở link trên thiết bị riêng, nhập tên và bấm **Sẵn sàng**. Server chỉ cho chốt
 phòng khi tất cả người dùng thiết bị đã ready.
 
