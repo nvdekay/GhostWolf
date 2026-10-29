@@ -1,7 +1,7 @@
 import type { Counts, RoleDef, RuleOptions, StatusDef, Team } from './types.ts'
 
 /** Phiên bản bộ luật. Tăng khi đổi cách engine xử lý luật. */
-export const RULESET_VERSION = 1
+export const RULESET_VERSION = 2
 
 export const DEFAULT_OPTIONS: RuleOptions = {
   chief: true,
@@ -203,6 +203,21 @@ export const MIN_PLAYERS = 4
 export const MAX_PLAYERS = 30
 /** Số loại vai tối đa trong một bộ vai (11 vai gốc + vai tùy chỉnh). */
 export const MAX_ROLE_KINDS = 64
+
+/** Vai chuẩn có state/lượt riêng dùng chung cho cả ván nên luật v2 chỉ cho một thẻ. */
+export const SINGLETON_ROLE_IDS: ReadonlySet<string> = new Set([
+  'seer',
+  'guard',
+  'witch',
+  'hunter',
+  'cupid',
+  'idiot',
+  'whitewolf',
+  'tanner',
+  'piper',
+])
+
+export const maxRoleCount = (id: string) => (SINGLETON_ROLE_IDS.has(id) ? 1 : MAX_PLAYERS)
 
 export const TEAMS: Record<Team, { label: string; icon: 'house' | 'paw' | 'sparkles' }> = {
   village: { label: 'Phe Dân', icon: 'house' },

@@ -29,7 +29,7 @@ Snapshot phát hành:
 - Edge Function `game-command` và `player-command` đang active trên Supabase hosted.
 - Vercel nối GitHub branch `main`; bản production chứa baseline trên đã được xác minh và đang
   phục vụ tại `https://ghostwolf.khanhnvd.click`.
-- Xác minh phát hành: typecheck, lint, build, Deno check, 63 unit tests, 49 integration tests,
+- Xác minh phát hành: typecheck, lint, build, Deno check, 65 unit tests, 49 integration tests,
   13 E2E scenarios và smoke test hai browser context trên production đều pass.
 
 Trạng thái này chỉ xác nhận code và hạ tầng đã phát hành. Lịch cleanup, alerting, kiểm thử thiết
@@ -805,7 +805,7 @@ Kết quả baseline đã chốt ngày 2026-10-27:
 
 - `npm run typecheck`, `npm run lint`, `npm run build`: pass.
 - `deno check` cho `game-command` và `player-command`: pass.
-- `npm test`: 63/63 unit tests pass.
+- `npm test`: 65/65 unit tests pass.
 - `npm run test:integration`: 49/49 integration tests pass trên Supabase local.
 - `npm run test:e2e`: 13/13 scenarios pass, gồm local full-game, remote full-flow, RLS,
   reconnect, takeover thiết bị, xung đột hai tab quản trò, focus/keyboard accessibility, Tiên
@@ -964,9 +964,9 @@ Thực hiện theo thứ tự:
 5. **Cổng phát hành rộng:** chỉ mở rộng khi không có sự cố đọc chéo dữ liệu, tỷ lệ hoàn tất và
    lỗi command đạt mục tiêu; cập nhật checklist bằng bằng chứng beta.
 
-Các backlog không chặn beta còn lại: luật nhiều instance của cùng vai và action schema cho vai
-tùy chỉnh. RT-03 heartbeat xác thực server và FE-02 khôi phục quản trò bằng mã một lần đã hoàn
-thành.
+Luật v2 đã chốt số bản sao vai đặc biệt và xác định vai tùy chỉnh do quản trò xử lý thủ công;
+action schema tự động cho vai tùy chỉnh là hướng mở rộng sau MVP. RT-03 heartbeat xác thực server
+và FE-02 khôi phục quản trò bằng mã một lần cũng đã hoàn thành.
 
 ## 24. Hướng phát triển sau MVP
 

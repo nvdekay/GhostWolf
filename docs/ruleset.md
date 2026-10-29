@@ -1,6 +1,6 @@
-# Bộ luật Ghostwolf — phiên bản 1
+# Bộ luật Ghostwolf — phiên bản 2
 
-Nguồn: `supabase/functions/_shared/engine` (`RULESET_VERSION = 1`). Engine chạy ở Edge Function `game-command`; mô tả trong thư viện vai (`catalog.ts`) khớp với luật dưới đây.
+Nguồn: `supabase/functions/_shared/engine` (`RULESET_VERSION = 2`). Engine chạy ở Edge Function `game-command`; mô tả trong thư viện vai (`catalog.ts`) khớp với luật dưới đây.
 
 ## Chu trình
 
@@ -12,9 +12,13 @@ Chia vai → Gửi vai → Đêm 1 → Công bố → Thảo luận → Bỏ phi
 
 ## Giới hạn
 
-- Một phòng: 4–30 người. Một bộ vai: tối đa 30 thẻ, mỗi vai tối đa 30, tối đa 64 loại vai.
+- Một phòng: 4–30 người. Một bộ vai: tối đa 30 thẻ và 64 loại vai.
 - Người bị quản trò mời ra không tự vào lại được phòng đó (người tự rời thì được).
-- Chưa định nghĩa luật cho nhiều Cupid / Phù thủy / Tiên tri / Bảo vệ / Người thổi sáo / Sói trắng trong cùng ván: engine hiện gọi mỗi vai **một lượt** và Phù thủy dùng **chung một bộ bình**. Nên dùng tối đa 1 cho các vai này.
+- Được dùng nhiều Dân làng, Ma sói và vai tùy chỉnh. Các vai chuẩn có state/lượt riêng — Tiên
+  tri, Bảo vệ, Phù thủy, Thợ săn, Cupid, Thằng ngốc, Sói trắng, Kẻ chán đời và Người thổi sáo —
+  chỉ được có một thẻ mỗi loại. UI và engine cùng chặn bộ vai vi phạm.
+- Vai tùy chỉnh không có action schema tự động ở luật v2: quản trò xử lý kỹ năng thủ công; nếu
+  bật “thức dậy ban đêm”, engine tạo một lượt gọi nhưng không tự áp hiệu ứng từ phần mô tả.
 
 ## Ban đêm
 

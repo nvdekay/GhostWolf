@@ -8,7 +8,7 @@ Cập nhật phát hành 2026-10-27: `main` chứa toàn bộ implementation Rem
 production đã deploy; closed beta trên mạng và thiết bị thật chưa thực hiện.
 
 Kiểm thử đã chạy (Supabase local + Edge Function chạy bằng Deno):
-`npm test` 63 test · `npm run test:integration` 49 test · `npm run test:e2e` 13 kịch bản,
+`npm test` 65 test · `npm run test:integration` 49 test · `npm run test:e2e` 13 kịch bản,
 bao gồm local full-game, remote full-game, RLS, reconnect, takeover tab, tải 30 người và
 responsive 320–1920 px.
 
@@ -46,7 +46,7 @@ responsive 320–1920 px.
 - [x] Toast chỉ hiện khi thao tác thành công; lỗi mạng/backend/clipboard có thông báo riêng.
 - [x] Thương hiệu “Trăng Sói” → Ghostwolf.
 
-## 3. Engine & luật (`docs/ruleset.md`, `RULESET_VERSION = 1`)
+## 3. Engine & luật (`docs/ruleset.md`, `RULESET_VERSION = 2`)
 
 - [x] 11 vai + 2 trạng thái, mô tả khớp engine.
 - [x] Năng lực tách riêng: phe thắng / thuộc bầy / kết quả soi / mục tiêu hợp lệ.
@@ -102,7 +102,8 @@ responsive 320–1920 px.
 - [x] P2 Key toast/màn chuyển cảnh, E2E không sleep cố định, vùng chạm 44px, server E2E mới khi CI, log JSON có request ID.
 - [x] RT-03 Heartbeat 15 giây qua RPC, TTL online 45 giây, key do server suy ra; outsider và ghi trực tiếp bị RLS/quyền từ chối (unit + integration + E2E regression).
 - [x] FE-02 Khôi phục quyền quản trò bằng mã entropy 96-bit chỉ lưu hash, tự xoay sau mỗi lần dùng, thu hồi host cũ và chặn thiết bị người chơi chuyển vai (integration + E2E).
-- [ ] Luật cho nhiều Cupid/Phù thủy/Tiên tri…: chưa định nghĩa (ghi chú trong `docs/ruleset.md`).
+- [x] RULE-03 Luật nhiều bản sao: Dân làng, Ma sói và vai tùy chỉnh được nhiều thẻ; chín vai
+      chuẩn có state/lượt riêng chỉ một thẻ, được UI + engine enforce. Vai tùy chỉnh là thủ công ở v2.
 
 ## 8. Chế độ chơi từ xa (2026-10-27)
 

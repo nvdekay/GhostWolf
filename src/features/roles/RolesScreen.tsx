@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { findRoleDef, PRESETS, suggestCounts, type Counts } from '@engine'
+import { findRoleDef, maxRoleCount, PRESETS, suggestCounts, type Counts } from '@engine'
 import { useFeedback } from '@/app/feedback'
 import { Icon } from '@/components/Icon'
 import { Sheet } from '@/components/overlay'
@@ -204,6 +204,7 @@ export function RolesScreen() {
               <button
                 className="btn btn-ghost btn-icon"
                 onClick={() => update((c) => incCount(c, r.id))}
+                disabled={(counts[r.id] ?? 0) >= maxRoleCount(r.id)}
                 aria-label={`Thêm ${r.name}`}
               >
                 <Icon name="plus" />
@@ -377,6 +378,7 @@ export function RolesScreen() {
                       <button
                         className="btn btn-ink btn-icon"
                         onClick={() => update((x) => incCount(x, r.id))}
+                        disabled={c >= maxRoleCount(r.id)}
                         aria-label={`Thêm một ${v.name}`}
                       >
                         <Icon name="plus" />
@@ -486,6 +488,7 @@ export function RolesScreen() {
             <RoleDetailSheet
               view={viewOf(sheet.id, defs)}
               count={counts[sheet.id] ?? 0}
+              maxCount={maxRoleCount(sheet.id)}
               onInc={() => update((c) => incCount(c, sheet.id))}
               onDec={() => update((c) => decCount(c, sheet.id))}
               onEdit={

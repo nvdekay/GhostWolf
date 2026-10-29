@@ -1,7 +1,8 @@
 /* Dữ liệu hiển thị vai, dựa trên catalog của engine (một nguồn duy nhất cho mô tả và luật). */
 import {
+  countsProblem,
   findRoleDef,
-  MAX_PLAYERS,
+  maxRoleCount,
   ROLES,
   STATUSES,
   TEAMS,
@@ -102,7 +103,7 @@ function totalCards(counts: Counts): number {
 }
 
 export function incCount(counts: Counts, id: string): Counts {
-  return { ...counts, [id]: Math.min(MAX_PLAYERS, (counts[id] ?? 0) + 1) }
+  return { ...counts, [id]: Math.min(maxRoleCount(id), (counts[id] ?? 0) + 1) }
 }
 
 export function decCount(counts: Counts, id: string): Counts {
@@ -125,23 +126,28 @@ export function deckSummary(counts: Counts, n: number, custom: RoleDef[]) {
   const wolf = by('wolf')
   const solo = by('solo')
   const diff = total - n
-  const ok = n > 0 && diff === 0 && wolf > 0
+  const problem = countsProblem(counts)
+  const ok = n > 0 && !problem && diff === 0 && wolf > 0
   let status: {
     text: string
     tone: 'muted' | 'warn' | 'bad' | 'good'
     icon: 'info' | 'alert' | 'check'
   }
-  if (total === 0) status = { text: `Chưa chọn vai · cần ${n} thẻ`, tone: 'muted', icon: 'info' }
+  if (problem) status = { text: problem, tone: 'bad', icon: 'alert' }
+  else if (total === 0)
+    status = { text: `Chưa chọn vai · cần ${n} thẻ`, tone: 'muted', icon: 'info' }
   else if (diff < 0) status = { text: `Thiếu ${-diff} thẻ`, tone: 'warn', icon: 'alert' }
   else if (diff > 0) status = { text: `Thừa ${diff} thẻ`, tone: 'bad', icon: 'alert' }
   else if (wolf === 0) status = { text: 'Chưa có Ma sói', tone: 'bad', icon: 'alert' }
   else status = { text: `Khớp ${n}/${n} người`, tone: 'good', icon: 'check' }
-  const reason = ok
-    ? 'Sẵn sàng chia vai.'
-    : diff < 0
-      ? `Thêm ${-diff} thẻ hoặc bấm “Điền Dân làng”.`
-      : diff > 0
-        ? `Bớt ${diff} thẻ để khớp ${n} người chơi.`
-        : 'Bộ vai cần ít nhất một Ma sói.'
+  const reason = problem
+    ? problem
+    : ok
+      ? 'Sẵn sàng chia vai.'
+      : diff < 0
+        ? `Thêm ${-diff} thẻ hoặc bấm “Điền Dân làng”.`
+        : diff > 0
+          ? `Bớt ${diff} thẻ để khớp ${n} người chơi.`
+          : 'Bộ vai cần ít nhất một Ma sói.'
   return { total, village, wolf, solo, diff, ok, status, reason }
 }

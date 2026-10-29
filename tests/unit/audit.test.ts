@@ -135,3 +135,29 @@ describe('RULE-02: ngày chỉ đi tới bước kế tiếp', () => {
     expectError(() => run(g, { type: 'day.goto', step: 'vote' }), 'DAY_SKIP')
   })
 })
+
+describe('RULE-03: số bản sao mỗi vai', () => {
+  it('chỉ cho một thẻ với vai chuẩn có state riêng', () => {
+    expect(deckProblem({ wolf: 1, seer: 2, villager: 1 }, 4, [])).toContain(
+      'Tiên tri chỉ được có một thẻ',
+    )
+    expect(deckProblem({ wolf: 1, witch: 2, villager: 1 }, 4, [])).toContain(
+      'Phù thủy chỉ được có một thẻ',
+    )
+  })
+
+  it('cho nhiều Dân làng, Ma sói và vai tùy chỉnh do quản trò xử lý', () => {
+    const custom = {
+      id: 'custom:test',
+      name: 'Vai nhóm',
+      team: 'village' as const,
+      icon: 'sparkles' as const,
+      short: '',
+      skill: '',
+      wake: '',
+      custom: true,
+    }
+    expect(deckProblem({ wolf: 2, villager: 2 }, 4, [])).toBeNull()
+    expect(deckProblem({ wolf: 1, villager: 1, 'custom:test': 2 }, 4, [custom])).toBeNull()
+  })
+})

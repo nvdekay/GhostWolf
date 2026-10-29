@@ -12,12 +12,14 @@ import './roles.css'
 export function RoleDetailSheet({
   view: v,
   count,
+  maxCount,
   onInc,
   onDec,
   onEdit,
 }: {
   view: RoleView
   count?: number
+  maxCount?: number
   onInc?: () => void
   onDec?: () => void
   onEdit?: () => void
@@ -80,6 +82,7 @@ export function RoleDetailSheet({
           <button
             className="btn btn-ink btn-icon role-sheet__step"
             onClick={onInc}
+            disabled={maxCount !== undefined && count >= maxCount}
             aria-label={`Thêm một ${v.name}`}
           >
             <Icon name="plus" />

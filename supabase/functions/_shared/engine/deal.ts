@@ -1,4 +1,4 @@
-import { findRoleDef, MAX_PLAYERS, MAX_ROLE_KINDS } from './catalog.ts'
+import { findRoleDef, MAX_PLAYERS, MAX_ROLE_KINDS, SINGLETON_ROLE_IDS } from './catalog.ts'
 import { assert } from './errors.ts'
 import type { Counts, Player, RoleDef, SeatInput } from './types.ts'
 
@@ -15,8 +15,10 @@ export function countsProblem(counts: Counts): string | null {
   const entries = Object.entries(counts)
   if (entries.length > MAX_ROLE_KINDS) return 'Bộ vai có quá nhiều loại vai.'
   let total = 0
-  for (const [, c] of entries) {
+  for (const [id, c] of entries) {
     if (!Number.isInteger(c) || c < 0 || c > MAX_PLAYERS) return 'Số lượng vai không hợp lệ.'
+    if (c > 1 && SINGLETON_ROLE_IDS.has(id))
+      return `${findRoleDef(id)?.name ?? id} chỉ được có một thẻ trong bộ vai.`
     total += c
   }
   if (total > MAX_PLAYERS) return `Bộ vai tối đa ${MAX_PLAYERS} thẻ.`
