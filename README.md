@@ -95,6 +95,8 @@ supabase functions deploy player-command --use-api
 supabase config push --project-ref ztyefvgplgafhfukmkxh   # chạy không --yes trước để xem diff
 ```
 
+Quản trị nền tảng (thống kê, danh sách phòng, đóng phòng, mời ra, tắt chat, xoá tin, dọn dữ liệu) nằm ở console riêng `admin-hub`. Console gọi các hàm `admin_*` trong `supabase/migrations/20261029020000_admin_console.sql` bằng service-role key. Các hàm này chỉ service role gọi được, ghi mọi thao tác vào `admin_actions` và không trả vai, kênh sói hay lựa chọn ban đêm.
+
 Frontend: project Vercel `ghostwolf` nối với repo GitHub, mỗi lần push lên `main` tự build và deploy. Biến `VITE_SUPABASE_URL` và `VITE_SUPABASE_ANON_KEY` (publishable key) khai trong Vercel, không nằm trong repo. Deploy tay: `npx vercel@latest deploy --prod`.
 
 ## Tài liệu
