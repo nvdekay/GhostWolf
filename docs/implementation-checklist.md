@@ -15,7 +15,7 @@ responsive 320–1920 px.
 ## 0. Kiến trúc
 
 - [x] React + TS strict + Vite, CSS thuần dùng tokens của mock, build static `dist/`.
-- [x] Supabase: Postgres + RLS, anonymous auth, Realtime (postgres_changes theo RLS + presence kênh private).
+- [x] Supabase: Postgres + RLS, anonymous auth, Realtime `postgres_changes` theo RLS và heartbeat online do server xác thực.
 - [x] Game engine TS thuần dùng chung Edge Function và frontend (`supabase/functions/_shared/engine`, alias `@engine`); `deno check` qua.
 - [x] Lệnh phòng là RPC `security definer`; lệnh ván qua Edge Function `game-command` → `commit_game` (1 transaction, revision, idempotency).
 - [x] Tách UI / domain / services / realtime / session.
@@ -66,7 +66,7 @@ responsive 320–1920 px.
 - [x] `game_secrets`, lịch sử, command log: chỉ quản trò / service role; client không ghi trực tiếp bảng ván.
 - [x] Không service-role key ở frontend; realtime không gửi `game_secrets` tới người chơi (integration).
 - [x] Màn hình chung render từ public state; e2e kiểm không có tên vai trên bàn khi bật. Nhãn hoàn tác chung chung, không chứa mục tiêu.
-- [x] Chính sách kênh presence private (`realtime.messages`) chạy local và adversarial test trên Supabase hosted: thành viên subscribe được, người ngoài bị `CHANNEL_ERROR`.
+- [x] Presence dùng `heartbeat_room`: server tự suy ra `host`/member từ `auth.uid()`, bảng heartbeat chỉ participant đọc được, client không ghi trực tiếp và kênh dùng key tự khai đã bị đóng.
 
 ## 5. Persistence & đồng bộ
 
@@ -100,7 +100,7 @@ responsive 320–1920 px.
 - [x] DB-01 Trigger `current_game_id` cùng phòng, vai cùng phòng; CHECK seat/number/revision (integration).
 - [x] OPS-01 30 người/phòng, 10 phòng mở/quản trò, 60 lệnh/10 giây/ván, `gw_cleanup`, lịch `pg_cron`, dọn run history và service-only cron health (integration). Lịch chạy: `docs/production-hardening.md`.
 - [x] P2 Key toast/màn chuyển cảnh, E2E không sleep cố định, vùng chạm 44px, server E2E mới khi CI, log JSON có request ID.
-- [~] RT-03 Presence key do client đặt: thành viên giả được key `host`/id người khác (đã tái hiện local). Chỉ dùng hiển thị; đã lọc key lạ. Chưa có heartbeat tin cậy.
+- [x] RT-03 Heartbeat 15 giây qua RPC, TTL online 45 giây, key do server suy ra; outsider và ghi trực tiếp bị RLS/quyền từ chối (unit + integration + E2E regression).
 - [x] FE-02 Khôi phục quyền quản trò bằng mã entropy 96-bit chỉ lưu hash, tự xoay sau mỗi lần dùng, thu hồi host cũ và chặn thiết bị người chơi chuyển vai (integration + E2E).
 - [ ] Luật cho nhiều Cupid/Phù thủy/Tiên tri…: chưa định nghĩa (ghi chú trong `docs/ruleset.md`).
 

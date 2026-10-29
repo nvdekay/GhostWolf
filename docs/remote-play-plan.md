@@ -409,7 +409,8 @@ Không có direct message và chat nghĩa địa trong MVP.
 
 - Tin mới được đẩy qua Supabase Realtime.
 - Khi reconnect, client đọc lại từ message cursor cuối cùng rồi mới tiếp tục nghe realtime.
-- Presence chỉ dùng hiển thị online, không dùng để quyết định quyền gửi.
+- Heartbeat online do server suy ra host/member từ `auth.uid()`; chỉ dùng hiển thị, không dùng để
+  quyết định quyền gửi.
 - Typing indicator là sự kiện tạm thời, không lưu DB và có thể bỏ khỏi MVP.
 
 ## 9. State machine đề xuất
@@ -461,8 +462,8 @@ chỉ nên chứa tên phase chung, deadline và số người đã phản hồi
 - `offline`: quá grace period.
 - `afk`: không phản hồi nhiều deadline liên tiếp, do server đánh dấu.
 
-Presence là gợi ý giao diện. Server không tự coi một người chết, bỏ lượt hoặc mất quyền chỉ
-vì presence biến mất.
+Heartbeat có chu kỳ 15 giây và TTL 45 giây nhưng vẫn là gợi ý giao diện. Server không tự coi một
+người chết, bỏ lượt hoặc mất quyền chỉ vì heartbeat biến mất.
 
 ### 10.2. Khi reconnect
 
@@ -869,14 +870,14 @@ Chưa cấu hình hoặc chưa xác minh trên production:
 
 - [x] Không dùng CAPTCHA theo quyết định sản phẩm; Turnstile đã gỡ khỏi code và production.
       Anonymous rate limit được giữ ở 30/giờ/IP cùng các giới hạn nghiệp vụ trong database.
-- [~] Migration Supabase Cron, dọn run history và RPC health đã deploy; lịch active, còn chờ
-  xác minh lần chạy hosted đầu tiên.
+- [x] Migration Supabase Cron, dọn run history và RPC health đã deploy; lần chạy hosted
+      `2026-10-28 03:17 UTC` có trạng thái `succeeded`, các health run sau đó đều pass.
 - [~] Synthetic health/cron/expired-prompt alert mỗi giờ qua GitHub Actions đã có; log-based
   alert cho tỷ lệ 5xx, p95, rate-limit và Realtime errors cần Log Drains nên tạm hoãn khi project
   còn ở Supabase Free.
 - [ ] Dashboard/báo cáo funnel join → ready → start → finish phục vụ beta.
-- [x] Realtime chat production đã smoke test; presence private đã adversarial test trên hosted:
-      thành viên subscribe được, người ngoài bị RLS từ chối.
+- [x] Realtime chat production đã smoke test; RT-03 chuyển online/offline sang heartbeat
+      server-derived, participant-only read và không cho client ghi/tự khai key.
 
 Theo dõi tối thiểu:
 
@@ -952,8 +953,8 @@ browser notification; người bị mê hoặc nhận thông báo; chat phòng �
 
 Thực hiện theo thứ tự:
 
-1. **Hoàn thiện vận hành nền:** xác minh lần chạy đầu của `gw_cleanup`, cấu hình alert dựa trên
-   Supabase logs và dashboard chỉ số. Synthetic health mỗi giờ đã hoạt động.
+1. **Vận hành nền:** cleanup cron và synthetic health đã xác minh; log-based alert cần Log Drains
+   trả phí nên tạm hoãn khi project còn ở Supabase Free.
 2. **Xác minh thiết bị thật:** kiểm tra bàn phím ảo và CTA trên iOS/Android; presence private,
    hai tab quản trò và focus/keyboard accessibility đã có kiểm thử tự động/hosted.
 3. **Closed beta vòng 1:** 6–8 người, mixed Wi-Fi/4G/5G; sửa lỗi blocker và chạy lại bộ test.
@@ -962,9 +963,9 @@ Thực hiện theo thứ tự:
 5. **Cổng phát hành rộng:** chỉ mở rộng khi không có sự cố đọc chéo dữ liệu, tỷ lệ hoàn tất và
    lỗi command đạt mục tiêu; cập nhật checklist bằng bằng chứng beta.
 
-Các backlog không chặn beta: heartbeat presence đáng tin cậy (RT-03), luật nhiều instance của
-cùng vai và action schema cho vai tùy chỉnh. Khôi phục quyền quản trò khi mất thiết bị (FE-02)
-đã hoàn thành bằng mã một lần tự xoay.
+Các backlog không chặn beta còn lại: luật nhiều instance của cùng vai và action schema cho vai
+tùy chỉnh. RT-03 heartbeat xác thực server và FE-02 khôi phục quản trò bằng mã một lần đã hoàn
+thành.
 
 ## 24. Hướng phát triển sau MVP
 

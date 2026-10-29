@@ -267,24 +267,8 @@ describe('OPS-01: giới hạn nghiệp vụ và dọn dữ liệu', () => {
   })
 })
 
-describe('RT-03: kênh presence private', () => {
-  const subscribe = async (c: Client, roomId: string) => {
-    const token = (await c.db.auth.getSession()).data.session!.access_token
-    await c.db.realtime.setAuth(token)
-    return new Promise<string>((res) => {
-      const ch = c.db.channel(`room:${roomId}`, {
-        config: { private: true, presence: { key: 'host' } },
-      })
-      ch.subscribe((s) => {
-        if (s === 'SUBSCRIBED' || s === 'CHANNEL_ERROR' || s === 'TIMED_OUT') {
-          void c.db.removeChannel(ch)
-          res(s)
-        }
-      })
-    })
-  }
-
-  it('người ngoài phòng bị từ chối; thành viên vào được', async () => {
+describe('RT-03: heartbeat presence xác thực server', () => {
+  it('server tự suy ra host/member; người ngoài không ghi hay đọc được', async () => {
     const host = await anonClient()
     const member = await anonClient()
     const outsider = await anonClient()
@@ -292,8 +276,46 @@ describe('RT-03: kênh presence private', () => {
       p_name: 'Presence',
       p_options: {},
     })
-    await rpc(member.db, 'join_room', { p_code: room.code, p_name: 'M' })
-    expect(await subscribe(outsider, room.id)).toBe('CHANNEL_ERROR')
-    expect(await subscribe(member, room.id)).toBe('SUBSCRIBED')
+    const joined = await rpc<{ id: string }>(member.db, 'join_room', {
+      p_code: room.code,
+      p_name: 'M',
+    })
+
+    expect((await rpc<string>(host.db, 'heartbeat_room', { p_room: room.id })).data).toBe('host')
+    expect((await rpc<string>(member.db, 'heartbeat_room', { p_room: room.id })).data).toBe(
+      joined.data.id,
+    )
+    expect((await rpc(outsider.db, 'heartbeat_room', { p_room: room.id })).error?.code).toBe(
+      'NOT_IN_ROOM',
+    )
+
+    const visible = await member.db
+      .from('room_presence')
+      .select('user_id,member_id,is_host')
+      .eq('room_id', room.id)
+    expect(visible.error).toBeNull()
+    expect(visible.data).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ user_id: host.uid, member_id: null, is_host: true }),
+        expect.objectContaining({
+          user_id: member.uid,
+          member_id: joined.data.id,
+          is_host: false,
+        }),
+      ]),
+    )
+    expect(
+      (await outsider.db.from('room_presence').select('*').eq('room_id', room.id)).data,
+    ).toEqual([])
+    expect(
+      (
+        await member.db.from('room_presence').insert({
+          room_id: room.id,
+          user_id: member.uid,
+          member_id: null,
+          is_host: true,
+        })
+      ).error,
+    ).not.toBeNull()
   })
 })

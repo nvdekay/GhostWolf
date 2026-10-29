@@ -3,9 +3,8 @@
  * - postgres_changes áp RLS cho từng người: máy người chơi không bao giờ nhận game_secrets hay vai người khác.
  * - Mỗi khi kênh (re)subscribe → lấy lại snapshot (khôi phục sau mất mạng).
  * - Một store cho mỗi phòng, đếm số người dùng (refcount) → remount không tạo subscription trùng.
- * - Presence trên kênh private "room:<id>": chỉ biểu thị online/offline, không loại ai khỏi ván.
- *   Key presence do client tự đặt (thành viên có thể tự xưng 'host' hoặc id người khác), nên chỉ là
- *   gợi ý hiển thị — không bao giờ dùng để phân quyền.
+ * - Online/offline lấy từ heartbeat RPC: server tự suy ra host/member từ auth.uid(), client không
+ *   thể tự chọn key. Trạng thái này vẫn chỉ dùng hiển thị, không dùng để phân quyền.
  */
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { useEffect, useSyncExternalStore } from 'react'
@@ -49,6 +48,8 @@ export interface RoomSnapshot {
 }
 
 const RETRY_MS = 1500
+const HEARTBEAT_MS = 15_000
+const ONLINE_TTL_MS = 45_000
 
 const EMPTY: RoomSnapshot = {
   loading: true,
@@ -74,10 +75,9 @@ export class RoomStore {
   private listeners = new Set<() => void>()
   private refs = 0
   private db: RealtimeChannel | null = null
-  private presence: RealtimeChannel | null = null
   private timers = new Map<string, ReturnType<typeof setTimeout>>()
-  /** Key presence thô; lọc theo danh sách thành viên mỗi khi một trong hai thay đổi. */
-  private presenceKeys: string[] = []
+  private heartbeatTimer: ReturnType<typeof setTimeout> | null = null
+  private heartbeatStarted = false
   private stopped = false
   private readonly roomId: string
   private readonly userId: string
@@ -130,6 +130,11 @@ export class RoomStore {
       )
       .on(
         'postgres_changes',
+        { event: '*', schema: 'public', table: 'room_presence', filter: filterRoom },
+        () => this.later('presence'),
+      )
+      .on(
+        'postgres_changes',
         { event: '*', schema: 'public', table: 'games', filter: filterRoom },
         () => this.later('game'),
       )
@@ -177,14 +182,19 @@ export class RoomStore {
     this.stopped = true
     this.timers.forEach(clearTimeout)
     this.timers.clear()
+    if (this.heartbeatTimer) clearTimeout(this.heartbeatTimer)
+    this.heartbeatTimer = null
+    this.heartbeatStarted = false
     if (this.db) void supabase.removeChannel(this.db)
-    if (this.presence) void supabase.removeChannel(this.presence)
-    this.db = this.presence = null
+    this.db = null
     stores.delete(this.roomId)
   }
 
   /** Gộp nhiều sự kiện liên tiếp thành một lần đọc lại (cũng dùng để thử lại sau lỗi). */
-  private later(what: 'room' | 'members' | 'game' | 'assignments' | 'remote', delay = 60) {
+  private later(
+    what: 'room' | 'members' | 'presence' | 'game' | 'assignments' | 'remote',
+    delay = 60,
+  ) {
     clearTimeout(this.timers.get(what))
     this.timers.set(
       what,
@@ -192,6 +202,7 @@ export class RoomStore {
         if (this.stopped) return
         if (what === 'room') void this.loadRoom()
         if (what === 'members') void this.loadMembers()
+        if (what === 'presence') void this.loadPresence()
         if (what === 'game') void this.loadGame()
         if (what === 'assignments') void this.loadAssignments()
         if (what === 'remote') void this.loadRemote()
@@ -241,7 +252,6 @@ export class RoomStore {
     const mine = members.filter((m) => m.user_id === this.userId)
     const me = mine.find((m) => m.status === 'active') ?? mine.at(-1) ?? null
     this.set({ members, me })
-    this.updateOnline()
     if (me && me.status !== 'active') {
       this.set({
         room: null,
@@ -256,7 +266,8 @@ export class RoomStore {
       })
       return
     }
-    this.trackPresence()
+    this.startHeartbeat()
+    await this.loadPresence()
   }
 
   private async loadGame() {
@@ -327,28 +338,42 @@ export class RoomStore {
     })
   }
 
-  /** Bỏ key không khớp thành viên nào (key do client tự đặt, xem đầu file). */
-  private updateOnline() {
-    const known = new Set(['host'])
-    for (const m of this.snap.members) if (m.status === 'active') known.add(m.id)
-    this.set({ online: new Set(this.presenceKeys.filter((k) => known.has(k))) })
+  private async loadPresence() {
+    if (!this.snap.room) return
+    const cutoff = new Date(Date.now() - ONLINE_TTL_MS).toISOString()
+    const { data, error } = await supabase
+      .from('room_presence')
+      .select('member_id,is_host,last_seen')
+      .eq('room_id', this.roomId)
+      .gte('last_seen', cutoff)
+    if (error) return this.later('presence', RETRY_MS)
+    const knownMembers = new Set(
+      this.snap.members.filter((member) => member.status === 'active').map((member) => member.id),
+    )
+    const online = new Set<string>()
+    for (const row of data ?? []) {
+      if (row.is_host) online.add('host')
+      else if (row.member_id && knownMembers.has(row.member_id)) online.add(row.member_id)
+    }
+    this.set({ online })
   }
 
-  private trackPresence() {
-    if (this.presence || this.stopped || !this.snap.room) return
-    const isHost = this.snap.room.host_id === this.userId
-    const key = isHost ? 'host' : this.snap.me?.id
-    if (!key) return
-    const ch = supabase.channel(`room:${this.roomId}`, {
-      config: { private: true, presence: { key } },
-    })
-    ch.on('presence', { event: 'sync' }, () => {
-      this.presenceKeys = Object.keys(ch.presenceState())
-      this.updateOnline()
-    }).subscribe((status) => {
-      if (status === 'SUBSCRIBED') void ch.track({ at: Date.now() })
-    })
-    this.presence = ch
+  private startHeartbeat() {
+    const authorized =
+      this.snap.room &&
+      (this.snap.room.host_id === this.userId || this.snap.me?.status === 'active')
+    if (!authorized || this.refs <= 0 || this.heartbeatStarted || this.stopped) return
+    this.heartbeatStarted = true
+    void this.heartbeat()
+  }
+
+  private async heartbeat() {
+    if (this.stopped || !this.heartbeatStarted) return
+    const { error } = await supabase.rpc('heartbeat_room', { p_room: this.roomId })
+    if (this.stopped || !this.heartbeatStarted) return
+    if (error) await this.loadRoom()
+    else await this.loadPresence()
+    this.heartbeatTimer = setTimeout(() => void this.heartbeat(), HEARTBEAT_MS)
   }
 }
 

@@ -1,19 +1,18 @@
-// RT-02: kết quả đọc ván cũ về muộn không ghi đè ván mới; lỗi query không xóa dữ liệu. RT-03: lọc key presence.
+// RT-02: kết quả đọc ván cũ về muộn không ghi đè ván mới; lỗi query không xóa dữ liệu.
+// RT-03: chỉ hiển thị heartbeat server đã xác thực cho host/thành viên hiện hữu.
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 type Result = { data: unknown; error: { message: string } | null }
 type Handler = (table: string, filters: Record<string, unknown>) => Promise<Result>
 
 let handler: Handler
-/** Trạng thái presence giả và callback 'sync' mà store đăng ký. */
-let presenceState: Record<string, unknown[]> = {}
-let presenceSync: (() => void) | null = null
 
 function query(table: string) {
   const filters: Record<string, unknown> = {}
   const q = {
     select: () => q,
     eq: (k: string, v: unknown) => ((filters[k] = v), q),
+    gte: (k: string, v: unknown) => ((filters[k] = v), q),
     order: () => q,
     maybeSingle: () => handler(table, filters),
     then: (ok: (r: Result) => unknown, bad?: (e: unknown) => unknown) =>
@@ -25,15 +24,11 @@ function query(table: string) {
 vi.mock('@/lib/supabase', () => ({
   supabase: {
     from: (t: string) => query(t),
+    rpc: () => Promise.resolve({ data: 'host', error: null }),
     channel: () => {
       const ch = {
-        on: (type: string, _f: unknown, cb: () => void) => {
-          if (type === 'presence') presenceSync = cb
-          return ch
-        },
+        on: () => ch,
         subscribe: () => ch,
-        track: () => {},
-        presenceState: () => presenceState,
       }
       return ch
     },
@@ -106,19 +101,23 @@ describe('RT-02: room store', () => {
     expect(s.assignments).toHaveLength(1)
   })
 
-  it('presence tới trước danh sách thành viên vẫn hiện online khi thành viên tải xong', async () => {
+  it('heartbeat chỉ hiện host và thành viên active có thật', async () => {
     let members = [{ id: 'm1', user_id: 'u1', status: 'active' }]
     handler = (table) => {
       if (table === 'rooms') return ok(currentRoom)
       if (table === 'room_members') return ok(members)
+      if (table === 'room_presence')
+        return ok([
+          { is_host: true, member_id: null },
+          { is_host: false, member_id: 'm1' },
+          { is_host: false, member_id: 'm2' },
+          { is_host: false, member_id: 'gia-mao' },
+        ])
       if (table === 'games') return ok(game('g1'))
       return ok(table === 'game_secrets' ? { state: {} } : [])
     }
     const store = new RoomStore('r1', 'host')
     await store.refreshAll()
-    // m2 vào phòng: presence sync về trước khi danh sách thành viên được đọc lại.
-    presenceState = { host: [{}], m1: [{}], m2: [{}], 'gia-mao': [{}] }
-    presenceSync!()
     expect([...store.get().online].sort()).toEqual(['host', 'm1'])
     members = [...members, { id: 'm2', user_id: 'u2', status: 'active' }]
     await store.refreshAll()
