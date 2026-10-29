@@ -50,6 +50,13 @@ describe('remote hardening', () => {
         remote_rooms_24h: expect.any(Number),
         active_remote_games: expect.any(Number),
         device_takeovers: expect.any(Number),
+        funnel_24h: expect.objectContaining({
+          created: expect.any(Number),
+          joined: expect.any(Number),
+          ready: expect.any(Number),
+          started: expect.any(Number),
+          finished: expect.any(Number),
+        }),
       }),
     )
     expect(JSON.stringify(data)).not.toMatch(/payload|role|target|body/i)

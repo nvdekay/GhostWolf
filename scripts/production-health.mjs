@@ -1,3 +1,5 @@
+import { appendFile } from 'node:fs/promises'
+
 const required = (name) => {
   const value = process.env[name]?.trim()
   if (!value) throw new Error(`Thiếu biến môi trường ${name}`)
@@ -76,6 +78,34 @@ const main = async () => {
     failures,
   }
   console.log(JSON.stringify(report, null, 2))
+  if (process.env.GITHUB_STEP_SUMMARY) {
+    const funnel = metrics.funnel_24h ?? {}
+    const created = Number(funnel.created ?? 0)
+    const percent = (value) => (created ? `${Math.round((Number(value) / created) * 100)}%` : '—')
+    const rows = [
+      ['Tạo phòng', funnel.created, percent(funnel.created)],
+      ['Có người join', funnel.joined, percent(funnel.joined)],
+      ['Ready', funnel.ready, percent(funnel.ready)],
+      ['Bắt đầu', funnel.started, percent(funnel.started)],
+      ['Hoàn tất', funnel.finished, percent(funnel.finished)],
+    ]
+    const summary = [
+      '## Ghostwolf production health',
+      '',
+      `- Checked: ${report.checked_at}`,
+      `- Status: ${report.ok ? '✅ healthy' : '❌ failed'}`,
+      `- Frontend: HTTP ${report.frontend.status} (${report.frontend.ms} ms)`,
+      `- Retention cron: ${cron.last_status ?? 'chưa có lần chạy'}`,
+      '',
+      '### Remote funnel · 24 giờ',
+      '',
+      '| Giai đoạn | Phòng | Tỷ lệ trên số tạo |',
+      '| --- | ---: | ---: |',
+      ...rows.map(([stage, count, ratio]) => `| ${stage} | ${Number(count ?? 0)} | ${ratio} |`),
+      '',
+    ].join('\n')
+    await appendFile(process.env.GITHUB_STEP_SUMMARY, summary)
+  }
   if (failures.length) process.exitCode = 1
 }
 

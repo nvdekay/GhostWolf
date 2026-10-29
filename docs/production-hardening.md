@@ -63,6 +63,8 @@ Hai Edge Function `game-command` và `player-command` ghi log JSON đã lọc b�
 - Postgres: service role gọi `select public.gw_remote_metrics()` để lấy số phòng/ván remote,
   prompt mở/hết hạn, AFK, lượt takeover thiết bị và moderation trong 24 giờ. Kết quả không chứa
   chat, vai, mục tiêu hay phiếu cá nhân.
+- `funnel_24h` trong cùng RPC đếm phòng remote đi qua create → join → ready → start → finish;
+  workflow ghi bảng tỷ lệ vào GitHub Actions job summary để dùng trong closed beta.
 - Cảnh báo thêm: prompt hết hạn tăng đột biến, `afk_total` tăng nhanh, hoặc takeover thiết bị bất thường.
 
 GitHub Actions workflow `.github/workflows/production-health.yml` chạy mỗi giờ và có thể chạy

@@ -875,7 +875,8 @@ Chưa cấu hình hoặc chưa xác minh trên production:
 - [~] Synthetic health/cron/expired-prompt alert mỗi giờ qua GitHub Actions đã có; log-based
   alert cho tỷ lệ 5xx, p95, rate-limit và Realtime errors cần Log Drains nên tạm hoãn khi project
   còn ở Supabase Free.
-- [ ] Dashboard/báo cáo funnel join → ready → start → finish phục vụ beta.
+- [x] Báo cáo funnel 24 giờ create → join → ready → start → finish được tổng hợp không chứa
+      payload riêng tư và ghi vào GitHub Actions job summary mỗi health run.
 - [x] Realtime chat production đã smoke test; RT-03 chuyển online/offline sang heartbeat
       server-derived, participant-only read và không cho client ghi/tự khai key.
 
