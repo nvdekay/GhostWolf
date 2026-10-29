@@ -1,7 +1,11 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 
-test('tab mới giành quyền điều khiển và tab cũ chuyển sang chỉ dẫn an toàn', async ({ browser }) => {
-  const host = await (await browser.newContext({ viewport: { width: 1280, height: 860 } })).newPage()
+test('tab mới giành quyền điều khiển và tab cũ chuyển sang chỉ dẫn an toàn', async ({
+  browser,
+}) => {
+  const host = await (
+    await browser.newContext({ viewport: { width: 1280, height: 860 } })
+  ).newPage()
   const playerContext = await browser.newContext({ viewport: { width: 390, height: 844 } })
   const first = await playerContext.newPage()
 

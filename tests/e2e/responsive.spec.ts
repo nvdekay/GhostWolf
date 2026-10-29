@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from './fixtures'
 import { curtainGone, nextFrame } from './helpers'
 
 const WIDTHS = [320, 360, 390, 768, 1024, 1440, 1920]

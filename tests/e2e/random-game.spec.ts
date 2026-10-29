@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from './fixtures'
 import { boardIdle, curtainGone } from './helpers'
 
 // Chơi ngẫu nhiên trọn ván 10 người (đủ vai đặc biệt + Trưởng làng) để bắt chỗ kẹt luồng / lỗi UI.

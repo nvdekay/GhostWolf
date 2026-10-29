@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 
 test('kick, mất mạng rồi vào lại, đóng phòng: máy người chơi xử lý đúng', async ({ browser }) => {
   const host = await (

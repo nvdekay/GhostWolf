@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 
 test('hai tab quản trò cùng thao tác thì tab conflict tự tải state mới', async ({ browser }) => {
   const context = await browser.newContext({

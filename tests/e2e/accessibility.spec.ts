@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 
 test('sheet giữ focus, đóng bằng Escape và trả focus về nút mở', async ({ page }) => {
   await page.goto('/')

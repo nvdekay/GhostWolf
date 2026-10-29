@@ -1,4 +1,4 @@
-import { expect, test, type Browser, type Page } from '@playwright/test'
+import { expect, test, type Browser, type Page } from './fixtures'
 
 async function phone(browser: Browser): Promise<Page> {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } })

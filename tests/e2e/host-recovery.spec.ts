@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 
 test('mã một lần chuyển quyền quản trò sang thiết bị mới', async ({ browser }) => {
   const oldContext = await browser.newContext({ viewport: { width: 1280, height: 860 } })

@@ -1,4 +1,4 @@
-import { expect, test, type Browser, type Page } from '@playwright/test'
+import { expect, test, type Browser, type Page } from './fixtures'
 import { boardIdle } from './helpers'
 
 const DESKTOP = { width: 1280, height: 860 }

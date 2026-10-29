@@ -1,4 +1,4 @@
-import { expect, test, type Browser, type Page } from '@playwright/test'
+import { expect, test, type Browser, type Page } from './fixtures'
 
 async function isolated(browser: Browser, width: number): Promise<Page> {
   const context = await browser.newContext({ viewport: { width, height: 844 } })
