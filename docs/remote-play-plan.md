@@ -1,8 +1,8 @@
 # Kế hoạch chế độ chơi từ xa cho Ghostwolf
 
-> Trạng thái ngày 2026-10-27: MVP kỹ thuật (baseline `703c8df`) đã triển khai lên production
-> từ `main`, migrations và hai Edge Function đã hoạt động, toàn bộ kiểm thử tự động và smoke
-> test production đã qua. Giai đoạn 0–3 đã hoàn thành; phần kỹ thuật của Giai đoạn 4 đã xong.
+> Trạng thái ngày 2026-10-29: MVP kỹ thuật đã triển khai lên production từ `main`; đủ 11
+> migration và hai Edge Function đang hoạt động, toàn bộ kiểm thử tự động, production health và
+> smoke test hosted đã qua. Giai đoạn 0–3 đã hoàn thành; phần kỹ thuật của Giai đoạn 4 đã xong.
 > Closed beta/manual game session trên thiết bị và mạng thật vẫn là cổng nghiệm thu cuối.
 >
 > Mục tiêu: cho phép mọi người ở các địa điểm khác nhau chơi một ván Ghostwolf hoàn
@@ -21,28 +21,26 @@
 
 Snapshot phát hành:
 
-- `main` chứa toàn bộ implementation qua commit
-  `703c8dfd67b57a934c16ee4dd97a472a179e3505`; local và remote đã được đồng bộ trước bản cập
-  nhật tài liệu này.
-- Supabase project `ztyefvgplgafhfukmkxh` đã áp dụng đủ bốn migration Remote Play
-  `20261027000000`–`20261027030000`.
-- Edge Function `game-command` và `player-command` đang active trên Supabase hosted.
-- Vercel nối GitHub branch `main`; bản production chứa baseline trên đã được xác minh và đang
+- `main` local/remote là nguồn code mới nhất; Vercel nối trực tiếp nhánh này và production đang
   phục vụ tại `https://ghostwolf.khanhnvd.click`.
+- Supabase project `ztyefvgplgafhfukmkxh` đã áp dụng đủ 11 migration trong repo: bốn migration
+  nền tảng Remote Play `20261027000000`–`20261027030000`, retention cron, khôi phục quản trò,
+  verified presence và remote funnel metrics cùng ba migration nền trước đó.
+- Edge Function `game-command` v3 và `player-command` v2 đang active trên Supabase hosted.
 - Xác minh phát hành: typecheck, lint, build, Deno check, 65 unit tests, 49 integration tests,
-  13 E2E scenarios và smoke test hai browser context trên production đều pass.
+  13 E2E scenarios, production health và các smoke test hosted đều pass.
 
 Trạng thái này chỉ xác nhận code và hạ tầng đã phát hành. Lịch cleanup, alerting, kiểm thử thiết
 bị thật và closed beta được theo dõi riêng ở các mục 19, 20 và 23.
 
 ## 1. Tóm tắt quyết định
 
-Ghostwolf sẽ hỗ trợ hai chế độ độc lập:
+Ghostwolf hỗ trợ hai chế độ độc lập:
 
-1. **Chơi cùng phòng**: giữ nguyên trải nghiệm hiện tại. Quản trò điều hành trên một máy,
-   người chơi chủ yếu dùng điện thoại để nhận vai.
-2. **Chơi từ xa**: mỗi người dùng thiết bị riêng, tự thực hiện hành động bí mật, thảo luận
-   bằng chat chữ và bỏ phiếu trong ứng dụng.
+1. **Chơi cùng phòng**: mọi người ngồi cùng bàn hoặc cùng một địa điểm. Quản trò điều hành trên
+   một máy; người chơi có thể dùng điện thoại riêng hoặc chuyền máy để xem vai.
+2. **Chơi từ xa**: mỗi người có thể ở một nơi khác nhau và dùng thiết bị riêng, tự thực hiện
+   hành động bí mật, thảo luận bằng chat chữ và bỏ phiếu trong ứng dụng.
 
 Chế độ từ xa ở phiên bản đầu có các quyết định sản phẩm sau:
 
@@ -165,7 +163,7 @@ Mọi thao tác hộ, bỏ qua lượt, sửa kết quả hoặc loại thủ c�
 
 ## 6. Cấu hình phòng từ xa
 
-Khi tạo phòng, quản trò chọn `Chơi từ xa`. Cấu hình đề xuất:
+Khi tạo phòng, quản trò chọn `Chơi từ xa`. Cấu hình đã triển khai:
 
 | Thiết lập                      | Mặc định | Mô tả                                         |
 | ------------------------------ | -------- | --------------------------------------------- |
@@ -266,8 +264,8 @@ Luồng mỗi bước:
 - Mỗi Sói có thể chọn và đổi mục tiêu trước khi khóa.
 - UI hiển thị tổng số lựa chọn theo mục tiêu, không bắt buộc lộ ai chọn ai.
 - Nếu có một mục tiêu dẫn đầu khi hết giờ, mục tiêu đó được chọn.
-- Nếu hòa, mở thêm một khoảng ngắn. Nếu vẫn hòa, mặc định không cắn ai hoặc chuyển cho
-  quản trò quyết định; MVP nên chọn `không cắn ai` để tránh quyền tùy ý ẩn.
+- Nếu các lựa chọn hòa khi khóa lượt, implementation hiện tại chọn `không cắn ai` để tránh
+  quyền tùy ý ẩn.
 - Chat Sói bị khóa khi bước kết thúc.
 
 #### Sói trắng
@@ -398,7 +396,7 @@ Không có direct message và chat nghĩa địa trong MVP.
 
 ### 8.3. Chống spam và moderation
 
-- Giới hạn đề xuất: 5 tin/10 giây và 30 tin/phút/người.
+- Giới hạn tại database: 5 tin/10 giây và 30 tin/phút/người.
 - Cooldown tăng dần khi vi phạm.
 - Quản trò có thể mute đến một thời điểm, xóa tin, kick và đóng phòng.
 - Nội dung bị xóa được thay bằng placeholder thay vì làm đứt luồng reply.
@@ -413,9 +411,9 @@ Không có direct message và chat nghĩa địa trong MVP.
   quyết định quyền gửi.
 - Typing indicator là sự kiện tạm thời, không lưu DB và có thể bỏ khỏi MVP.
 
-## 9. State machine đề xuất
+## 9. State machine đã triển khai
 
-Trạng thái điều phối từ xa chi tiết hơn `GameStatus` hiện tại:
+Trạng thái điều phối từ xa chi tiết hơn `GameStatus` và được lưu trong `remote_phases`:
 
 ```text
 LOBBY
@@ -490,13 +488,14 @@ người chết, bỏ lượt hoặc mất quyền chỉ vì heartbeat biến m�
 Quản trò có thể gia hạn hoặc thao tác hộ. Mọi thao tác hộ phải ghi người thực hiện, lý do và
 thời điểm.
 
-## 11. Mô hình dữ liệu dự kiến
+## 11. Mô hình dữ liệu đã triển khai
 
-Tên bảng dưới đây là đề xuất và có thể điều chỉnh trong thiết kế migration.
+Schema có thẩm quyền nằm trong `supabase/migrations/20261027000000`–`20261027030000`; các
+migration sau bổ sung retention, khôi phục quản trò, verified presence và metrics.
 
-### 11.1. `room_settings`
+### 11.1. `rooms.options` / `RoomOptions`
 
-Có thể tiếp tục lưu trong `rooms.options`, nhưng nên tách kiểu rõ ràng ở TypeScript:
+Cấu hình được lưu trong `rooms.options` và có kiểu `RoomOptions` dùng chung ở TypeScript:
 
 - `mode`: `local | remote`
 - `discussion_seconds`
@@ -585,19 +584,22 @@ hồi ngay trong cùng transaction commit state.
 Các command engine như `night.end`, `day.goto`, `vote.eliminate`, `effect.resolve`, `undo` và
 `finish` tiếp tục đi qua Edge Function có kiểm tra quyền host.
 
-### 12.2. Thêm command người chơi
+### 12.2. Command người chơi hiện tại
 
-Đề xuất contract:
+Contract có thẩm quyền nằm trong `supabase/functions/_shared/remote.ts`:
 
 ```ts
 type PlayerCommand =
   | { type: 'player.ready'; ready: boolean }
   | { type: 'player.ackRole' }
-  | { type: 'action.submit'; promptId: string; payload: unknown }
-  | { type: 'action.lock'; promptId: string }
-  | { type: 'vote.submit'; candidateId: string | null }
+  | {
+      type: 'action.submit'
+      promptId: string
+      phaseSequence: number
+      payload: { targets?: string[]; heal?: boolean; poison?: string | null }
+    }
+  | { type: 'vote.submit'; phaseSequence: number; candidateId: string | null }
   | { type: 'chat.send'; channel: 'lobby' | 'public' | 'wolves'; body: string; replyTo?: string }
-  | { type: 'chat.delete'; messageId: string }
 ```
 
 Mỗi request cần:
@@ -611,13 +613,9 @@ Không nhận `memberId`, `roleId`, `alive` hoặc `team` từ client làm ngu�
 
 ### 12.3. Edge Function
 
-Có hai lựa chọn:
-
-1. Mở rộng `game-command` để phân nhánh host/player.
-2. Tạo `player-command` riêng và chia sẻ parser, auth, error mapping, logging.
-
-Khuyến nghị MVP: tạo `player-command` riêng để giữ bề mặt quyền quản trò nhỏ và dễ audit.
-Hai function dùng chung module xác thực, idempotency và orchestration.
+Implementation dùng hai function riêng: `game-command` cho quản trò và `player-command` cho
+người chơi. `player-command` xác thực JWT, phiên thiết bị, schema command, phase/deadline và gọi
+RPC tương ứng; hai function dùng chung engine/orchestration và chuẩn log đã lọc bí mật.
 
 ### 12.4. Tích hợp engine
 
@@ -681,7 +679,7 @@ Các invariant bắt buộc:
 Cần có integration tests cố gắng đọc chéo prompt, submission và chat Sói bằng tài khoản không
 có quyền. Đây là tiêu chí release, không phải kiểm thử tùy chọn.
 
-## 15. UI/UX cần bổ sung
+## 15. UI/UX đã triển khai
 
 ### Màn quản trò
 
@@ -690,7 +688,7 @@ có quyền. Đây là tiêu chí release, không phải kiểm thử tùy chọ
 - Progress của prompt không làm lộ nội dung.
 - Điều khiển timer và phase.
 - Hàng đợi yêu cầu thao tác hộ.
-- Moderation panel.
+- Xóa tin, kick thành viên và điều phối timeout; RPC mute/unmute có ở backend.
 - Preview trước công bố sáng và phiếu.
 - Audit timeline.
 
@@ -721,16 +719,15 @@ có quyền. Đây là tiêu chí release, không phải kiểm thử tùy chọ
 Không nên tin timer của trình duyệt. Deadline lưu ở server và mọi request so sánh với thời gian
 server.
 
-MVP có thể dùng mô hình quản trò bấm chuyển bước sau deadline. Tuy nhiên server vẫn phải từ
-chối submission quá hạn. Tự động chuyển phase hoàn toàn cần scheduler/queue đáng tin cậy và có
-thể triển khai ở giai đoạn sau.
+Implementation dùng mô hình quản trò khóa/chuyển bước. Server từ chối submission quá hạn; quản
+trò có thể gia hạn 30 giây hoặc ghi nhận bỏ lượt hộ và mọi thao tác đều được audit. Không có
+scheduler tự chuyển phase trong MVP.
 
 Khi hiển thị timer:
 
-- Server trả `deadline` và `serverNow`.
-- Client tính offset để đếm ngược.
+- Server trả `deadline`; client chỉ dùng để hiển thị đếm ngược.
 - Khi về 0, UI khóa tạm và chờ snapshot server.
-- Không tự kết luận kết quả ở client.
+- Server/RPC mới là nơi kiểm tra hạn và kết luận kết quả; client không tự áp dụng hành động.
 
 ## 17. Kế hoạch triển khai theo giai đoạn
 
@@ -801,7 +798,7 @@ Khi hiển thị timer:
 
 ## 18. Chiến lược kiểm thử
 
-Kết quả baseline đã chốt ngày 2026-10-27:
+Kết quả phát hành gần nhất được xác minh ngày 2026-10-29:
 
 - `npm run typecheck`, `npm run lint`, `npm run build`: pass.
 - `deno check` cho `game-command` và `player-command`: pass.
@@ -866,7 +863,7 @@ Automated tests không đánh giá được nhịp chat và cảm giác chờ. C
 - Cleanup/retention RPC `gw_cleanup` và runbook xử lý sự cố.
 - Security headers trong `vercel.json` và HTTPS trên domain production.
 
-Chưa cấu hình hoặc chưa xác minh trên production:
+Trạng thái production:
 
 - [x] Không dùng CAPTCHA theo quyết định sản phẩm; Turnstile đã gỡ khỏi code và production.
       Anonymous rate limit được giữ ở 30/giờ/IP cùng các giới hạn nghiệp vụ trong database.
@@ -895,7 +892,7 @@ Theo dõi tối thiểu:
 Không đưa nội dung chat hoặc dữ liệu bí mật vào metric/log. Dùng request id, room/game id và
 error code đã giới hạn để điều tra.
 
-Retention đề xuất:
+Retention đang áp dụng:
 
 - Chat phòng đã đóng: xóa sau 30 ngày hoặc sớm hơn theo chính sách riêng tư.
 - Prompt/submission của ván kết thúc: xóa cùng lịch sử game theo cleanup policy.
@@ -917,7 +914,8 @@ production smoke chỉ là điều kiện vào beta, không thay thế số li�
 
 ## 21. Tiêu chí hoàn thành MVP
 
-MVP kỹ thuật được coi là hoàn thành khi; tất cả tiêu chí dưới đây đã đạt ngày 2026-10-27:
+MVP kỹ thuật được coi là hoàn thành khi; phần lõi đạt ngày 2026-10-27 và các hạng mục hardening
+cuối đạt ngày 2026-10-29:
 
 - [x] Tạo được phòng remote và mời người qua link/mã.
 - [x] Mọi người ready và xác nhận vai độc lập.

@@ -2,10 +2,11 @@
 
 Bổ sung cho phần "Triển khai" trong README. Không thay đổi được từ code frontend (static), cần cấu hình ở host và Supabase.
 
-Trạng thái phát hành 2026-10-27: migrations và hai Edge Function đã deploy lên Supabase project
-`ztyefvgplgafhfukmkxh`; frontend Vercel production chứa implementation baseline `703c8df`,
-được build từ `main` và đang phục vụ tại `https://ghostwolf.khanhnvd.click`. Các mục
-dashboard/cron/alert bên dưới vẫn phải được xác minh riêng vì không nằm trong static build.
+Trạng thái phát hành 2026-10-29: cả 11 migration trong repo đã deploy lên Supabase project
+`ztyefvgplgafhfukmkxh`; `game-command` v3 và `player-command` v2 đang active. Frontend Vercel
+được build tự động từ `main` và đang phục vụ tại `https://ghostwolf.khanhnvd.click`. Production
+health, retention cron, funnel metrics và smoke test hosted đã pass. Alert dựa trên Log Drains
+vẫn tạm hoãn khi project còn ở Supabase Free; xem mục 7.
 
 ## 1. Header bảo mật (host static)
 
@@ -118,7 +119,16 @@ select count(*) from public.games where number < 1 or revision < 0;
 select count(*) from public.rooms r join public.games g on g.id = r.current_game_id where g.room_id <> r.id;
 ```
 
-Rollback (nếu cần): tạo migration mới khôi phục định nghĩa hàm từ `20261024000000_ghostwolf_schema.sql` (create_room, join_room, host_add_member, create_game, commit_game), rồi `drop trigger rooms_current_game_guard on public.rooms`, `drop trigger assignments_room_guard on public.assignments`, `alter table … drop constraint …` cho ba CHECK, `drop function public.gw_cleanup(int, int, int)`. Không sửa migration đã áp dụng. Frontend và Edge Function mới tương thích với schema cũ, trừ việc mất các mã lỗi mới.
+Rollback phải giữ nguyên nguyên tắc **forward-only**:
+
+1. Không sửa hoặc xóa migration đã áp dụng và không hạ database về schema
+   `20261024000000`; frontend/Edge Function hiện tại phụ thuộc các bảng, RPC và RLS Remote Play.
+2. Nếu frontend lỗi, rollback bằng một deployment Vercel trước đó tương thích với schema hiện
+   tại. Nếu Edge Function lỗi, deploy lại phiên bản function tương thích đã biết tốt.
+3. Nếu migration mới gây lỗi, tạo migration bù để khôi phục đúng hàm/constraint/policy bị ảnh
+   hưởng. Thử trên bản sao dữ liệu, chạy integration/E2E rồi mới `supabase db push` production.
+4. Các thay đổi xóa bảng/cột hoặc thu hẹp quyền cần kế hoạch riêng và backup; không thực hiện
+   trực tiếp như một bước rollback khẩn cấp.
 
 ## 6. Runbook remote
 
@@ -131,7 +141,7 @@ Rollback (nếu cần): tạo migration mới khôi phục định nghĩa hàm t
 - Realtime chập chờn: snapshot được tải lại khi subscribe; kiểm tra REST vẫn hoạt động trước khi
   kết luận mất dữ liệu.
 
-## 7. Việc còn lại
+## 7. Trạng thái hiện tại và việc còn lại
 
 - [x] Không dùng CAPTCHA theo quyết định sản phẩm; Turnstile đã gỡ khỏi code, Vercel, Cloudflare
       và Supabase config. Anonymous rate limit production là 30/giờ/IP.

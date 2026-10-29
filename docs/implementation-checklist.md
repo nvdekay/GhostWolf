@@ -3,9 +3,11 @@
 Nguồn tham chiếu: `GhostWolf.html` (bundle: `__bundler/template` + manifest base64/gzip + component `text/x-dc`).
 Trạng thái: `[x]` xong và đã kiểm · `[~]` xong nhưng chưa xác minh đầy đủ (ghi lý do) · `[ ]` chưa làm.
 
-Cập nhật phát hành 2026-10-27: `main` chứa toàn bộ implementation Remote Play qua baseline
-`703c8dfd67b57a934c16ee4dd97a472a179e3505`. Supabase migrations/Edge Functions và Vercel
-production đã deploy; closed beta trên mạng và thiết bị thật chưa thực hiện.
+Cập nhật phát hành 2026-10-29: `main` local/remote là nguồn code mới nhất và Vercel tự deploy từ
+nhánh này. Production đã có toàn bộ Remote Play, ruleset v2, khôi phục quản trò, heartbeat xác
+thực server, funnel metrics và nội dung phân biệt rõ **Chơi cùng phòng** / **Chơi từ xa**.
+Supabase đã áp dụng đủ 11 migration trong repo; `game-command` v3 và `player-command` v2 đang
+active. Closed beta trên mạng và thiết bị thật chưa thực hiện.
 
 Kiểm thử đã chạy (Supabase local + Edge Function chạy bằng Deno):
 `npm test` 65 test · `npm run test:integration` 49 test · `npm run test:e2e` 13 kịch bản,
@@ -86,7 +88,9 @@ responsive 320–1920 px.
 - [x] Anonymous sign-in không dùng CAPTCHA theo quyết định sản phẩm; production giới hạn 30 lần/giờ/IP và các giới hạn nghiệp vụ ở database vẫn được áp dụng.
 - [x] typecheck, lint, test, build.
 - [x] `.env.example`, README (Supabase, anonymous auth, realtime, deploy).
-- [x] Deploy thật: bốn migration Remote Play và hai Edge Function active trên Supabase hosted; Vercel build từ `main` SHA `703c8df`, domain `https://ghostwolf.khanhnvd.click` trả HTTP 200; smoke flow production pass.
+- [x] Deploy thật: đủ 11 migration local/remote khớp nhau, hai Edge Function active trên
+      Supabase hosted; Vercel build từ `main`, domain `https://ghostwolf.khanhnvd.click` trả
+      HTTP 200; production health và smoke flow hosted pass.
 
 ## 7. Audit bảo mật / luật (2026-10-25)
 

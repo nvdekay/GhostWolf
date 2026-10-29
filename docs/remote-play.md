@@ -1,5 +1,9 @@
 # Hướng dẫn chơi từ xa
 
+**Chơi từ xa** dành cho nhóm không ngồi cùng một địa điểm: mỗi người có thể ở một nơi khác nhau
+và cần thiết bị riêng có Internet. Nếu mọi người ngồi cùng bàn hoặc cùng một địa điểm và muốn
+quản trò điều hành chủ yếu trên một máy, hãy chọn **Chơi cùng phòng**.
+
 ## Chuẩn bị
 
 Quản trò chọn **Tạo ván mới → Quản trò → Chơi từ xa**, cấu hình thời gian rồi gửi link hoặc mã

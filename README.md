@@ -5,7 +5,24 @@ mỗi người dùng thiết bị riêng để ready, xem vai, chat, hành độ
 
 **Production:** [ghostwolf.khanhnvd.click](https://ghostwolf.khanhnvd.click)
 
+## Trạng thái phát hành
+
+Snapshot ngày 2026-10-29:
+
+- `main` là nguồn phát hành duy nhất; mỗi lần push được Vercel tự build và deploy production.
+- Supabase production đã áp dụng đủ 11 migration trong repo; `game-command` v3 và
+  `player-command` v2 đang active.
+- Bộ kiểm thử phát hành gần nhất: 65 unit, 49 integration và 13 E2E đều pass; production health
+  và smoke test trực tiếp cũng pass.
+- MVP kỹ thuật đã hoàn thành. Phần còn lại là kiểm tra bàn phím trên iOS/Android thật và closed
+  beta 6–8, 12–16 người trên mạng hỗn hợp; đây không phải hạng mục code còn thiếu.
+
 ## Tổng quan
+
+- **Chơi cùng phòng:** mọi người ngồi cùng bàn hoặc cùng địa điểm; quản trò điều hành trên một
+  máy, người chơi dùng điện thoại riêng hoặc chuyền máy để xem vai.
+- **Chơi từ xa:** mỗi người có thể ở một nơi khác nhau và dùng thiết bị riêng để chat, hành động
+  ban đêm và bỏ phiếu trong phòng online.
 
 - React 19, TypeScript và Vite; frontend build thành static assets trong `dist/`.
 - Supabase cung cấp Postgres, đăng nhập ẩn danh, RLS, Realtime và Edge Function chạy Deno.
