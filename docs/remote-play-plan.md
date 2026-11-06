@@ -1,6 +1,6 @@
 # Kế hoạch chế độ chơi từ xa cho Ghostwolf
 
-> Trạng thái ngày 2026-11-06: MVP kỹ thuật đã triển khai lên production từ `main`; đủ 15
+> Trạng thái ngày 2026-11-07: MVP kỹ thuật đã triển khai lên production từ `main`; đủ 15
 > migration và ba Edge Function đang hoạt động, toàn bộ kiểm thử tự động, production health và
 > smoke test hosted đã qua. Giai đoạn 0–3 đã hoàn thành; phần kỹ thuật của Giai đoạn 4 đã xong.
 > Closed beta/manual game session trên thiết bị và mạng thật vẫn là cổng nghiệm thu cuối.
@@ -30,6 +30,8 @@ Snapshot phát hành:
 - Edge Function `game-command` v3, `player-command` v2 và `voice-ice` đang active trên Supabase hosted.
 - Xác minh phát hành: typecheck, lint, build, Deno check, 74 unit tests, 63 integration tests,
   18 E2E scenarios, production health và các smoke test hosted đều pass.
+- Frontend lazy-load theo route thành 9 JavaScript chunk; entry giảm từ khoảng 614 kB xuống
+  465 kB và build budget giữ entry dưới 500 kB.
 
 Trạng thái này chỉ xác nhận code và hạ tầng đã phát hành. Lịch cleanup, alerting, kiểm thử thiết
 bị thật và closed beta được theo dõi riêng ở các mục 19, 20 và 23.
@@ -832,9 +834,10 @@ Khi hiển thị timer:
 
 ## 18. Chiến lược kiểm thử
 
-Kết quả phát hành gần nhất được xác minh ngày 2026-11-06:
+Kết quả phát hành gần nhất được xác minh ngày 2026-11-07:
 
 - `npm run typecheck`, `npm run lint`, `npm run build`: pass.
+- `npm run test:bundle`: entry 464.860 byte, 9 JavaScript chunk, dưới budget 500.000 byte.
 - `deno check` cho `game-command`, `player-command` và `voice-ice`: pass.
 - `npm test`: 74/74 unit tests pass.
 - `npm run test:integration`: 63/63 integration tests pass trên Supabase local.
@@ -956,7 +959,7 @@ production smoke chỉ là điều kiện vào beta, không thay thế số li�
 ## 21. Tiêu chí hoàn thành MVP
 
 MVP kỹ thuật được coi là hoàn thành khi; phần lõi đạt ngày 2026-10-27 và các hạng mục hardening
-cuối đạt ngày 2026-11-06:
+cuối đạt ngày 2026-11-07:
 
 - [x] Tạo được phòng remote và mời người qua link/mã.
 - [x] Mọi người ready và xác nhận vai độc lập.
@@ -1022,7 +1025,7 @@ và FE-02 khôi phục quản trò bằng mã một lần cũng đã hoàn thàn
 - Spectator có delay.
 - Matchmaking và phòng công khai.
 - Replay trực quan theo timeline.
-- Tối ưu voice bằng TURN theo vùng và thống kê chất lượng kết nối không chứa nội dung audio.
+- Thống kê chất lượng kết nối TURN/WebRTC không chứa nội dung audio.
 
 ---
 

@@ -3,7 +3,7 @@
 Nguồn tham chiếu: `GhostWolf.html` (bundle: `__bundler/template` + manifest base64/gzip + component `text/x-dc`).
 Trạng thái: `[x]` xong và đã kiểm · `[~]` xong nhưng chưa xác minh đầy đủ (ghi lý do) · `[ ]` chưa làm.
 
-Cập nhật phát hành 2026-11-06: `main` local/remote là nguồn code mới nhất và Vercel tự deploy từ
+Cập nhật phát hành 2026-11-07: `main` local/remote là nguồn code mới nhất và Vercel tự deploy từ
 nhánh này. Production đã có toàn bộ Remote Play, ruleset v2, khôi phục quản trò, heartbeat xác
 thực server, funnel metrics, admin console, voice WebRTC và nội dung phân biệt rõ **Chơi cùng
 phòng** / **Chơi từ xa**. Supabase đã áp dụng đủ 15 migration trong repo; `game-command` v3,
@@ -21,6 +21,8 @@ responsive 320–1920 px.
 - [x] Game engine TS thuần dùng chung Edge Function và frontend (`supabase/functions/_shared/engine`, alias `@engine`); `deno check` qua.
 - [x] Lệnh phòng là RPC `security definer`; lệnh ván qua Edge Function `game-command` → `commit_game` (1 transaction, revision, idempotency).
 - [x] Tách UI / domain / services / realtime / session.
+- [x] Route code-splitting cho setup/join/library/host/player: 9 JavaScript chunk, entry khoảng
+      465 kB (giảm từ 614 kB); `npm run test:bundle` chặn regression vượt 500 kB.
 - [x] Ba Edge Function chạy local bằng Deno trực tiếp (`npm run functions:serve`), `deno check`
       qua và đã deploy `game-command`, `player-command`, `voice-ice` lên Supabase hosted.
 

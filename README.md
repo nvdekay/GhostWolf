@@ -7,13 +7,15 @@ mỗi người dùng thiết bị riêng để ready, xem vai, chat chữ/voice,
 
 ## Trạng thái phát hành
 
-Snapshot ngày 2026-11-06:
+Snapshot ngày 2026-11-07:
 
 - `main` là nguồn phát hành duy nhất; mỗi lần push được Vercel tự build và deploy production.
 - Supabase production đã áp dụng đủ 15 migration trong repo; `game-command` v3 và
   `player-command` v2 đang active.
 - Bộ kiểm thử phát hành gần nhất: 74 unit, 63 integration và 18 E2E đều pass; production health
   và smoke test trực tiếp cũng pass.
+- Các route nặng được lazy-load thành 9 JavaScript chunk; entry production giảm từ khoảng 614 kB
+  xuống 465 kB và có budget tự động 500 kB.
 - MVP kỹ thuật đã hoàn thành. Phần còn lại là kiểm tra bàn phím trên iOS/Android thật và closed
   beta 6–8, 12–16 người trên mạng hỗn hợp; đây không phải hạng mục code còn thiếu.
 
@@ -76,6 +78,7 @@ npm run lint
 npm test
 deno check supabase/functions/game-command/index.ts supabase/functions/player-command/index.ts supabase/functions/voice-ice/index.ts
 npm run build
+npm run test:bundle
 ```
 
 Sau khi `db:start` và `functions:serve` đang chạy:
