@@ -49,6 +49,32 @@ export interface ChatMessageRow {
   deleted_by: string | null
 }
 
+export type VoiceChannel = Extract<ChatChannel, 'lobby' | 'public' | 'wolves'>
+
+export interface VoiceSessionRow {
+  session_id: string
+  room_id: string
+  game_id: string | null
+  channel: VoiceChannel
+  user_id: string
+  member_id: string | null
+  display_name: string
+  can_speak: boolean
+  mic_enabled: boolean
+  joined_at: string
+  last_seen: string
+}
+
+export interface VoiceSignalRow {
+  id: number
+  room_id: string
+  sender_session: string
+  target_session: string
+  kind: 'offer' | 'answer' | 'ice'
+  payload: Record<string, unknown>
+  created_at: string
+}
+
 export interface RemotePhaseRow {
   game_id: string
   sequence: number

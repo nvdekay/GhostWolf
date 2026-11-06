@@ -90,6 +90,45 @@ describe('remote night actions và RLS', () => {
     expect((await host.db.from('chat_messages').select('body').eq('game_id', gameId)).data).toEqual(
       [],
     )
+
+    const wolfSessions = wolves.map(() => randomUUID())
+    for (const [index, wolf] of wolves.entries()) {
+      const joined = await rpc(wolf.db, 'join_voice', {
+        p_room: roomId,
+        p_game: gameId,
+        p_channel: 'wolves',
+        p_session: wolfSessions[index],
+        p_mic_enabled: false,
+      })
+      expect(joined.error).toBeNull()
+    }
+    expect((await wolves[0]!.db.from('voice_sessions').select('session_id')).data).toHaveLength(2)
+    expect((await villagers[0]!.db.from('voice_sessions').select('*')).data).toEqual([])
+    expect((await host.db.from('voice_sessions').select('*')).data).toEqual([])
+    expect(
+      (
+        await rpc(villagers[0]!.db, 'join_voice', {
+          p_room: roomId,
+          p_game: gameId,
+          p_channel: 'wolves',
+          p_session: randomUUID(),
+          p_mic_enabled: false,
+        })
+      ).error?.code,
+    ).toBe('VOICE_CLOSED')
+    expect(
+      (
+        await rpc(host.db, 'join_voice', {
+          p_room: roomId,
+          p_game: gameId,
+          p_channel: 'wolves',
+          p_session: randomUUID(),
+          p_mic_enabled: false,
+        })
+      ).error?.code,
+    ).toBe('VOICE_CLOSED')
+    for (const [index, wolf] of wolves.entries())
+      await rpc(wolf.db, 'leave_voice', { p_session: wolfSessions[index] })
   })
 
   it('retry không nhân đôi, đổi lựa chọn tăng revision và host tổng hợp vào engine', async () => {

@@ -49,6 +49,7 @@ describe('remote hardening', () => {
       expect.objectContaining({
         remote_rooms_24h: expect.any(Number),
         active_remote_games: expect.any(Number),
+        active_voice_sessions: expect.any(Number),
         device_takeovers: expect.any(Number),
         funnel_24h: expect.objectContaining({
           created: expect.any(Number),
