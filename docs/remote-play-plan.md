@@ -1,7 +1,7 @@
 # Kế hoạch chế độ chơi từ xa cho Ghostwolf
 
 > Trạng thái ngày 2026-11-06: MVP kỹ thuật đã triển khai lên production từ `main`; đủ 15
-> migration và hai Edge Function đang hoạt động, toàn bộ kiểm thử tự động, production health và
+> migration và ba Edge Function đang hoạt động, toàn bộ kiểm thử tự động, production health và
 > smoke test hosted đã qua. Giai đoạn 0–3 đã hoàn thành; phần kỹ thuật của Giai đoạn 4 đã xong.
 > Closed beta/manual game session trên thiết bị và mạng thật vẫn là cổng nghiệm thu cuối.
 >
@@ -27,8 +27,8 @@ Snapshot phát hành:
   nền tảng Remote Play `20261027000000`–`20261027030000`, retention cron, khôi phục quản trò,
   verified presence, remote funnel metrics, admin console, voice signaling, khóa concurrency
   giới hạn voice, Realtime DELETE đầy đủ cùng ba migration nền trước đó.
-- Edge Function `game-command` v3 và `player-command` v2 đang active trên Supabase hosted.
-- Xác minh phát hành: typecheck, lint, build, Deno check, 70 unit tests, 60 integration tests,
+- Edge Function `game-command` v3, `player-command` v2 và `voice-ice` đang active trên Supabase hosted.
+- Xác minh phát hành: typecheck, lint, build, Deno check, 74 unit tests, 63 integration tests,
   15 E2E scenarios, production health và các smoke test hosted đều pass.
 
 Trạng thái này chỉ xác nhận code và hạ tầng đã phát hành. Lịch cleanup, alerting, kiểm thử thiết
@@ -403,9 +403,8 @@ Không có direct message và chat nghĩa địa trong MVP.
   chỉ gồm session, trạng thái mic và signaling ngắn hạn để thiết lập kết nối.
 - Giới hạn 16 người cùng tham gia một voice channel. Heartbeat mỗi 15 giây; session quá 45 giây
   không heartbeat được dọn tự động.
-- STUN công khai đủ cho phần lớn mạng thông thường. Production nên cấu hình TURN qua
-  `VITE_TURN_URLS`, `VITE_TURN_USERNAME`, `VITE_TURN_CREDENTIAL` để hỗ trợ mạng NAT/firewall
-  nghiêm ngặt.
+- STUN công khai đủ cho phần lớn mạng thông thường. `voice-ice` xác minh user sở hữu session rồi
+  đổi TURN key server-side thành credential 6 giờ; khóa dài hạn không nằm trong bundle/browser.
 
 ### 8.3. Hành vi tin nhắn
 
@@ -645,9 +644,9 @@ Không nhận `memberId`, `roleId`, `alive` hoặc `team` từ client làm ngu�
 
 ### 12.3. Edge Function
 
-Implementation dùng hai function riêng: `game-command` cho quản trò và `player-command` cho
-người chơi. `player-command` xác thực JWT, phiên thiết bị, schema command, phase/deadline và gọi
-RPC tương ứng; hai function dùng chung engine/orchestration và chuẩn log đã lọc bí mật.
+Implementation dùng ba function: `game-command` cho quản trò, `player-command` cho người chơi và
+`voice-ice` cấp ICE config ngắn hạn. `player-command` xác thực JWT, phiên thiết bị, schema command,
+phase/deadline và gọi RPC tương ứng; các function dùng chung validation và chuẩn log đã lọc bí mật.
 
 ### 12.4. Tích hợp engine
 
@@ -836,9 +835,9 @@ Khi hiển thị timer:
 Kết quả phát hành gần nhất được xác minh ngày 2026-11-06:
 
 - `npm run typecheck`, `npm run lint`, `npm run build`: pass.
-- `deno check` cho `game-command` và `player-command`: pass.
-- `npm test`: 70/70 unit tests pass.
-- `npm run test:integration`: 60/60 integration tests pass trên Supabase local.
+- `deno check` cho `game-command`, `player-command` và `voice-ice`: pass.
+- `npm test`: 74/74 unit tests pass.
+- `npm run test:integration`: 63/63 integration tests pass trên Supabase local.
 - `npm run test:e2e`: 15/15 scenarios pass, gồm local full-game, remote full-flow, RLS,
   reconnect, takeover thiết bị, xung đột hai tab quản trò, focus/keyboard accessibility, Tiên
   tri reconnect, khôi phục quản trò sang thiết bị mới, voice hai chiều, tải 30 người và responsive
@@ -898,7 +897,7 @@ Automated tests không đánh giá được nhịp chat và cảm giác chờ. C
 
 Đã có trong bản phát hành:
 
-- Log JSON đã lọc bí mật và `x-request-id` ở cả hai Edge Function.
+- Log JSON đã lọc bí mật; không ghi TURN credential, SDP hoặc ICE candidate ở ba Edge Function.
 - RPC metric tổng hợp không chứa payload riêng tư.
 - Metric `active_voice_sessions` theo dõi session voice còn heartbeat mà không chứa audio.
 - Cleanup/retention RPC `gw_cleanup` và runbook xử lý sự cố.

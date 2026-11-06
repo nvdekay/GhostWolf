@@ -50,7 +50,7 @@ const main = async () => {
     failures.push('frontend chưa cho phép microphone trên chính origin')
 
   const functions = {}
-  for (const name of ['game-command', 'player-command']) {
+  for (const name of ['game-command', 'player-command', 'voice-ice']) {
     const probe = await timedFetch(`${supabaseUrl}/functions/v1/${name}`, {
       method: 'OPTIONS',
       headers: { Origin: productionUrl },

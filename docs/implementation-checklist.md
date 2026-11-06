@@ -6,11 +6,11 @@ Trạng thái: `[x]` xong và đã kiểm · `[~]` xong nhưng chưa xác minh �
 Cập nhật phát hành 2026-11-06: `main` local/remote là nguồn code mới nhất và Vercel tự deploy từ
 nhánh này. Production đã có toàn bộ Remote Play, ruleset v2, khôi phục quản trò, heartbeat xác
 thực server, funnel metrics, admin console, voice WebRTC và nội dung phân biệt rõ **Chơi cùng
-phòng** / **Chơi từ xa**. Supabase đã áp dụng đủ 15 migration trong repo; `game-command` v3 và `player-command` v2 đang
-active. Closed beta trên mạng và thiết bị thật chưa thực hiện.
+phòng** / **Chơi từ xa**. Supabase đã áp dụng đủ 15 migration trong repo; `game-command` v3,
+`player-command` v2 và `voice-ice` đang active. Closed beta trên mạng và thiết bị thật chưa thực hiện.
 
 Kiểm thử đã chạy (Supabase local + Edge Function chạy bằng Deno):
-`npm test` 70 test · `npm run test:integration` 60 test · `npm run test:e2e` 15 kịch bản,
+`npm test` 74 test · `npm run test:integration` 63 test · `npm run test:e2e` 15 kịch bản,
 bao gồm local full-game, remote full-game, RLS, reconnect, takeover tab, tải 30 người và
 responsive 320–1920 px.
 
@@ -21,7 +21,8 @@ responsive 320–1920 px.
 - [x] Game engine TS thuần dùng chung Edge Function và frontend (`supabase/functions/_shared/engine`, alias `@engine`); `deno check` qua.
 - [x] Lệnh phòng là RPC `security definer`; lệnh ván qua Edge Function `game-command` → `commit_game` (1 transaction, revision, idempotency).
 - [x] Tách UI / domain / services / realtime / session.
-- [x] Edge Function được chạy local bằng Deno trực tiếp (`npm run functions:serve`), `deno check` qua và đã deploy `game-command` + `player-command` lên Supabase hosted project `ztyefvgplgafhfukmkxh`.
+- [x] Ba Edge Function chạy local bằng Deno trực tiếp (`npm run functions:serve`), `deno check`
+      qua và đã deploy `game-command`, `player-command`, `voice-ice` lên Supabase hosted.
 
 ## 1. Màn hình
 
@@ -75,6 +76,8 @@ responsive 320–1920 px.
       16 người và trả `VOICE_FULL` cho người thứ 17.
 - [x] Voice session cập nhật incremental qua Realtime, full reconcile mỗi 60 giây; DELETE theo
       room phát đủ khóa session và chỉ một phía chủ động tạo offer để tránh glare khi join đồng thời.
+- [x] `voice-ice` chỉ cấp ICE config cho JWT sở hữu session voice còn hạn; TURN key dài hạn ở
+      Supabase secrets, không nằm trong frontend, response cache hoặc log.
 
 ## 5. Persistence & đồng bộ
 
@@ -94,7 +97,7 @@ responsive 320–1920 px.
 - [x] Anonymous sign-in không dùng CAPTCHA theo quyết định sản phẩm; production giới hạn 30 lần/giờ/IP và các giới hạn nghiệp vụ ở database vẫn được áp dụng.
 - [x] typecheck, lint, test, build.
 - [x] `.env.example`, README (Supabase, anonymous auth, realtime, deploy).
-- [x] Deploy thật: đủ 15 migration local/remote khớp nhau, hai Edge Function active trên
+- [x] Deploy thật: đủ 15 migration local/remote khớp nhau, ba Edge Function active trên
       Supabase hosted; Vercel build từ `main`, domain `https://ghostwolf.khanhnvd.click` trả
       HTTP 200; production health và smoke flow hosted pass.
 

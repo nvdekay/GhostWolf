@@ -3,7 +3,7 @@
 Bổ sung cho phần "Triển khai" trong README. Không thay đổi được từ code frontend (static), cần cấu hình ở host và Supabase.
 
 Trạng thái phát hành 2026-11-06: cả 15 migration trong repo đã deploy lên Supabase project
-`ztyefvgplgafhfukmkxh`; `game-command` v3 và `player-command` v2 đang active. Frontend Vercel
+`ztyefvgplgafhfukmkxh`; `game-command` v3, `player-command` v2 và `voice-ice` đang active. Frontend Vercel
 được build tự động từ `main` và đang phục vụ tại `https://ghostwolf.khanhnvd.click`. Production
 health, retention cron, funnel metrics và smoke test hosted đã pass. Alert dựa trên Log Drains
 vẫn tạm hoãn khi project còn ở Supabase Free; xem mục 7.
@@ -42,7 +42,7 @@ Giới hạn nghiệp vụ đã có trong database (migration `20261025000100`):
 
 ## 3. Monitoring
 
-Hai Edge Function `game-command` và `player-command` ghi log JSON đã lọc bí mật cho mỗi request
+Ba Edge Function `game-command`, `player-command` và `voice-ice` ghi log JSON đã lọc bí mật cho mỗi request
 (Dashboard → Edge Functions → Logs):
 
 ```json
@@ -111,7 +111,8 @@ trả command. Chạy thử `gw_cleanup` trước trên bản sao dữ liệu v�
 Thứ tự deploy:
 
 1. `supabase db push` (migration chạy trong transaction; lỗi là rollback toàn bộ migration đó).
-2. `supabase functions deploy game-command` và `supabase functions deploy player-command`.
+2. Deploy `game-command`, `player-command` và `voice-ice`; function cuối dùng `--no-verify-jwt`
+   để OPTIONS đi qua và tự xác thực JWT trong handler.
 3. Build và upload frontend.
 
 Migration `20261025000000` và `20261025000100` chỉ `create or replace` hàm (cùng chữ ký, giữ quyền đã cấp), thêm trigger, index và CHECK. CHECK được thêm `NOT VALID` rồi `VALIDATE`: nếu dữ liệu cũ vi phạm, migration dừng và không áp một nửa. Kiểm tra trước trên production:
@@ -145,8 +146,9 @@ Rollback phải giữ nguyên nguyên tắc **forward-only**:
   kết luận mất dữ liệu.
 - Không bật được mic: kiểm tra quyền microphone của trình duyệt và header
   `Permissions-Policy: microphone=(self)`; người chết hoặc bị mute chỉ có chế độ nghe.
-- Nghe được trong cùng mạng nhưng không nghe qua 4G/5G hoặc mạng công ty: kiểm tra cấu hình
-  `VITE_TURN_*`. STUN không vượt qua được mọi NAT; không log TURN credential hoặc SDP/ICE.
+- Nghe được trong cùng mạng nhưng không nghe qua 4G/5G hoặc mạng công ty: kiểm tra
+  `CLOUDFLARE_TURN_KEY_ID`/`CLOUDFLARE_TURN_API_TOKEN` trong Supabase secrets và response
+  `voice-ice` có `relay: true`. Không log TURN credential hoặc SDP/ICE.
 
 ## 7. Trạng thái hiện tại và việc còn lại
 

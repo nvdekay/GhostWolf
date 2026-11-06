@@ -12,7 +12,7 @@ Snapshot ngày 2026-11-06:
 - `main` là nguồn phát hành duy nhất; mỗi lần push được Vercel tự build và deploy production.
 - Supabase production đã áp dụng đủ 15 migration trong repo; `game-command` v3 và
   `player-command` v2 đang active.
-- Bộ kiểm thử phát hành gần nhất: 70 unit, 60 integration và 15 E2E đều pass; production health
+- Bộ kiểm thử phát hành gần nhất: 74 unit, 63 integration và 15 E2E đều pass; production health
   và smoke test trực tiếp cũng pass.
 - MVP kỹ thuật đã hoàn thành. Phần còn lại là kiểm tra bàn phím trên iOS/Android thật và closed
   beta 6–8, 12–16 người trên mạng hỗn hợp; đây không phải hạng mục code còn thiếu.
@@ -54,15 +54,15 @@ supabase status
 Điền anon key từ `supabase status` vào `.env.local`, sau đó chạy hai terminal:
 
 ```bash
-npm run functions:serve   # game-command + player-command tại http://127.0.0.1:54329
+npm run functions:serve   # game-command + player-command + voice-ice tại http://127.0.0.1:54329
 npm run dev               # frontend tại http://localhost:5173
 ```
 
 Mỗi trình duyệt hoặc cửa sổ ẩn danh là một người chơi khác. Để thử trên điện thoại cùng Wi-Fi, chạy `npm run dev -- --host` rồi mở `http://<IP-máy>:5173`; app tự ánh xạ backend local sang cùng hostname.
 
-Voice dùng WebRTC audio P2P: Supabase chỉ lưu presence/signaling ngắn hạn, không ghi âm. STUN mặc
-định đủ cho local và phần lớn mạng dân dụng; để ổn định giữa 4G/5G, NAT đối xứng hoặc mạng công
-ty, cấu hình `VITE_TURN_URLS`, `VITE_TURN_USERNAME`, `VITE_TURN_CREDENTIAL`.
+Voice dùng WebRTC audio P2P: Supabase chỉ lưu presence/signaling ngắn hạn, không ghi âm. Client
+lấy ICE config từ `voice-ice`; TURN key dài hạn chỉ nằm trong Supabase secrets và function đổi
+nó thành credential 6 giờ cho đúng user/session. Thiếu secret thì function trả STUN fallback.
 
 Khi tạo phòng, quản trò nên mở “Mã khôi phục” và lưu riêng mã này. Nếu đổi hoặc mất thiết bị,
 chọn “Khôi phục quản trò” ở trang chủ, nhập mã phòng cùng mã khôi phục; mã cũ sẽ bị vô hiệu và
@@ -74,7 +74,7 @@ thiết bị mới nhận một mã mới.
 npm run typecheck
 npm run lint
 npm test
-deno check supabase/functions/game-command/index.ts
+deno check supabase/functions/game-command/index.ts supabase/functions/player-command/index.ts supabase/functions/voice-ice/index.ts
 npm run build
 ```
 
@@ -97,6 +97,7 @@ supabase link --project-ref ztyefvgplgafhfukmkxh
 supabase db push
 supabase functions deploy game-command --use-api
 supabase functions deploy player-command --use-api
+supabase functions deploy voice-ice --use-api --no-verify-jwt
 supabase config push --project-ref ztyefvgplgafhfukmkxh   # chạy không --yes trước để xem diff
 ```
 
@@ -104,8 +105,9 @@ Quản trị nền tảng (thống kê, danh sách phòng, đóng phòng, mời 
 
 Frontend: project Vercel `ghostwolf` nối với repo GitHub, mỗi lần push lên `main` tự build và deploy. Biến `VITE_SUPABASE_URL` và `VITE_SUPABASE_ANON_KEY` (publishable key) khai trong Vercel, không nằm trong repo. Deploy tay: `npx vercel@latest deploy --prod`.
 
-Ba biến `VITE_TURN_*` là tùy chọn nhưng được khuyến nghị cho production voice trên mạng hỗn hợp;
-TURN credential không được commit vào repo.
+Production TURN dùng `CLOUDFLARE_TURN_KEY_ID` và `CLOUDFLARE_TURN_API_TOKEN` trong Supabase
+secrets. Không đặt TURN key ở Vercel, biến `VITE_*`, log hoặc commit; browser chỉ nhận credential
+ngắn hạn sau khi backend xác minh user đang sở hữu voice session.
 
 ## Tài liệu
 
