@@ -6,13 +6,14 @@ import { supabase } from '@/lib/supabase'
 import { uuid } from '@/lib/uuid'
 import {
   deleteVoiceSignal,
+  fallbackVoiceIceServers,
   heartbeatVoice,
   joinVoice,
   leaveVoice,
+  loadVoiceIceServers,
   loadVoiceSessions,
   loadVoiceSignals,
   sendVoiceSignal,
-  voiceIceServers,
 } from '@/services/voice'
 import type { VoiceChannel, VoiceSessionRow, VoiceSignalRow } from '@/services/types'
 import {
@@ -100,6 +101,7 @@ export function VoiceRoom({
   const peers = useRef(new Map<string, Peer>())
   const sessionsRef = useRef<VoiceSessionRow[]>([])
   const localStream = useRef<MediaStream | null>(null)
+  const iceServers = useRef<RTCIceServer[]>(fallbackVoiceIceServers())
   const micEnabledRef = useRef(false)
   const handledSignals = useRef(new Set<number>())
   const realtime = useRef<RealtimeChannel | null>(null)
@@ -139,7 +141,7 @@ export function VoiceRoom({
     (remote: VoiceSessionRow): Peer => {
       const existing = peers.current.get(remote.session_id)
       if (existing) return existing
-      const pc = new RTCPeerConnection({ iceServers: voiceIceServers() })
+      const pc = new RTCPeerConnection({ iceServers: iceServers.current })
       const track = localStream.current?.getAudioTracks()[0]
       pc.addTransceiver(track ?? 'audio', { direction: track ? 'sendrecv' : 'recvonly' })
       const peer: Peer = {
@@ -468,6 +470,9 @@ export function VoiceRoom({
     setBusy(true)
     try {
       const own = await joinVoice(roomId, gameId, channel, sessionId)
+      iceServers.current = await loadVoiceIceServers(roomId, sessionId)
+        .then((config) => config.iceServers)
+        .catch(() => fallbackVoiceIceServers())
       updateSessions([own])
       setJoined(true)
       fb.toast('Đã tham gia voice · mic đang tắt')

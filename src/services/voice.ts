@@ -1,5 +1,6 @@
-import { supabase } from '@/lib/supabase'
-import { fromPostgrest } from './errors'
+import { sameHostUrl, supabase } from '@/lib/supabase'
+import { FALLBACK_ICE_SERVERS, parseIceServers, type VoiceIcePayload } from '@shared/voice-ice.ts'
+import { AppError, fromPostgrest, networkError } from './errors'
 import type { VoiceChannel, VoiceSessionRow, VoiceSignalRow } from './types'
 
 async function rpc<T>(fn: string, args: Record<string, unknown>): Promise<T> {
@@ -80,20 +81,51 @@ export async function deleteVoiceSignal(id: number, sessionId: string) {
   if (error) throw fromPostgrest(error)
 }
 
-export function voiceIceServers(): RTCIceServer[] {
-  const servers: RTCIceServer[] = [
-    { urls: ['stun:stun.cloudflare.com:3478', 'stun:stun.l.google.com:19302'] },
-  ]
-  const urls = (import.meta.env.VITE_TURN_URLS as string | undefined)
-    ?.split(',')
-    .map((value) => value.trim())
-    .filter(Boolean)
-  if (urls?.length) {
-    servers.push({
-      urls,
-      username: (import.meta.env.VITE_TURN_USERNAME as string | undefined) ?? '',
-      credential: (import.meta.env.VITE_TURN_CREDENTIAL as string | undefined) ?? '',
+export function fallbackVoiceIceServers(): RTCIceServer[] {
+  return FALLBACK_ICE_SERVERS
+}
+
+export async function loadVoiceIceServers(
+  roomId: string,
+  sessionId: string,
+): Promise<VoiceIcePayload> {
+  const { data } = await supabase.auth.getSession()
+  const token = data.session?.access_token
+  if (!token) throw new AppError('AUTH_REQUIRED', 'Phiên đăng nhập đã hết. Tải lại trang.')
+  const base = sameHostUrl(
+    import.meta.env.VITE_FUNCTIONS_URL || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`,
+  )
+  const abort = new AbortController()
+  const timer = window.setTimeout(() => abort.abort(), 5_000)
+  let response: Response
+  try {
+    response = await fetch(`${base}/voice-ice`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: import.meta.env.VITE_SUPABASE_ANON_KEY ?? '',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ roomId, sessionId }),
+      signal: abort.signal,
     })
+  } catch {
+    throw networkError()
+  } finally {
+    window.clearTimeout(timer)
   }
-  return servers
+  const json = (await response.json().catch(() => ({}))) as Partial<VoiceIcePayload> & {
+    error?: { code?: string; message?: string }
+  }
+  if (!response.ok)
+    throw new AppError(
+      json.error?.code ?? `HTTP_${response.status}`,
+      json.error?.message ?? 'Không lấy được cấu hình voice.',
+      response.status,
+    )
+  return {
+    iceServers: parseIceServers(json.iceServers),
+    expiresAt: typeof json.expiresAt === 'string' ? json.expiresAt : null,
+    relay: json.relay === true,
+  }
 }

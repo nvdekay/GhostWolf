@@ -417,6 +417,9 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 [functions.game-command]
 verify_jwt = false
 
+[functions.voice-ice]
+verify_jwt = false
+
 # Bản hosted (Vercel + Supabase Free). `supabase config push` áp các giá trị dưới đây thay cho
 # giá trị local ở trên. Đổi domain ở đây nếu gắn domain riêng.
 [remotes.production]
