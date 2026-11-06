@@ -29,7 +29,7 @@ Snapshot phát hành:
   giới hạn voice, Realtime DELETE đầy đủ cùng ba migration nền trước đó.
 - Edge Function `game-command` v3, `player-command` v2 và `voice-ice` đang active trên Supabase hosted.
 - Xác minh phát hành: typecheck, lint, build, Deno check, 74 unit tests, 63 integration tests,
-  15 E2E scenarios, production health và các smoke test hosted đều pass.
+  18 E2E scenarios, production health và các smoke test hosted đều pass.
 
 Trạng thái này chỉ xác nhận code và hạ tầng đã phát hành. Lịch cleanup, alerting, kiểm thử thiết
 bị thật và closed beta được theo dõi riêng ở các mục 19, 20 và 23.
@@ -838,10 +838,10 @@ Kết quả phát hành gần nhất được xác minh ngày 2026-11-06:
 - `deno check` cho `game-command`, `player-command` và `voice-ice`: pass.
 - `npm test`: 74/74 unit tests pass.
 - `npm run test:integration`: 63/63 integration tests pass trên Supabase local.
-- `npm run test:e2e`: 15/15 scenarios pass, gồm local full-game, remote full-flow, RLS,
+- `npm run test:e2e`: 18/18 scenarios pass, gồm local full-game, remote full-flow, RLS,
   reconnect, takeover thiết bị, xung đột hai tab quản trò, focus/keyboard accessibility, Tiên
-  tri reconnect, khôi phục quản trò sang thiết bị mới, voice hai chiều, tải 30 người và responsive
-  320–1920 px.
+  tri reconnect, khôi phục quản trò sang thiết bị mới, voice hai chiều/reconnect, giả lập Pixel 7
+  Chromium và iPhone 15 WebKit, tải 30 người và responsive 320–1920 px.
 - Production smoke: tạo phòng remote, join, claim thiết bị, ready, chat Realtime, host nhận tin,
   đóng phòng và player nhận trạng thái đóng đều pass.
 

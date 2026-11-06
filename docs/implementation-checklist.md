@@ -10,7 +10,7 @@ phòng** / **Chơi từ xa**. Supabase đã áp dụng đủ 15 migration trong 
 `player-command` v2 và `voice-ice` đang active. Closed beta trên mạng và thiết bị thật chưa thực hiện.
 
 Kiểm thử đã chạy (Supabase local + Edge Function chạy bằng Deno):
-`npm test` 74 test · `npm run test:integration` 63 test · `npm run test:e2e` 15 kịch bản,
+`npm test` 74 test · `npm run test:integration` 63 test · `npm run test:e2e` 18 kịch bản,
 bao gồm local full-game, remote full-game, RLS, reconnect, takeover tab, tải 30 người và
 responsive 320–1920 px.
 
@@ -94,6 +94,9 @@ responsive 320–1920 px.
 - [x] Playwright: quản trò + 2 người chơi; kick / mất mạng / đóng phòng; xung đột hai tab quản trò; ván 10 người chọn ngẫu nhiên tới khi có kết quả (gồm hiệu ứng Thợ săn và kế nhiệm Trưởng làng); responsive 360/390/768/1024/1440/1920 (không tràn ngang, nút ≥ 32px chiều cao).
 - [x] Focus trap + trả focus trong dialog/sheet, đóng bằng Escape và hold-to-reveal bằng bàn phím có E2E tự động.
 - [~] Bàn phím ảo che CTA trên điện thoại thật: chưa kiểm trên thiết bị thật.
+- [x] Playwright giả lập Pixel 7/Chromium và iPhone 15/WebKit: tạo/join phòng, chat, voice
+      receive-only, responsive và đóng phòng; mỗi nền tảng pass 5/5 lượt lặp. Không thay thế kiểm
+      thử iOS/Android vật lý trong closed beta.
 - [x] Anonymous sign-in không dùng CAPTCHA theo quyết định sản phẩm; production giới hạn 30 lần/giờ/IP và các giới hạn nghiệp vụ ở database vẫn được áp dụng.
 - [x] typecheck, lint, test, build.
 - [x] `.env.example`, README (Supabase, anonymous auth, realtime, deploy).

@@ -1,4 +1,4 @@
-import { defineConfig } from '@playwright/test'
+import { defineConfig, devices } from '@playwright/test'
 
 /**
  * E2E nhiều thiết bị. Cần: Supabase local (`npm run db:start`), Edge Function (`npm run functions:serve`)
@@ -18,9 +18,25 @@ export default defineConfig({
   reporter: [['list']],
   use: {
     baseURL: process.env.E2E_BASE_URL ?? `http://localhost:${port}`,
-    channel: process.env.PW_CHANNEL,
     trace: 'retain-on-failure',
   },
+  projects: [
+    {
+      name: 'desktop-chromium',
+      testIgnore: /compatibility\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], channel: process.env.PW_CHANNEL },
+    },
+    {
+      name: 'android-chromium',
+      testMatch: /compatibility\.spec\.ts/,
+      use: { ...devices['Pixel 7'] },
+    },
+    {
+      name: 'ios-webkit',
+      testMatch: /compatibility\.spec\.ts/,
+      use: { ...devices['iPhone 15'] },
+    },
+  ],
   webServer: process.env.E2E_BASE_URL
     ? undefined
     : {
