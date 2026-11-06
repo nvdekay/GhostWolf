@@ -10,7 +10,7 @@ phòng** / **Chơi từ xa**. Supabase đã áp dụng đủ 15 migration trong 
 active. Closed beta trên mạng và thiết bị thật chưa thực hiện.
 
 Kiểm thử đã chạy (Supabase local + Edge Function chạy bằng Deno):
-`npm test` 70 test · `npm run test:integration` 60 test · `npm run test:e2e` 14 kịch bản,
+`npm test` 70 test · `npm run test:integration` 60 test · `npm run test:e2e` 15 kịch bản,
 bao gồm local full-game, remote full-game, RLS, reconnect, takeover tab, tải 30 người và
 responsive 320–1920 px.
 
@@ -130,5 +130,6 @@ responsive 320–1920 px.
 - [x] Unit/integration/E2E gồm full remote flow, RLS chéo, reconnect, takeover, 30 người/chat đồng thời,
       responsive mobile và regression full-game local.
 - [x] Voice WebRTC: tham gia/rời kênh, bật/tắt mic, public/lobby/Sói theo quyền server, heartbeat
-      15 giây, TTL 45 giây, giới hạn 16 người/kênh và E2E truyền audio giữa hai browser.
+      15 giây, TTL 45 giây, giới hạn 16 người/kênh, signaling tuần tự, ICE restart, nhả track mic
+      và fallback autoplay; E2E truyền audio giữa hai browser.
 - [~] Closed beta 6–8 và 12–16 người trên Wi-Fi + 4G/5G cần thực hiện sau deploy hosted.

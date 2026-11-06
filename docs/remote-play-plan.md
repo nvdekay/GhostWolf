@@ -29,7 +29,7 @@ Snapshot phát hành:
   giới hạn voice, Realtime DELETE đầy đủ cùng ba migration nền trước đó.
 - Edge Function `game-command` v3 và `player-command` v2 đang active trên Supabase hosted.
 - Xác minh phát hành: typecheck, lint, build, Deno check, 70 unit tests, 60 integration tests,
-  14 E2E scenarios, production health và các smoke test hosted đều pass.
+  15 E2E scenarios, production health và các smoke test hosted đều pass.
 
 Trạng thái này chỉ xác nhận code và hạ tầng đã phát hành. Lịch cleanup, alerting, kiểm thử thiết
 bị thật và closed beta được theo dõi riêng ở các mục 19, 20 và 23.
@@ -395,7 +395,10 @@ Không có direct message và chat nghĩa địa trong MVP.
 - Người chết hoặc đang bị mute chỉ nghe được voice công khai; Sói chỉ vào kênh bí mật khi còn
   sống, đúng vai và đúng phase.
 - Mic mặc định tắt. Trình duyệt chỉ hỏi quyền microphone sau thao tác `Bật mic`; người dùng có thể
-  tắt mic hoặc rời voice bất cứ lúc nào.
+  tắt mic hoặc rời voice bất cứ lúc nào. Track microphone được dừng và nhả khỏi peer khi tắt,
+  bị hệ điều hành thu hồi hoặc thiết bị ngắt kết nối.
+- Signaling của từng peer được xử lý tuần tự, tự ICE restart một lần khi kết nối gián đoạn. Nếu
+  trình duyệt chặn autoplay, UI hiện nút phát âm thanh để người dùng chủ động tiếp tục.
 - Audio truyền trực tiếp giữa các thiết bị, không được ghi hay lưu trên Ghostwolf. Bản ghi database
   chỉ gồm session, trạng thái mic và signaling ngắn hạn để thiết lập kết nối.
 - Giới hạn 16 người cùng tham gia một voice channel. Heartbeat mỗi 15 giây; session quá 45 giây
@@ -836,7 +839,7 @@ Kết quả phát hành gần nhất được xác minh ngày 2026-11-06:
 - `deno check` cho `game-command` và `player-command`: pass.
 - `npm test`: 70/70 unit tests pass.
 - `npm run test:integration`: 60/60 integration tests pass trên Supabase local.
-- `npm run test:e2e`: 14/14 scenarios pass, gồm local full-game, remote full-flow, RLS,
+- `npm run test:e2e`: 15/15 scenarios pass, gồm local full-game, remote full-flow, RLS,
   reconnect, takeover thiết bị, xung đột hai tab quản trò, focus/keyboard accessibility, Tiên
   tri reconnect, khôi phục quản trò sang thiết bị mới, voice hai chiều, tải 30 người và responsive
   320–1920 px.
@@ -878,8 +881,8 @@ Kết quả phát hành gần nhất được xác minh ngày 2026-11-06:
 - Refresh tất cả client ở mỗi phase.
 - Mobile responsive 320/390 px và desktop.
 - Local mode cũ vẫn chạy qua critical flow.
-- Hai thiết bị tham gia voice, lần lượt bật/tắt mic và nhận audio hai chiều; rời phòng cập nhật
-  participant count.
+- Hai thiết bị tham gia voice, lần lượt bật/tắt mic, xử lý track bị ngắt, nhận audio hai chiều và
+  fallback khi autoplay bị chặn; rời phòng cập nhật participant count.
 
 ### Manual game sessions
 

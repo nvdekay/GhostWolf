@@ -12,7 +12,7 @@ Snapshot ngày 2026-11-06:
 - `main` là nguồn phát hành duy nhất; mỗi lần push được Vercel tự build và deploy production.
 - Supabase production đã áp dụng đủ 15 migration trong repo; `game-command` v3 và
   `player-command` v2 đang active.
-- Bộ kiểm thử phát hành gần nhất: 70 unit, 60 integration và 14 E2E đều pass; production health
+- Bộ kiểm thử phát hành gần nhất: 70 unit, 60 integration và 15 E2E đều pass; production health
   và smoke test trực tiếp cũng pass.
 - MVP kỹ thuật đã hoàn thành. Phần còn lại là kiểm tra bàn phím trên iOS/Android thật và closed
   beta 6–8, 12–16 người trên mạng hỗn hợp; đây không phải hạng mục code còn thiếu.
