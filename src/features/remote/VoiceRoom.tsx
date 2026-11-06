@@ -31,20 +31,57 @@ interface Peer {
   makingOffer: boolean
   ignoreOffer: boolean
   settingAnswer: boolean
+  operations: Promise<void>
+  iceRestarted: boolean
+  disconnectTimer?: number
 }
 
 function RemoteAudio({ stream, name }: { stream: MediaStream; name: string }) {
   const ref = useRef<HTMLAudioElement>(null)
+  const [playbackBlocked, setPlaybackBlocked] = useState(false)
+
+  const play = useCallback(async () => {
+    const audio = ref.current
+    if (!audio) return
+    try {
+      await audio.play()
+      setPlaybackBlocked(false)
+    } catch {
+      setPlaybackBlocked(true)
+    }
+  }, [])
+
   useEffect(() => {
     const audio = ref.current
     if (!audio) return
     audio.srcObject = stream
-    void audio.play().catch(() => {})
+    void play()
     return () => {
       audio.srcObject = null
     }
-  }, [stream])
-  return <audio ref={ref} autoPlay playsInline aria-label={`Âm thanh từ ${name}`} />
+  }, [play, stream])
+
+  return (
+    <>
+      <audio
+        ref={ref}
+        playsInline
+        aria-label={`Âm thanh từ ${name}`}
+        onPlaying={() => setPlaybackBlocked(false)}
+      />
+      {playbackBlocked && (
+        <button className="btn btn-ghost" onClick={() => void play()}>
+          Phát âm thanh từ {name}
+        </button>
+      )}
+    </>
+  )
+}
+
+function enqueuePeerOperation(peer: Peer, operation: () => Promise<void>) {
+  const next = peer.operations.then(operation, operation)
+  peer.operations = next.catch(() => {})
+  return next
 }
 
 export function VoiceRoom({
@@ -80,7 +117,9 @@ export function VoiceRoom({
   }, [])
 
   const closePeer = useCallback((peerId: string) => {
-    peers.current.get(peerId)?.pc.close()
+    const peer = peers.current.get(peerId)
+    if (peer?.disconnectTimer) window.clearTimeout(peer.disconnectTimer)
+    peer?.pc.close()
     peers.current.delete(peerId)
     setStreams((current) => {
       if (!current[peerId]) return current
@@ -91,14 +130,9 @@ export function VoiceRoom({
   }, [])
 
   const signal = useCallback(
-    async (target: string, kind: VoiceSignalRow['kind'], payload: Record<string, unknown>) => {
-      try {
-        await sendVoiceSignal(sessionId, target, kind, payload)
-      } catch {
-        closePeer(target)
-      }
-    },
-    [closePeer, sessionId],
+    (target: string, kind: VoiceSignalRow['kind'], payload: Record<string, unknown>) =>
+      sendVoiceSignal(sessionId, target, kind, payload),
+    [sessionId],
   )
 
   const ensurePeer = useCallback(
@@ -114,6 +148,8 @@ export function VoiceRoom({
         makingOffer: false,
         ignoreOffer: false,
         settingAnswer: false,
+        operations: Promise.resolve(),
+        iceRestarted: false,
       }
       peers.current.set(remote.session_id, peer)
       pc.onicecandidate = ({ candidate }) => {
@@ -122,31 +158,66 @@ export function VoiceRoom({
             remote.session_id,
             'ice',
             candidate.toJSON() as unknown as Record<string, unknown>,
-          )
+          ).catch(() => closePeer(remote.session_id))
       }
       pc.ontrack = (event) => {
         const stream = event.streams[0] ?? new MediaStream([event.track])
         setStreams((current) => ({ ...current, [remote.session_id]: stream }))
       }
-      pc.onconnectionstatechange = () => {
-        if (pc.connectionState === 'failed' || pc.connectionState === 'closed')
+      const restartIce = () => {
+        if (peer.iceRestarted) {
           closePeer(remote.session_id)
-      }
-      pc.onnegotiationneeded = async () => {
-        try {
-          peer.makingOffer = true
-          await pc.setLocalDescription()
-          const description = pc.localDescription
-          if (description?.type === 'offer' || description?.type === 'answer')
-            await signal(remote.session_id, description.type, {
-              type: description.type,
-              sdp: description.sdp,
-            })
-        } catch {
-          closePeer(remote.session_id)
-        } finally {
-          peer.makingOffer = false
+          return
         }
+        peer.iceRestarted = true
+        if (peer.disconnectTimer) window.clearTimeout(peer.disconnectTimer)
+        pc.restartIce()
+        peer.disconnectTimer = window.setTimeout(() => {
+          peer.disconnectTimer = undefined
+          if (peers.current.get(remote.session_id) === peer && pc.connectionState !== 'connected')
+            closePeer(remote.session_id)
+        }, 8_000)
+      }
+      pc.onconnectionstatechange = () => {
+        if (pc.connectionState === 'connected') {
+          peer.iceRestarted = false
+          if (peer.disconnectTimer) window.clearTimeout(peer.disconnectTimer)
+          peer.disconnectTimer = undefined
+          return
+        }
+        if (pc.connectionState === 'disconnected' && !peer.disconnectTimer) {
+          peer.disconnectTimer = window.setTimeout(() => {
+            peer.disconnectTimer = undefined
+            if (
+              peers.current.get(remote.session_id) === peer &&
+              pc.connectionState === 'disconnected'
+            )
+              restartIce()
+          }, 3_000)
+          return
+        }
+        if (pc.connectionState === 'failed') {
+          restartIce()
+          return
+        }
+        if (pc.connectionState === 'closed') closePeer(remote.session_id)
+      }
+      pc.onnegotiationneeded = () => {
+        void enqueuePeerOperation(peer, async () => {
+          if (pc.signalingState === 'closed') return
+          try {
+            peer.makingOffer = true
+            await pc.setLocalDescription()
+            const description = pc.localDescription
+            if (description?.type === 'offer' || description?.type === 'answer')
+              await signal(remote.session_id, description.type, {
+                type: description.type,
+                sdp: description.sdp,
+              })
+          } finally {
+            peer.makingOffer = false
+          }
+        }).catch(() => closePeer(remote.session_id))
       }
       return peer
     },
@@ -207,29 +278,36 @@ export function VoiceRoom({
         }
         if (!remote) return
         const peer = ensurePeer(remote)
-        const pc = peer.pc
-        if (row.kind === 'ice') {
-          const candidate = row.payload as RTCIceCandidateInit
-          if (pc.remoteDescription) await pc.addIceCandidate(candidate)
-          else peer.pendingIce.push(candidate)
-          return
-        }
-        const description = row.payload as unknown as RTCSessionDescriptionInit
-        const ready = !peer.makingOffer && (pc.signalingState === 'stable' || peer.settingAnswer)
-        const collision = description.type === 'offer' && !ready
-        const polite = sessionId > remote.session_id
-        peer.ignoreOffer = !polite && collision
-        if (peer.ignoreOffer) return
-        peer.settingAnswer = description.type === 'answer'
-        await pc.setRemoteDescription(description)
-        peer.settingAnswer = false
-        for (const candidate of peer.pendingIce.splice(0)) await pc.addIceCandidate(candidate)
-        if (description.type === 'offer') {
-          await pc.setLocalDescription()
-          const answer = pc.localDescription
-          if (answer)
-            await signal(remote.session_id, 'answer', { type: answer.type, sdp: answer.sdp })
-        }
+        await enqueuePeerOperation(peer, async () => {
+          const pc = peer.pc
+          if (pc.signalingState === 'closed') return
+          if (row.kind === 'ice') {
+            if (peer.ignoreOffer) return
+            const candidate = row.payload as RTCIceCandidateInit
+            if (pc.remoteDescription) await pc.addIceCandidate(candidate)
+            else peer.pendingIce.push(candidate)
+            return
+          }
+          const description = row.payload as unknown as RTCSessionDescriptionInit
+          const ready = !peer.makingOffer && (pc.signalingState === 'stable' || peer.settingAnswer)
+          const collision = description.type === 'offer' && !ready
+          const polite = sessionId > remote.session_id
+          peer.ignoreOffer = !polite && collision
+          if (peer.ignoreOffer) return
+          peer.settingAnswer = description.type === 'answer'
+          try {
+            await pc.setRemoteDescription(description)
+          } finally {
+            peer.settingAnswer = false
+          }
+          for (const candidate of peer.pendingIce.splice(0)) await pc.addIceCandidate(candidate)
+          if (description.type === 'offer') {
+            await pc.setLocalDescription()
+            const answer = pc.localDescription
+            if (answer)
+              await signal(remote.session_id, 'answer', { type: answer.type, sdp: answer.sdp })
+          }
+        })
       } catch {
         closePeer(row.sender_session)
       } finally {
@@ -239,20 +317,53 @@ export function VoiceRoom({
     [closePeer, ensurePeer, sessionId, signal, syncSessions],
   )
 
+  const releaseMicrophone = useCallback(async () => {
+    const stream = localStream.current
+    localStream.current = null
+    for (const track of stream?.getTracks() ?? []) {
+      track.onended = null
+      track.stop()
+    }
+    const replacements: Promise<void>[] = []
+    for (const peer of peers.current.values()) {
+      const transceiver = peer.pc
+        .getTransceivers()
+        .find((item) => item.receiver.track.kind === 'audio')
+      if (!transceiver) continue
+      replacements.push(transceiver.sender.replaceTrack(null))
+      if (transceiver.direction === 'sendrecv') transceiver.direction = 'recvonly'
+      if (transceiver.direction === 'sendonly') transceiver.direction = 'inactive'
+    }
+    await Promise.all(replacements)
+  }, [])
+
+  const handleMicrophoneEnded = useCallback(
+    (stream: MediaStream) => {
+      if (localStream.current !== stream) return
+      micEnabledRef.current = false
+      setMicEnabled(false)
+      void releaseMicrophone()
+        .then(() => heartbeatVoice(sessionId, false))
+        .then(applySession)
+        .catch((error) => fb.error(error))
+      fb.toast('Micro đã ngắt kết nối')
+    },
+    [applySession, fb, releaseMicrophone, sessionId],
+  )
+
   const stop = useCallback(async () => {
     setJoined(false)
     setMicEnabled(false)
     micEnabledRef.current = false
     updateSessions([])
-    localStream.current?.getTracks().forEach((track) => track.stop())
-    localStream.current = null
     for (const peer of peers.current.values()) peer.pc.close()
     peers.current.clear()
+    await releaseMicrophone()
     setStreams({})
     if (realtime.current) await supabase.removeChannel(realtime.current)
     realtime.current = null
     await leaveVoice(sessionId).catch(() => {})
-  }, [sessionId, updateSessions])
+  }, [releaseMicrophone, sessionId, updateSessions])
 
   useEffect(() => {
     mounted.current = true
@@ -300,10 +411,10 @@ export function VoiceRoom({
     realtime.current = subscription
     const heartbeat = window.setInterval(() => {
       void heartbeatVoice(sessionId, micEnabledRef.current)
-        .then((own) => {
+        .then(async (own) => {
           if (!alive) return
           if (!own.mic_enabled && micEnabledRef.current) {
-            localStream.current?.getAudioTracks().forEach((track) => (track.enabled = false))
+            await releaseMicrophone()
             micEnabledRef.current = false
             setMicEnabled(false)
           }
@@ -335,6 +446,7 @@ export function VoiceRoom({
     handleSignal,
     joined,
     roomId,
+    releaseMicrophone,
     sessionId,
     stop,
     syncSessions,
@@ -342,12 +454,15 @@ export function VoiceRoom({
 
   useEffect(() => {
     if (canSpeak || !micEnabled) return
-    localStream.current?.getAudioTracks().forEach((track) => (track.enabled = false))
     micEnabledRef.current = false
-    void heartbeatVoice(sessionId, false).finally(() => {
-      if (mounted.current) setMicEnabled(false)
-    })
-  }, [canSpeak, micEnabled, sessionId])
+    void releaseMicrophone()
+      .then(() => heartbeatVoice(sessionId, false))
+      .then(applySession)
+      .catch((error) => fb.error(error))
+      .finally(() => {
+        if (mounted.current) setMicEnabled(false)
+      })
+  }, [applySession, canSpeak, fb, micEnabled, releaseMicrophone, sessionId])
 
   const join = async () => {
     setBusy(true)
@@ -368,37 +483,41 @@ export function VoiceRoom({
     setBusy(true)
     try {
       if (next) {
-        const permission = await heartbeatVoice(sessionId, true)
-        if (!permission.can_speak) throw new Error('Bạn chỉ có thể nghe trong kênh voice này.')
-        let stream = localStream.current
-        if (!stream) {
-          if (!navigator.mediaDevices?.getUserMedia)
-            throw new Error('Trình duyệt này không hỗ trợ microphone.')
-          stream = await navigator.mediaDevices.getUserMedia({
-            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-            video: false,
-          })
-          localStream.current = stream
-          const track = stream.getAudioTracks()[0]
-          if (!track) throw new Error('Không tìm thấy microphone.')
-          for (const peer of peers.current.values()) {
-            const transceiver =
-              peer.pc.getTransceivers().find((item) => item.receiver.track.kind === 'audio') ??
-              peer.pc.addTransceiver('audio', { direction: 'recvonly' })
-            await transceiver.sender.replaceTrack(track)
-            transceiver.direction = 'sendrecv'
-          }
+        if (!navigator.mediaDevices?.getUserMedia)
+          throw new Error('Trình duyệt này không hỗ trợ microphone.')
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+          video: false,
+        })
+        const track = stream.getAudioTracks()[0]
+        if (!track) {
+          stream.getTracks().forEach((item) => item.stop())
+          throw new Error('Không tìm thấy microphone.')
         }
-        stream.getAudioTracks().forEach((track) => (track.enabled = true))
+        const permission = await heartbeatVoice(sessionId, true)
+        if (!permission.can_speak) {
+          stream.getTracks().forEach((item) => item.stop())
+          throw new Error('Bạn chỉ có thể nghe trong kênh voice này.')
+        }
+        localStream.current = stream
+        track.onended = () => handleMicrophoneEnded(stream)
+        for (const peer of peers.current.values()) {
+          const transceiver =
+            peer.pc.getTransceivers().find((item) => item.receiver.track.kind === 'audio') ??
+            peer.pc.addTransceiver('audio', { direction: 'recvonly' })
+          await transceiver.sender.replaceTrack(track)
+          transceiver.direction = 'sendrecv'
+        }
+        track.enabled = true
+        applySession(permission)
       } else {
-        localStream.current?.getAudioTracks().forEach((track) => (track.enabled = false))
-        await heartbeatVoice(sessionId, false)
+        await releaseMicrophone()
+        applySession(await heartbeatVoice(sessionId, false))
       }
       micEnabledRef.current = next
       setMicEnabled(next)
-      await syncSessions()
     } catch (error) {
-      localStream.current?.getAudioTracks().forEach((track) => (track.enabled = false))
+      await releaseMicrophone().catch(() => {})
       micEnabledRef.current = false
       setMicEnabled(false)
       await heartbeatVoice(sessionId, false).catch(() => {})
