@@ -15,8 +15,15 @@ import {
   voiceIceServers,
 } from '@/services/voice'
 import type { VoiceChannel, VoiceSessionRow, VoiceSignalRow } from '@/services/types'
+import {
+  removeVoiceSession,
+  shouldInitiateVoicePeer,
+  upsertVoiceSession,
+  voiceSessionInScope,
+} from './voiceSessionState'
 
 const HEARTBEAT_MS = 15_000
+const RECONCILE_EVERY_HEARTBEATS = 4
 
 interface Peer {
   pc: RTCPeerConnection
@@ -59,6 +66,7 @@ export function VoiceRoom({
   const micEnabledRef = useRef(false)
   const handledSignals = useRef(new Set<number>())
   const realtime = useRef<RealtimeChannel | null>(null)
+  const syncInFlight = useRef<{ key: string; request: Promise<VoiceSessionRow[]> } | null>(null)
   const mounted = useRef(true)
   const [joined, setJoined] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -145,15 +153,47 @@ export function VoiceRoom({
     [closePeer, signal],
   )
 
-  const syncSessions = useCallback(async () => {
-    const next = await loadVoiceSessions(roomId, gameId, channel)
-    if (!mounted.current) return next
-    updateSessions(next)
-    const active = new Set(next.map((item) => item.session_id))
-    for (const peerId of peers.current.keys()) if (!active.has(peerId)) closePeer(peerId)
-    for (const remote of next) if (remote.session_id !== sessionId) ensurePeer(remote)
-    return next
+  const syncSessions = useCallback(() => {
+    const key = `${roomId}:${gameId ?? ''}:${channel}`
+    if (syncInFlight.current?.key === key) return syncInFlight.current.request
+    const request = loadVoiceSessions(roomId, gameId, channel).then((next) => {
+      if (!mounted.current) return next
+      updateSessions(next)
+      const active = new Set(next.map((item) => item.session_id))
+      for (const peerId of peers.current.keys()) if (!active.has(peerId)) closePeer(peerId)
+      for (const remote of next)
+        if (shouldInitiateVoicePeer(sessionId, remote.session_id)) ensurePeer(remote)
+      return next
+    })
+    syncInFlight.current = { key, request }
+    void request.then(
+      () => {
+        if (syncInFlight.current?.request === request) syncInFlight.current = null
+      },
+      () => {
+        if (syncInFlight.current?.request === request) syncInFlight.current = null
+      },
+    )
+    return request
   }, [channel, closePeer, ensurePeer, gameId, roomId, sessionId, updateSessions])
+
+  const applySession = useCallback(
+    (row: VoiceSessionRow) => {
+      const scope = { roomId, gameId, channel }
+      if (!voiceSessionInScope(row, scope)) return
+      updateSessions(upsertVoiceSession(sessionsRef.current, row, scope))
+      if (shouldInitiateVoicePeer(sessionId, row.session_id)) ensurePeer(row)
+    },
+    [channel, ensurePeer, gameId, roomId, sessionId, updateSessions],
+  )
+
+  const dropSession = useCallback(
+    (removedSessionId: string) => {
+      updateSessions(removeVoiceSession(sessionsRef.current, removedSessionId))
+      if (removedSessionId !== sessionId) closePeer(removedSessionId)
+    },
+    [closePeer, sessionId, updateSessions],
+  )
 
   const handleSignal = useCallback(
     async (row: VoiceSignalRow) => {
@@ -225,13 +265,22 @@ export function VoiceRoom({
   useEffect(() => {
     if (!joined) return
     let alive = true
+    let heartbeatsSinceReconcile = 0
     const channelName = `voice:${roomId}:${channel}:${sessionId}`
     const subscription = supabase
       .channel(channelName)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'voice_sessions', filter: `room_id=eq.${roomId}` },
-        () => void syncSessions().catch((error) => fb.error(error)),
+        (event) => {
+          if (event.eventType === 'DELETE') {
+            const removedSessionId = (event.old as Partial<VoiceSessionRow>).session_id
+            if (removedSessionId) dropSession(removedSessionId)
+            return
+          }
+          const row = event.new as VoiceSessionRow
+          if (row.session_id) applySession(row)
+        },
       )
       .on(
         'postgres_changes',
@@ -258,7 +307,12 @@ export function VoiceRoom({
             micEnabledRef.current = false
             setMicEnabled(false)
           }
-          void syncSessions()
+          applySession(own)
+          heartbeatsSinceReconcile += 1
+          if (heartbeatsSinceReconcile >= RECONCILE_EVERY_HEARTBEATS) {
+            heartbeatsSinceReconcile = 0
+            void syncSessions().catch((error) => fb.error(error))
+          }
         })
         .catch((error) => {
           if (alive) {
@@ -273,7 +327,18 @@ export function VoiceRoom({
       if (realtime.current === subscription) realtime.current = null
       void supabase.removeChannel(subscription)
     }
-  }, [channel, fb, handleSignal, joined, roomId, sessionId, stop, syncSessions])
+  }, [
+    applySession,
+    channel,
+    dropSession,
+    fb,
+    handleSignal,
+    joined,
+    roomId,
+    sessionId,
+    stop,
+    syncSessions,
+  ])
 
   useEffect(() => {
     if (canSpeak || !micEnabled) return
