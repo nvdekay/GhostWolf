@@ -1,16 +1,37 @@
-import { createContext, useContext, useEffect, useReducer, type Dispatch } from 'react'
+import {
+  Suspense,
+  createContext,
+  lazy,
+  useContext,
+  useEffect,
+  useReducer,
+  type Dispatch,
+} from 'react'
 import { Crescent } from '@/components/ui'
 import { supabaseConfigured } from '@/lib/supabase'
 import { HomeScreen } from '@/features/home/HomeScreen'
-import { HostRoom } from '@/features/host/HostRoom'
-import { JoinScreen } from '@/features/join/JoinScreen'
-import { PlayerRoom } from '@/features/join/PlayerRoom'
-import { LibraryScreen } from '@/features/roles/LibraryScreen'
-import { ChooseScreen } from '@/features/setup/ChooseScreen'
-import { ConfigScreen } from '@/features/setup/ConfigScreen'
 import { FeedbackProvider } from './feedback'
 import { initialRoute, navReducer, type NavAction, type Route } from './nav'
 import { SessionProvider, useSession } from './session'
+
+const ChooseScreen = lazy(() =>
+  import('@/features/setup/ChooseScreen').then((module) => ({ default: module.ChooseScreen })),
+)
+const ConfigScreen = lazy(() =>
+  import('@/features/setup/ConfigScreen').then((module) => ({ default: module.ConfigScreen })),
+)
+const JoinScreen = lazy(() =>
+  import('@/features/join/JoinScreen').then((module) => ({ default: module.JoinScreen })),
+)
+const LibraryScreen = lazy(() =>
+  import('@/features/roles/LibraryScreen').then((module) => ({ default: module.LibraryScreen })),
+)
+const HostRoom = lazy(() =>
+  import('@/features/host/HostRoom').then((module) => ({ default: module.HostRoom })),
+)
+const PlayerRoom = lazy(() =>
+  import('@/features/join/PlayerRoom').then((module) => ({ default: module.PlayerRoom })),
+)
 
 const NavContext = createContext<Dispatch<NavAction>>(() => {})
 // eslint-disable-next-line react-refresh/only-export-components
@@ -87,7 +108,13 @@ function Screens() {
       screen = <PlayerRoom key={route.roomId} roomId={route.roomId} />
       break
   }
-  return <NavContext.Provider value={dispatch}>{screen}</NavContext.Provider>
+  return (
+    <NavContext.Provider value={dispatch}>
+      <Suspense fallback={<Splash title="Đang mở…" sub="Đang tải màn hình cần thiết." />}>
+        {screen}
+      </Suspense>
+    </NavContext.Provider>
+  )
 }
 
 export default function App() {
