@@ -1,6 +1,6 @@
 # Kế hoạch chế độ chơi từ xa cho Ghostwolf
 
-> Trạng thái ngày 2026-11-06: MVP kỹ thuật đã triển khai lên production từ `main`; đủ 13
+> Trạng thái ngày 2026-11-06: MVP kỹ thuật đã triển khai lên production từ `main`; đủ 14
 > migration và hai Edge Function đang hoạt động, toàn bộ kiểm thử tự động, production health và
 > smoke test hosted đã qua. Giai đoạn 0–3 đã hoàn thành; phần kỹ thuật của Giai đoạn 4 đã xong.
 > Closed beta/manual game session trên thiết bị và mạng thật vẫn là cổng nghiệm thu cuối.
@@ -23,12 +23,12 @@ Snapshot phát hành:
 
 - `main` local/remote là nguồn code mới nhất; Vercel nối trực tiếp nhánh này và production đang
   phục vụ tại `https://ghostwolf.khanhnvd.click`.
-- Supabase project `ztyefvgplgafhfukmkxh` đã áp dụng đủ 13 migration trong repo: bốn migration
+- Supabase project `ztyefvgplgafhfukmkxh` đã áp dụng đủ 14 migration trong repo: bốn migration
   nền tảng Remote Play `20261027000000`–`20261027030000`, retention cron, khôi phục quản trò,
-  verified presence, remote funnel metrics, admin console và voice signaling cùng ba migration
-  nền trước đó.
+  verified presence, remote funnel metrics, admin console, voice signaling và khóa concurrency
+  giới hạn voice cùng ba migration nền trước đó.
 - Edge Function `game-command` v3 và `player-command` v2 đang active trên Supabase hosted.
-- Xác minh phát hành: typecheck, lint, build, Deno check, 65 unit tests, 58 integration tests,
+- Xác minh phát hành: typecheck, lint, build, Deno check, 65 unit tests, 59 integration tests,
   14 E2E scenarios, production health và các smoke test hosted đều pass.
 
 Trạng thái này chỉ xác nhận code và hạ tầng đã phát hành. Lịch cleanup, alerting, kiểm thử thiết
@@ -835,7 +835,7 @@ Kết quả phát hành gần nhất được xác minh ngày 2026-11-06:
 - `npm run typecheck`, `npm run lint`, `npm run build`: pass.
 - `deno check` cho `game-command` và `player-command`: pass.
 - `npm test`: 65/65 unit tests pass.
-- `npm run test:integration`: 58/58 integration tests pass trên Supabase local.
+- `npm run test:integration`: 59/59 integration tests pass trên Supabase local.
 - `npm run test:e2e`: 14/14 scenarios pass, gồm local full-game, remote full-flow, RLS,
   reconnect, takeover thiết bị, xung đột hai tab quản trò, focus/keyboard accessibility, Tiên
   tri reconnect, khôi phục quản trò sang thiết bị mới, voice hai chiều, tải 30 người và responsive

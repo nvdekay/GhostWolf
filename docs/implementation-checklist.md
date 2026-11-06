@@ -6,11 +6,11 @@ Trạng thái: `[x]` xong và đã kiểm · `[~]` xong nhưng chưa xác minh �
 Cập nhật phát hành 2026-11-06: `main` local/remote là nguồn code mới nhất và Vercel tự deploy từ
 nhánh này. Production đã có toàn bộ Remote Play, ruleset v2, khôi phục quản trò, heartbeat xác
 thực server, funnel metrics, admin console, voice WebRTC và nội dung phân biệt rõ **Chơi cùng
-phòng** / **Chơi từ xa**. Supabase đã áp dụng đủ 13 migration trong repo; `game-command` v3 và `player-command` v2 đang
+phòng** / **Chơi từ xa**. Supabase đã áp dụng đủ 14 migration trong repo; `game-command` v3 và `player-command` v2 đang
 active. Closed beta trên mạng và thiết bị thật chưa thực hiện.
 
 Kiểm thử đã chạy (Supabase local + Edge Function chạy bằng Deno):
-`npm test` 65 test · `npm run test:integration` 58 test · `npm run test:e2e` 14 kịch bản,
+`npm test` 65 test · `npm run test:integration` 59 test · `npm run test:e2e` 14 kịch bản,
 bao gồm local full-game, remote full-game, RLS, reconnect, takeover tab, tải 30 người và
 responsive 320–1920 px.
 
@@ -71,6 +71,8 @@ responsive 320–1920 px.
 - [x] Presence dùng `heartbeat_room`: server tự suy ra `host`/member từ `auth.uid()`, bảng heartbeat chỉ participant đọc được, client không ghi trực tiếp và kênh dùng key tự khai đã bị đóng.
 - [x] Voice signaling có RLS theo room/phase/channel; host và dân không đọc voice Sói, người chết
       hoặc bị mute chỉ nghe, SDP/ICE chỉ target đọc được và không lưu audio.
+- [x] Join voice được serialize theo room; stress test 17 participant đồng thời giữ đúng giới hạn
+      16 người và trả `VOICE_FULL` cho người thứ 17.
 
 ## 5. Persistence & đồng bộ
 
@@ -90,7 +92,7 @@ responsive 320–1920 px.
 - [x] Anonymous sign-in không dùng CAPTCHA theo quyết định sản phẩm; production giới hạn 30 lần/giờ/IP và các giới hạn nghiệp vụ ở database vẫn được áp dụng.
 - [x] typecheck, lint, test, build.
 - [x] `.env.example`, README (Supabase, anonymous auth, realtime, deploy).
-- [x] Deploy thật: đủ 13 migration local/remote khớp nhau, hai Edge Function active trên
+- [x] Deploy thật: đủ 14 migration local/remote khớp nhau, hai Edge Function active trên
       Supabase hosted; Vercel build từ `main`, domain `https://ghostwolf.khanhnvd.click` trả
       HTTP 200; production health và smoke flow hosted pass.
 

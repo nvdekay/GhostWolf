@@ -2,7 +2,7 @@
 
 Bổ sung cho phần "Triển khai" trong README. Không thay đổi được từ code frontend (static), cần cấu hình ở host và Supabase.
 
-Trạng thái phát hành 2026-11-06: cả 13 migration trong repo đã deploy lên Supabase project
+Trạng thái phát hành 2026-11-06: cả 14 migration trong repo đã deploy lên Supabase project
 `ztyefvgplgafhfukmkxh`; `game-command` v3 và `player-command` v2 đang active. Frontend Vercel
 được build tự động từ `main` và đang phục vụ tại `https://ghostwolf.khanhnvd.click`. Production
 health, retention cron, funnel metrics và smoke test hosted đã pass. Alert dựa trên Log Drains

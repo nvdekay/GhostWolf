@@ -36,6 +36,46 @@ beforeAll(async () => {
 })
 
 describe('voice signaling và RLS', () => {
+  it('giữ đúng giới hạn 16 người khi 17 participant join đồng thời', async () => {
+    const auditHost = await anonClient()
+    const auditRoom = (
+      await rpc<{ id: string; code: string }>(auditHost.db, 'create_room', {
+        p_name: 'Voice concurrent cap',
+        p_options: { mode: 'remote' },
+      })
+    ).data
+    const actors: Actor[] = []
+    for (let index = 0; index < 16; index += 1) {
+      const actor = await anonClient()
+      await rpc(actor.db, 'join_room', {
+        p_code: auditRoom.code,
+        p_name: `Người ${index + 1}`,
+      })
+      actors.push(actor)
+    }
+
+    const attempts = await Promise.all(
+      [auditHost, ...actors].map((actor) =>
+        rpc(actor.db, 'join_voice', {
+          p_room: auditRoom.id,
+          p_game: null,
+          p_channel: 'lobby',
+          p_session: randomUUID(),
+          p_mic_enabled: false,
+        }),
+      ),
+    )
+    const sessions = await auditHost.db
+      .from('voice_sessions')
+      .select('session_id')
+      .eq('room_id', auditRoom.id)
+
+    expect(attempts.filter((attempt) => !attempt.error)).toHaveLength(16)
+    expect(attempts.filter((attempt) => attempt.error?.code === 'VOICE_FULL')).toHaveLength(1)
+    expect(sessions.data).toHaveLength(16)
+    await rpc(auditHost.db, 'host_close', { p_room: auditRoom.id })
+  })
+
   it('chỉ participant đọc session và chỉ target đọc signaling', async () => {
     const hostSession = randomUUID()
     const playerSession = randomUUID()
