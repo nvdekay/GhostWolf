@@ -36,6 +36,50 @@ beforeAll(async () => {
 })
 
 describe('voice signaling và RLS', () => {
+  it('realtime DELETE theo room trả session id để client cập nhật incremental', async () => {
+    const sessionId = randomUUID()
+    let resolveSubscribed!: () => void
+    const subscribed = new Promise<void>((resolve) => {
+      resolveSubscribed = resolve
+    })
+    let resolveDeleted!: (old: Record<string, unknown>) => void
+    const deleted = new Promise<Record<string, unknown>>((resolve) => {
+      resolveDeleted = resolve
+    })
+    const channel = listener.db
+      .channel(`voice-delete-${sessionId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'voice_sessions',
+          filter: `room_id=eq.${room.id}`,
+        },
+        (event) => resolveDeleted(event.old),
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') resolveSubscribed()
+      })
+
+    await subscribed
+    expect(
+      (
+        await rpc(player.db, 'join_voice', {
+          p_room: room.id,
+          p_game: null,
+          p_channel: 'lobby',
+          p_session: sessionId,
+          p_mic_enabled: false,
+        })
+      ).error,
+    ).toBeNull()
+    expect((await rpc(player.db, 'leave_voice', { p_session: sessionId })).error).toBeNull()
+
+    await expect(deleted).resolves.toMatchObject({ session_id: sessionId })
+    await listener.db.removeChannel(channel)
+  })
+
   it('giữ đúng giới hạn 16 người khi 17 participant join đồng thời', async () => {
     const auditHost = await anonClient()
     const auditRoom = (
