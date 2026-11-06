@@ -1,18 +1,18 @@
 # Ghostwolf
 
 Web hỗ trợ cả chơi Ma Sói cùng phòng và chơi từ xa hoàn toàn trong trình duyệt. Ở chế độ từ xa,
-mỗi người dùng thiết bị riêng để ready, xem vai, chat, hành động ban đêm và bỏ phiếu.
+mỗi người dùng thiết bị riêng để ready, xem vai, chat chữ/voice, hành động ban đêm và bỏ phiếu.
 
 **Production:** [ghostwolf.khanhnvd.click](https://ghostwolf.khanhnvd.click)
 
 ## Trạng thái phát hành
 
-Snapshot ngày 2026-10-29:
+Snapshot ngày 2026-11-06:
 
 - `main` là nguồn phát hành duy nhất; mỗi lần push được Vercel tự build và deploy production.
-- Supabase production đã áp dụng đủ 11 migration trong repo; `game-command` v3 và
+- Supabase production đã áp dụng đủ 13 migration trong repo; `game-command` v3 và
   `player-command` v2 đang active.
-- Bộ kiểm thử phát hành gần nhất: 65 unit, 49 integration và 13 E2E đều pass; production health
+- Bộ kiểm thử phát hành gần nhất: 65 unit, 58 integration và 14 E2E đều pass; production health
   và smoke test trực tiếp cũng pass.
 - MVP kỹ thuật đã hoàn thành. Phần còn lại là kiểm tra bàn phím trên iOS/Android thật và closed
   beta 6–8, 12–16 người trên mạng hỗn hợp; đây không phải hạng mục code còn thiếu.
@@ -22,7 +22,8 @@ Snapshot ngày 2026-10-29:
 - **Chơi cùng phòng:** mọi người ngồi cùng bàn hoặc cùng địa điểm; quản trò điều hành trên một
   máy, người chơi dùng điện thoại riêng hoặc chuyền máy để xem vai.
 - **Chơi từ xa:** mỗi người có thể ở một nơi khác nhau và dùng thiết bị riêng để chat, hành động
-  ban đêm và bỏ phiếu trong phòng online.
+  ban đêm và bỏ phiếu trong phòng online. Chat hỗ trợ voice trực tiếp, bật/tắt mic và kênh riêng
+  của Bầy Sói đúng phase.
 
 - React 19, TypeScript và Vite; frontend build thành static assets trong `dist/`.
 - Supabase cung cấp Postgres, đăng nhập ẩn danh, RLS, Realtime và Edge Function chạy Deno.
@@ -58,6 +59,10 @@ npm run dev               # frontend tại http://localhost:5173
 ```
 
 Mỗi trình duyệt hoặc cửa sổ ẩn danh là một người chơi khác. Để thử trên điện thoại cùng Wi-Fi, chạy `npm run dev -- --host` rồi mở `http://<IP-máy>:5173`; app tự ánh xạ backend local sang cùng hostname.
+
+Voice dùng WebRTC audio P2P: Supabase chỉ lưu presence/signaling ngắn hạn, không ghi âm. STUN mặc
+định đủ cho local và phần lớn mạng dân dụng; để ổn định giữa 4G/5G, NAT đối xứng hoặc mạng công
+ty, cấu hình `VITE_TURN_URLS`, `VITE_TURN_USERNAME`, `VITE_TURN_CREDENTIAL`.
 
 Khi tạo phòng, quản trò nên mở “Mã khôi phục” và lưu riêng mã này. Nếu đổi hoặc mất thiết bị,
 chọn “Khôi phục quản trò” ở trang chủ, nhập mã phòng cùng mã khôi phục; mã cũ sẽ bị vô hiệu và
@@ -98,6 +103,9 @@ supabase config push --project-ref ztyefvgplgafhfukmkxh   # chạy không --yes 
 Quản trị nền tảng (thống kê, danh sách phòng, đóng phòng, mời ra, tắt chat, xoá tin, dọn dữ liệu) nằm ở console riêng `admin-hub`. Console gọi các hàm `admin_*` trong `supabase/migrations/20261029020000_admin_console.sql` bằng service-role key. Các hàm này chỉ service role gọi được, ghi mọi thao tác vào `admin_actions` và không trả vai, kênh sói hay lựa chọn ban đêm.
 
 Frontend: project Vercel `ghostwolf` nối với repo GitHub, mỗi lần push lên `main` tự build và deploy. Biến `VITE_SUPABASE_URL` và `VITE_SUPABASE_ANON_KEY` (publishable key) khai trong Vercel, không nằm trong repo. Deploy tay: `npx vercel@latest deploy --prod`.
+
+Ba biến `VITE_TURN_*` là tùy chọn nhưng được khuyến nghị cho production voice trên mạng hỗn hợp;
+TURN credential không được commit vào repo.
 
 ## Tài liệu
 

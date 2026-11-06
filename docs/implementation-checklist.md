@@ -3,14 +3,14 @@
 Nguồn tham chiếu: `GhostWolf.html` (bundle: `__bundler/template` + manifest base64/gzip + component `text/x-dc`).
 Trạng thái: `[x]` xong và đã kiểm · `[~]` xong nhưng chưa xác minh đầy đủ (ghi lý do) · `[ ]` chưa làm.
 
-Cập nhật phát hành 2026-10-29: `main` local/remote là nguồn code mới nhất và Vercel tự deploy từ
+Cập nhật phát hành 2026-11-06: `main` local/remote là nguồn code mới nhất và Vercel tự deploy từ
 nhánh này. Production đã có toàn bộ Remote Play, ruleset v2, khôi phục quản trò, heartbeat xác
-thực server, funnel metrics và nội dung phân biệt rõ **Chơi cùng phòng** / **Chơi từ xa**.
-Supabase đã áp dụng đủ 11 migration trong repo; `game-command` v3 và `player-command` v2 đang
+thực server, funnel metrics, admin console, voice WebRTC và nội dung phân biệt rõ **Chơi cùng
+phòng** / **Chơi từ xa**. Supabase đã áp dụng đủ 13 migration trong repo; `game-command` v3 và `player-command` v2 đang
 active. Closed beta trên mạng và thiết bị thật chưa thực hiện.
 
 Kiểm thử đã chạy (Supabase local + Edge Function chạy bằng Deno):
-`npm test` 65 test · `npm run test:integration` 49 test · `npm run test:e2e` 13 kịch bản,
+`npm test` 65 test · `npm run test:integration` 58 test · `npm run test:e2e` 14 kịch bản,
 bao gồm local full-game, remote full-game, RLS, reconnect, takeover tab, tải 30 người và
 responsive 320–1920 px.
 
@@ -27,7 +27,7 @@ responsive 320–1920 px.
 
 - [x] `home`: tạo ván, vào bằng mã, tiếp tục ván từ server (không dùng demo), thư viện, cách chơi (luồng nhiều điện thoại + chuyền máy).
 - [x] `choose`, `gmConfig` (Trưởng làng, công bố vai, luật biến thể).
-- [x] `lobby`: mã thật, sao chép (có fallback hiện mã/link để tự chọn), chia sẻ URL thật `?join=`, danh sách realtime + online/offline, thêm thủ công, kick, chốt (≥4), mở lại trước khi gửi, đóng phòng.
+- [x] `lobby`: mã thật, sao chép (có fallback hiện mã/link để tự chọn), chia sẻ URL thật `?join=`, danh sách realtime + online/offline, chat chữ + voice bật/tắt mic, thêm thủ công, kick, chốt (≥4), mở lại trước khi gửi, đóng phòng.
 - [x] `roles`: tìm không dấu, lọc phe, +/-, chi tiết, tổng + phân bố phe, thiếu/thừa/thiếu sói, chặn chia khi sai, điền Dân làng, xóa hết, gợi ý theo số người (không ghi đè khi đã chỉnh), bộ vai lưu server (đặt tên, áp dụng, xóa), vai tùy chỉnh (thêm/sửa/xóa, chặn xóa khi đang dùng), sidebar desktop / bottom sheet mobile.
 - [x] `lib`: thư viện + vai tùy chỉnh.
 - [x] `assign`: chia ở server (CSPRNG + Fisher–Yates), giấu/hiện, xáo lại trước khi gửi, gửi một lần, tiến độ xem thật, xem trên máy này, xác nhận bắt đầu khi chưa đủ.
@@ -69,6 +69,8 @@ responsive 320–1920 px.
 - [x] Không service-role key ở frontend; realtime không gửi `game_secrets` tới người chơi (integration).
 - [x] Màn hình chung render từ public state; e2e kiểm không có tên vai trên bàn khi bật. Nhãn hoàn tác chung chung, không chứa mục tiêu.
 - [x] Presence dùng `heartbeat_room`: server tự suy ra `host`/member từ `auth.uid()`, bảng heartbeat chỉ participant đọc được, client không ghi trực tiếp và kênh dùng key tự khai đã bị đóng.
+- [x] Voice signaling có RLS theo room/phase/channel; host và dân không đọc voice Sói, người chết
+      hoặc bị mute chỉ nghe, SDP/ICE chỉ target đọc được và không lưu audio.
 
 ## 5. Persistence & đồng bộ
 
@@ -88,7 +90,7 @@ responsive 320–1920 px.
 - [x] Anonymous sign-in không dùng CAPTCHA theo quyết định sản phẩm; production giới hạn 30 lần/giờ/IP và các giới hạn nghiệp vụ ở database vẫn được áp dụng.
 - [x] typecheck, lint, test, build.
 - [x] `.env.example`, README (Supabase, anonymous auth, realtime, deploy).
-- [x] Deploy thật: đủ 11 migration local/remote khớp nhau, hai Edge Function active trên
+- [x] Deploy thật: đủ 13 migration local/remote khớp nhau, hai Edge Function active trên
       Supabase hosted; Vercel build từ `main`, domain `https://ghostwolf.khanhnvd.click` trả
       HTTP 200; production health và smoke flow hosted pass.
 
@@ -123,4 +125,6 @@ responsive 320–1920 px.
 - [x] Retention prompt/submission/private inbox, metrics không chứa payload và runbook production.
 - [x] Unit/integration/E2E gồm full remote flow, RLS chéo, reconnect, takeover, 30 người/chat đồng thời,
       responsive mobile và regression full-game local.
+- [x] Voice WebRTC: tham gia/rời kênh, bật/tắt mic, public/lobby/Sói theo quyền server, heartbeat
+      15 giây, TTL 45 giây, giới hạn 16 người/kênh và E2E truyền audio giữa hai browser.
 - [~] Closed beta 6–8 và 12–16 người trên Wi-Fi + 4G/5G cần thực hiện sau deploy hosted.

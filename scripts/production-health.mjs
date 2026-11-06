@@ -45,6 +45,9 @@ const main = async () => {
   ]) {
     if (!site.response.headers.has(header)) failures.push(`frontend thiếu header ${header}`)
   }
+  const permissions = site.response.headers.get('permissions-policy') ?? ''
+  if (!permissions.includes('microphone=(self)'))
+    failures.push('frontend chưa cho phép microphone trên chính origin')
 
   const functions = {}
   for (const name of ['game-command', 'player-command']) {

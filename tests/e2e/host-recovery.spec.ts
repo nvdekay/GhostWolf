@@ -6,7 +6,7 @@ test('mã một lần chuyển quyền quản trò sang thiết bị mới', asy
   await oldHost.goto('/')
   await oldHost.getByRole('button', { name: 'Tạo ván mới' }).click()
   await oldHost.getByRole('button', { name: /Quản trò/ }).click()
-  await oldHost.getByRole('radio', { name: /Từ xa/ }).check()
+  await oldHost.getByRole('radio', { name: /Chơi từ xa/ }).check()
   await oldHost.getByRole('button', { name: /Tạo phòng và lấy mã/ }).click()
 
   await oldHost.getByRole('button', { name: 'Mã khôi phục' }).click()

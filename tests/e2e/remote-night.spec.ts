@@ -19,7 +19,7 @@ test('remote night: hai Sói reconnect, chat kín, gửi và khóa lựa chọn'
   await host.goto('/')
   await host.getByRole('button', { name: 'Tạo ván mới' }).click()
   await host.getByRole('button', { name: /Quản trò/ }).click()
-  await host.getByRole('radio', { name: /Từ xa/ }).check()
+  await host.getByRole('radio', { name: /Chơi từ xa/ }).check()
   await host.getByRole('button', { name: /Tạo phòng và lấy mã/ }).click()
   const codeLabel = await host.getByRole('img', { name: /Mã phòng/ }).getAttribute('aria-label')
   const code = codeLabel!.replace('Mã phòng', '').replace(/\s/g, '')

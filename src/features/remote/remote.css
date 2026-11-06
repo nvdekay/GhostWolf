@@ -73,10 +73,94 @@
   resize: vertical;
 }
 
+.voice-room {
+  align-items: center;
+  background: color-mix(in srgb, var(--gold) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gold) 28%, transparent);
+  border-radius: 12px;
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.75rem;
+}
+
+.voice-room__summary {
+  align-items: center;
+  display: flex;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.voice-room__summary > div {
+  display: grid;
+  min-width: 0;
+}
+
+.voice-room__summary .muted {
+  font-size: 0.82rem;
+}
+
+.voice-room__icon {
+  align-items: center;
+  background: var(--ink);
+  border-radius: 999px;
+  color: var(--paper);
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 40px;
+  justify-content: center;
+  width: 40px;
+}
+
+.voice-room__people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.voice-room__people li {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: 999px;
+  display: flex;
+  font-size: 0.82rem;
+  gap: 0.35rem;
+  min-height: 36px;
+  padding: 0.3rem 0.55rem;
+}
+
+.voice-room__people li[data-mic='true'] .dot {
+  background: #2d9b58;
+  box-shadow: 0 0 0 3px rgba(45, 155, 88, 0.16);
+}
+
+.voice-room__people audio {
+  display: none;
+}
+
+.voice-room__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.voice-room__note {
+  color: var(--muted);
+  font-size: 0.82rem;
+  margin: 0;
+}
+
 @media (max-width: 480px) {
   .remote-chat__composer {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .voice-room > .btn,
+  .voice-room__actions .btn {
+    flex: 1 1 auto;
   }
 }
 

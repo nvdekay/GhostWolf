@@ -2,7 +2,7 @@
 
 Bổ sung cho phần "Triển khai" trong README. Không thay đổi được từ code frontend (static), cần cấu hình ở host và Supabase.
 
-Trạng thái phát hành 2026-10-29: cả 11 migration trong repo đã deploy lên Supabase project
+Trạng thái phát hành 2026-11-06: cả 13 migration trong repo đã deploy lên Supabase project
 `ztyefvgplgafhfukmkxh`; `game-command` v3 và `player-command` v2 đang active. Frontend Vercel
 được build tự động từ `main` và đang phục vụ tại `https://ghostwolf.khanhnvd.click`. Production
 health, retention cron, funnel metrics và smoke test hosted đã pass. Alert dựa trên Log Drains
@@ -15,7 +15,7 @@ Production (Vercel) đã đặt các header dưới đây trong `vercel.json`. N
 ```
 Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://<ref>.supabase.co wss://<ref>.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
 Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
-Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()
+Permissions-Policy: camera=(), microphone=(self), geolocation=(), payment=(), usb=(), interest-cohort=()
 Referrer-Policy: strict-origin-when-cross-origin
 X-Content-Type-Options: nosniff
 ```
@@ -23,6 +23,7 @@ X-Content-Type-Options: nosniff
 - `style-src-attr 'unsafe-inline'`: app đặt biến CSS qua thuộc tính `style` (vòng ghế, thanh phiếu). Không cần `unsafe-inline` cho script.
 - Font tự host trong `dist/assets`, không gọi Google Fonts; Vite nhúng font nhỏ dạng `data:` nên `font-src` cần `data:`.
 - Nếu Edge Function dùng domain riêng, thêm vào `connect-src`.
+- `microphone=(self)` chỉ cho chính origin production xin quyền mic; camera vẫn bị khóa.
 - Chỉ bật HSTS `preload` khi chắc chắn mọi subdomain đều HTTPS.
 
 ## 2. Đăng nhập ẩn danh và rate limit
@@ -66,6 +67,8 @@ Hai Edge Function `game-command` và `player-command` ghi log JSON đã lọc b�
   chat, vai, mục tiêu hay phiếu cá nhân.
 - `funnel_24h` trong cùng RPC đếm phòng remote đi qua create → join → ready → start → finish;
   workflow ghi bảng tỷ lệ vào GitHub Actions job summary để dùng trong closed beta.
+- `active_voice_sessions` chỉ đếm session voice còn heartbeat trong 45 giây, không chứa tên,
+  SDP/ICE hoặc nội dung âm thanh.
 - Cảnh báo thêm: prompt hết hạn tăng đột biến, `afk_total` tăng nhanh, hoặc takeover thiết bị bất thường.
 
 GitHub Actions workflow `.github/workflows/production-health.yml` chạy mỗi giờ và có thể chạy
@@ -140,6 +143,10 @@ Rollback phải giữ nguyên nguyên tắc **forward-only**:
   log function; không bật service key ở client để điều tra.
 - Realtime chập chờn: snapshot được tải lại khi subscribe; kiểm tra REST vẫn hoạt động trước khi
   kết luận mất dữ liệu.
+- Không bật được mic: kiểm tra quyền microphone của trình duyệt và header
+  `Permissions-Policy: microphone=(self)`; người chết hoặc bị mute chỉ có chế độ nghe.
+- Nghe được trong cùng mạng nhưng không nghe qua 4G/5G hoặc mạng công ty: kiểm tra cấu hình
+  `VITE_TURN_*`. STUN không vượt qua được mọi NAT; không log TURN credential hoặc SDP/ICE.
 
 ## 7. Trạng thái hiện tại và việc còn lại
 

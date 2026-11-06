@@ -1,20 +1,20 @@
 # Kế hoạch chế độ chơi từ xa cho Ghostwolf
 
-> Trạng thái ngày 2026-10-29: MVP kỹ thuật đã triển khai lên production từ `main`; đủ 11
+> Trạng thái ngày 2026-11-06: MVP kỹ thuật đã triển khai lên production từ `main`; đủ 13
 > migration và hai Edge Function đang hoạt động, toàn bộ kiểm thử tự động, production health và
 > smoke test hosted đã qua. Giai đoạn 0–3 đã hoàn thành; phần kỹ thuật của Giai đoạn 4 đã xong.
 > Closed beta/manual game session trên thiết bị và mạng thật vẫn là cổng nghiệm thu cuối.
 >
 > Mục tiêu: cho phép mọi người ở các địa điểm khác nhau chơi một ván Ghostwolf hoàn
-> chỉnh chỉ bằng trình duyệt và kết nối Internet, không cần gọi thoại hoặc ứng dụng chat
-> bên ngoài.
+> chỉnh chỉ bằng trình duyệt và kết nối Internet, với chat chữ và voice trực tiếp trong ứng dụng,
+> không cần Discord, Meet, Zalo hoặc ứng dụng chat bên ngoài.
 
 ## 0. Trạng thái triển khai hiện tại
 
 | Hạng mục                             | Trạng thái      | Bằng chứng                                                              |
 | ------------------------------------ | --------------- | ----------------------------------------------------------------------- |
 | Giai đoạn 0 — Thiết kế/regression    | Hoàn thành      | Contracts, room mode, migrations/RLS và regression local mode đã merge  |
-| Giai đoạn 1 — Room/chat công khai    | Hoàn thành      | Ready check, chat, moderation, pagination, reconnect và rate limit      |
+| Giai đoạn 1 — Room/chat/voice        | Hoàn thành      | Ready check, chat, voice, moderation, reconnect và rate limit           |
 | Giai đoạn 2 — Prompt/hành động đêm   | Hoàn thành      | Toàn bộ vai chuẩn, chat Sói, timeout, thao tác hộ và private view       |
 | Giai đoạn 3 — Discussion/vote/effect | Hoàn thành      | Timer, vote kín, hòa/bầu lại, hiệu ứng, kết quả và replay               |
 | Giai đoạn 4 — Hardening/beta         | Đang nghiệm thu | Hardening tự động đã xong; closed beta và chỉ số thực tế chưa thực hiện |
@@ -23,12 +23,13 @@ Snapshot phát hành:
 
 - `main` local/remote là nguồn code mới nhất; Vercel nối trực tiếp nhánh này và production đang
   phục vụ tại `https://ghostwolf.khanhnvd.click`.
-- Supabase project `ztyefvgplgafhfukmkxh` đã áp dụng đủ 11 migration trong repo: bốn migration
+- Supabase project `ztyefvgplgafhfukmkxh` đã áp dụng đủ 13 migration trong repo: bốn migration
   nền tảng Remote Play `20261027000000`–`20261027030000`, retention cron, khôi phục quản trò,
-  verified presence và remote funnel metrics cùng ba migration nền trước đó.
+  verified presence, remote funnel metrics, admin console và voice signaling cùng ba migration
+  nền trước đó.
 - Edge Function `game-command` v3 và `player-command` v2 đang active trên Supabase hosted.
-- Xác minh phát hành: typecheck, lint, build, Deno check, 65 unit tests, 49 integration tests,
-  13 E2E scenarios, production health và các smoke test hosted đều pass.
+- Xác minh phát hành: typecheck, lint, build, Deno check, 65 unit tests, 58 integration tests,
+  14 E2E scenarios, production health và các smoke test hosted đều pass.
 
 Trạng thái này chỉ xác nhận code và hạ tầng đã phát hành. Lịch cleanup, alerting, kiểm thử thiết
 bị thật và closed beta được theo dõi riêng ở các mục 19, 20 và 23.
@@ -40,13 +41,14 @@ Ghostwolf hỗ trợ hai chế độ độc lập:
 1. **Chơi cùng phòng**: mọi người ngồi cùng bàn hoặc cùng một địa điểm. Quản trò điều hành trên
    một máy; người chơi có thể dùng điện thoại riêng hoặc chuyền máy để xem vai.
 2. **Chơi từ xa**: mỗi người có thể ở một nơi khác nhau và dùng thiết bị riêng, tự thực hiện
-   hành động bí mật, thảo luận bằng chat chữ và bỏ phiếu trong ứng dụng.
+   hành động bí mật, thảo luận bằng chat chữ/voice và bỏ phiếu trong ứng dụng.
 
 Chế độ từ xa ở phiên bản đầu có các quyết định sản phẩm sau:
 
-- Không tích hợp gọi thoại hoặc video.
+- Tích hợp voice thời gian thực; mic mặc định tắt và chỉ xin quyền trình duyệt khi người dùng bật.
+- Không tích hợp video.
 - Không yêu cầu Wi-Fi; Wi-Fi, mạng dây hoặc 4G/5G đều được, miễn có Internet.
-- Chat chữ tự do trong ứng dụng là phương tiện thảo luận chính.
+- Chat chữ luôn sẵn sàng theo quyền; voice là tùy chọn bổ sung và không được ghi âm.
 - Ván chơi diễn ra đồng bộ: mọi người nên online cùng lúc.
 - Có một quản trò riêng, không tham gia với tư cách người chơi.
 - Người chơi tự gửi hành động đêm và phiếu bầu từ thiết bị của mình.
@@ -66,7 +68,7 @@ Luồng hiện tại được thiết kế cho nhóm ngồi cạnh nhau:
 
 Khi chơi từ xa, các giả định trên không còn đúng. Ứng dụng cần đảm nhiệm thêm bốn vai trò:
 
-1. Kênh thảo luận công khai bằng chữ.
+1. Kênh thảo luận công khai bằng chữ và voice tùy chọn.
 2. Giao diện hành động bí mật cho từng người.
 3. Hệ thống thu và chốt phiếu bầu.
 4. Điều phối lượt, thời hạn, reconnect và các trường hợp mất kết nối.
@@ -80,7 +82,7 @@ cách điều phối và UI khác nhau.
 
 - Một nhóm 4–30 người có thể hoàn thành ván khi mỗi người ở một địa điểm.
 - Không cần Discord, Meet, Zalo hoặc cuộc gọi bên ngoài.
-- Tất cả người chơi có thể chat, hành động và bỏ phiếu trên điện thoại hoặc máy tính.
+- Tất cả người chơi có thể chat, voice, hành động và bỏ phiếu trên điện thoại hoặc máy tính.
 - Không lộ vai, kết quả soi, mục tiêu đêm hoặc chat Sói cho người không có quyền.
 - Refresh trang hoặc mất mạng ngắn không làm mất ghế hay mất tiến trình.
 - Command gửi lại không bị xử lý hai lần.
@@ -89,7 +91,7 @@ cách điều phối và UI khác nhau.
 
 ### 3.2. Ngoài phạm vi MVP
 
-- Gọi thoại/video tích hợp.
+- Video tích hợp.
 - Matchmaking với người lạ.
 - Quản trò đồng thời là người chơi.
 - Bot tự chơi thay người.
@@ -150,6 +152,7 @@ Mọi thao tác hộ, bỏ qua lượt, sửa kết quả hoặc loại thủ c�
 
 - Xem vai của chính mình.
 - Chat trong kênh công khai khi phase cho phép.
+- Nghe và bật/tắt mic trong kênh voice đúng với phase/quyền hiện tại.
 - Thực hiện kỹ năng đúng lượt.
 - Bỏ phiếu khi còn quyền bầu.
 - Nhận thông báo riêng đúng với vai và trạng thái.
@@ -157,6 +160,7 @@ Mọi thao tác hộ, bỏ qua lượt, sửa kết quả hoặc loại thủ c�
 ### Người chơi đã chết
 
 - Xem trạng thái và chat công khai ở chế độ chỉ đọc.
+- Có thể nghe voice công khai nhưng không được bật mic.
 - Không gửi tin, phản ứng, hành động hoặc bỏ phiếu.
 - Không tiếp tục truy cập kênh bí mật của phe cũ.
 - Chưa có chat nghĩa địa trong MVP.
@@ -383,7 +387,24 @@ Ngay khi trạng thái chết được công bố:
 
 Không có direct message và chat nghĩa địa trong MVP.
 
-### 8.2. Hành vi tin nhắn
+### 8.2. Voice thời gian thực
+
+- Voice dùng WebRTC audio peer-to-peer; Supabase chỉ truyền signaling và presence ngắn hạn.
+- Có ba channel `lobby`, `public`, `wolves`, áp dụng cùng phạm vi đọc/nói như chat tương ứng.
+- Quản trò được nghe/nói ở `lobby` và `public`, không được truy cập voice `wolves`.
+- Người chết hoặc đang bị mute chỉ nghe được voice công khai; Sói chỉ vào kênh bí mật khi còn
+  sống, đúng vai và đúng phase.
+- Mic mặc định tắt. Trình duyệt chỉ hỏi quyền microphone sau thao tác `Bật mic`; người dùng có thể
+  tắt mic hoặc rời voice bất cứ lúc nào.
+- Audio truyền trực tiếp giữa các thiết bị, không được ghi hay lưu trên Ghostwolf. Bản ghi database
+  chỉ gồm session, trạng thái mic và signaling ngắn hạn để thiết lập kết nối.
+- Giới hạn 16 người cùng tham gia một voice channel. Heartbeat mỗi 15 giây; session quá 45 giây
+  không heartbeat được dọn tự động.
+- STUN công khai đủ cho phần lớn mạng thông thường. Production nên cấu hình TURN qua
+  `VITE_TURN_URLS`, `VITE_TURN_USERNAME`, `VITE_TURN_CREDENTIAL` để hỗ trợ mạng NAT/firewall
+  nghiêm ngặt.
+
+### 8.3. Hành vi tin nhắn
 
 - Tối đa 500 ký tự.
 - Text thuần; không HTML, Markdown tùy ý, ảnh, file hoặc preview link.
@@ -394,7 +415,7 @@ Không có direct message và chat nghĩa địa trong MVP.
 - Client tạo `client_message_id` để retry không tạo tin trùng.
 - UI phải hiện `đang gửi`, `đã gửi`, `gửi thất bại`.
 
-### 8.3. Chống spam và moderation
+### 8.4. Chống spam và moderation
 
 - Giới hạn tại database: 5 tin/10 giây và 30 tin/phút/người.
 - Cooldown tăng dần khi vi phạm.
@@ -403,7 +424,7 @@ Không có direct message và chat nghĩa địa trong MVP.
 - Ghi `moderation_events` cho thao tác của quản trò.
 - Không ghi nội dung chat vào application logs hoặc Edge Function logs.
 
-### 8.4. Realtime
+### 8.5. Realtime
 
 - Tin mới được đẩy qua Supabase Realtime.
 - Khi reconnect, client đọc lại từ message cursor cuối cùng rồi mới tiếp tục nghe realtime.
@@ -577,6 +598,14 @@ hồi ngay trong cùng transaction commit state.
 - `metadata` đã lọc bí mật
 - `created_at`
 
+### 11.7. `voice_sessions` và `voice_signals`
+
+- `voice_sessions` lưu người tham gia, channel, trạng thái mic và heartbeat; RLS chỉ cho thành viên
+  có quyền channel đọc session.
+- `voice_signals` lưu offer/answer/ICE ngắn hạn; chỉ đúng người nhận được đọc và xóa.
+- Client không được chèn trực tiếp. Các RPC `join_voice`, `heartbeat_voice`, `leave_voice` và
+  `send_voice_signal` suy ra danh tính từ JWT và kiểm tra quyền server-side.
+
 ## 12. API và command
 
 ### 12.1. Giữ command quản trò hiện tại
@@ -673,6 +702,8 @@ Các invariant bắt buộc:
 - Client không được ghi trực tiếp vào state game hoặc channel membership.
 - Service role chỉ tồn tại trong Edge Function.
 - Log hệ thống không ghi JWT, nội dung chat, vai, mục tiêu, phiếu hoặc private payload.
+- Voice signaling chỉ được đọc bởi đúng người nhận; quyền nói/nghe được kiểm tra lại khi join và
+  mỗi heartbeat.
 - Rate limit áp dụng theo user, room và IP khi phù hợp.
 - Mọi payload được giới hạn kích thước trước khi parse sâu.
 
@@ -699,6 +730,7 @@ có quyền. Đây là tiêu chí release, không phải kiểm thử tùy chọ
 - Màn chờ trung tính ban đêm.
 - Prompt theo vai.
 - Chat công khai/Sói.
+- Voice theo channel với nút tham gia/rời và bật/tắt mic.
 - Vote composer.
 - Private notebook.
 - Banner reconnect/offline.
@@ -798,15 +830,16 @@ Khi hiển thị timer:
 
 ## 18. Chiến lược kiểm thử
 
-Kết quả phát hành gần nhất được xác minh ngày 2026-10-29:
+Kết quả phát hành gần nhất được xác minh ngày 2026-11-06:
 
 - `npm run typecheck`, `npm run lint`, `npm run build`: pass.
 - `deno check` cho `game-command` và `player-command`: pass.
 - `npm test`: 65/65 unit tests pass.
-- `npm run test:integration`: 49/49 integration tests pass trên Supabase local.
-- `npm run test:e2e`: 13/13 scenarios pass, gồm local full-game, remote full-flow, RLS,
+- `npm run test:integration`: 58/58 integration tests pass trên Supabase local.
+- `npm run test:e2e`: 14/14 scenarios pass, gồm local full-game, remote full-flow, RLS,
   reconnect, takeover thiết bị, xung đột hai tab quản trò, focus/keyboard accessibility, Tiên
-  tri reconnect, khôi phục quản trò sang thiết bị mới, tải 30 người và responsive 320–1920 px.
+  tri reconnect, khôi phục quản trò sang thiết bị mới, voice hai chiều, tải 30 người và responsive
+  320–1920 px.
 - Production smoke: tạo phòng remote, join, claim thiết bị, ready, chat Realtime, host nhận tin,
   đóng phòng và player nhận trạng thái đóng đều pass.
 
@@ -831,6 +864,8 @@ Kết quả phát hành gần nhất được xác minh ngày 2026-10-29:
 - Realtime chỉ phát row mà RLS cho phép.
 - Quản trò của phòng A không moderation phòng B.
 - Cleanup không xóa dữ liệu ván đang hoạt động.
+- Người ngoài phòng không đọc/join voice; signaling chỉ đúng đích đọc/xóa được.
+- Người chết/muted chỉ nghe; quản trò/Dân làng không vào voice Sói.
 
 ### E2E tests
 
@@ -843,6 +878,8 @@ Kết quả phát hành gần nhất được xác minh ngày 2026-10-29:
 - Refresh tất cả client ở mỗi phase.
 - Mobile responsive 320/390 px và desktop.
 - Local mode cũ vẫn chạy qua critical flow.
+- Hai thiết bị tham gia voice, lần lượt bật/tắt mic và nhận audio hai chiều; rời phòng cập nhật
+  participant count.
 
 ### Manual game sessions
 
@@ -860,6 +897,7 @@ Automated tests không đánh giá được nhịp chat và cảm giác chờ. C
 
 - Log JSON đã lọc bí mật và `x-request-id` ở cả hai Edge Function.
 - RPC metric tổng hợp không chứa payload riêng tư.
+- Metric `active_voice_sessions` theo dõi session voice còn heartbeat mà không chứa audio.
 - Cleanup/retention RPC `gw_cleanup` và runbook xử lý sự cố.
 - Security headers trong `vercel.json` và HTTPS trên domain production.
 
@@ -884,6 +922,7 @@ Theo dõi tối thiểu:
 - Số reconnect mỗi ván.
 - Command error theo code, đặc biệt revision conflict và timeout.
 - Độ trễ gửi/nhận chat và hành động.
+- Số session voice đang hoạt động và lỗi thiết lập WebRTC/TURN.
 - Số prompt hết hạn.
 - Số thao tác hộ của quản trò.
 - Realtime channel errors.
@@ -915,13 +954,14 @@ production smoke chỉ là điều kiện vào beta, không thay thế số li�
 ## 21. Tiêu chí hoàn thành MVP
 
 MVP kỹ thuật được coi là hoàn thành khi; phần lõi đạt ngày 2026-10-27 và các hạng mục hardening
-cuối đạt ngày 2026-10-29:
+cuối đạt ngày 2026-11-06:
 
 - [x] Tạo được phòng remote và mời người qua link/mã.
 - [x] Mọi người ready và xác nhận vai độc lập.
 - [x] Tất cả vai engine đang hỗ trợ có luồng remote hoặc fallback quản trò được ghi rõ.
 - [x] Sói phối hợp bằng chat bí mật và gửi mục tiêu.
 - [x] Chat công khai chỉ mở đúng lúc và người chết không thể gửi.
+- [x] Voice hỗ trợ lobby/public/wolves, mic opt-in và quyền nghe/nói được kiểm tra server-side.
 - [x] Vote được gửi, thay đổi, khóa và tính ở server.
 - [x] Refresh/mất mạng ngắn không làm mất tiến trình.
 - [x] Host xử lý timeout và thao tác hộ có audit.
@@ -934,8 +974,9 @@ Closed beta là cổng phát hành rộng, không còn là hạng mục code c�
 ## 22. Các quyết định MVP đã chốt
 
 Quyết định cho MVP: Sói hòa thì không cắn; chat Sói mặc định công khai sau trận; phiếu ban
-ngày chỉ công khai tổng; chỉ quản trò xóa tin; thiết bị mới giành quyền điều khiển; chưa gửi
-browser notification; người bị mê hoặc nhận thông báo; chat phòng đóng được giữ 30 ngày.
+ngày chỉ công khai tổng; chỉ quản trò xóa tin; thiết bị mới giành quyền điều khiển; mic voice
+mặc định tắt và không ghi âm; chưa gửi browser notification; người bị mê hoặc nhận thông báo;
+chat phòng đóng được giữ 30 ngày.
 
 | Quyết định                  | Giá trị MVP                         |
 | --------------------------- | ----------------------------------- |
@@ -947,6 +988,7 @@ browser notification; người bị mê hoặc nhận thông báo; chat phòng �
 | Browser notification        | Chưa có trong MVP                   |
 | Thông báo người bị mê hoặc  | Có, qua private notice              |
 | Retention chat phòng đóng   | 30 ngày                             |
+| Voice                       | Mic mặc định tắt, không ghi âm      |
 
 ## 23. Kế hoạch còn lại sau khi deploy
 
@@ -955,7 +997,8 @@ Thực hiện theo thứ tự:
 1. **Vận hành nền:** cleanup cron và synthetic health đã xác minh; log-based alert cần Log Drains
    trả phí nên tạm hoãn khi project còn ở Supabase Free.
 2. **Xác minh thiết bị thật:** kiểm tra bàn phím ảo và CTA trên iOS/Android; presence private,
-   hai tab quản trò và focus/keyboard accessibility đã có kiểm thử tự động/hosted.
+   hai tab quản trò, focus/keyboard accessibility và voice WebRTC trên mạng thật; các luồng lõi
+   đã có kiểm thử tự động/hosted.
 3. **Closed beta vòng 1:** 6–8 người, mixed Wi-Fi/4G/5G; sửa lỗi blocker và chạy lại bộ test.
 4. **Closed beta vòng 2:** 12–16 người, chủ động tạo reconnect/takeover/AFK; thu thập các chỉ
    số ở mục 20.
@@ -977,7 +1020,7 @@ và FE-02 khôi phục quản trò bằng mã một lần cũng đã hoàn thàn
 - Spectator có delay.
 - Matchmaking và phòng công khai.
 - Replay trực quan theo timeline.
-- Voice tích hợp nếu dữ liệu sử dụng chứng minh nhu cầu thực sự.
+- Tối ưu voice bằng TURN theo vùng và thống kê chất lượng kết nối không chứa nội dung audio.
 
 ---
 

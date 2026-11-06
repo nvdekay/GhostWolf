@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { sendPlayerCommand } from '@/services/player'
 import { deleteChatMessage } from '@/services/rooms'
 import type { ChatChannel, ChatMessageRow, MemberRow } from '@/services/types'
+import { VoiceRoom } from './VoiceRoom'
 import './remote.css'
 
 export function RemoteChat({
@@ -91,6 +92,7 @@ export function RemoteChat({
           </button>
         )}
       </div>
+      <VoiceRoom roomId={roomId} gameId={gameId} channel={channel} canSpeak={canSend} />
       <ol className="remote-chat__messages" aria-live="polite">
         {messages.map((message) => (
           <li key={message.id} className="remote-chat__message">
